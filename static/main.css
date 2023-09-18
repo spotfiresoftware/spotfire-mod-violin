@@ -1,0 +1,457 @@
+
+
+.body {
+  margin: 0;
+  overflow-x: hidden;
+  background-color: transparent;
+}
+
+.lasso path {
+  stroke: rgb(165, 164, 164);
+  stroke-width: 2px;
+}
+
+.lasso .drawn {
+  fill-opacity: .05;
+}
+
+.lasso .loop-close {
+  fill: none;
+  stroke-dasharray: 4, 4;
+}
+
+.lasso .origin {
+  fill: #3399FF;
+  fill-opacity: .5;
+}
+
+.container-offset-right {
+  position: absolute;
+  left:0px;
+  /*left: 40px;*/
+}
+
+#dropdown-menu-button-1 {
+  cursor: pointer;
+}
+
+#help-button {
+  cursor: pointer;
+}
+
+#my-range,
+#demo {
+  width: 25%;
+  display: none;
+}
+
+.axis {
+
+  -webkit-user-select: none;
+  /* Safari */
+  -moz-user-select: none;
+  /* Firefox */
+  -ms-user-select: none;
+  /* IE10+/Edge */
+  user-select: none;
+  /* Standard */
+
+}
+
+.x-axis {
+  display: none;
+}
+
+
+
+.table-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.summary-table1 {
+  overflow: hidden;
+  /*table-layout: fixed;*/
+  /*width: unset !important;*/
+  /* This allows explicit setting of cell widths */
+}
+
+.summary-header {
+  overflow: hidden;
+  text-align: left;
+  padding: 0px;
+}
+
+
+.summary-header,
+.summary-value {
+  border: 1px solid;
+  text-align: center;
+  margin: 0px;
+  padding: 0px;
+}
+
+.summary-div {
+  overflow: hidden;
+}
+
+.summary-value-comparison-circles {
+  border: 1px solid;
+  padding: 3px;
+  word-wrap: break-word;
+}
+
+
+/* 
+  Hovering is confusing as it shows the arrows after you've clicked them, and they're the wrong way round
+.summary-header.ordered-left:hover::after {
+    content: "⮞";
+    float: right;
+  }
+
+  .summary-header.ordered-right:hover::after {
+    content: "⮜";
+    float: right;
+
+  }
+  .summary-header.unordered:hover::after {
+    content: "⮞";
+    float: right;
+  }
+*/
+
+div.sortable {
+  cursor: pointer;
+  text-align: left;  
+}
+
+table {
+  border-collapse: collapse;
+}
+
+#mod-container {
+  overflow-x: hidden;
+}
+
+#global-zoom-container {
+  position: absolute;
+  top: 10px;
+  left: 0px;
+  width: 30px;
+}
+
+.root-container-trellis-with-global-zoom-slider {
+  position: absolute;
+  top: 0px;
+}
+
+.root-container-trellis-with-individual-zoom-slider {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+}
+
+#zoom-slider {
+  width: 100%;
+}
+
+
+.vertical-zoom-slider text,
+.vertical-zoom-slider .tick {
+  display: none;
+}
+
+path.handle {
+  fill: #fdfcfc;
+}
+
+.track {
+  stroke: #cac9c9;
+}
+
+.track-inset {
+  stroke: #cac9c9;
+  ;
+}
+
+.trellis-header {
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -o-user-select: none;
+  user-select: none;
+  border-style: solid;
+  border-width: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.trellis-body {
+  border-style: solid;
+  border-width: 1px;  
+}
+
+.dropdown-container {
+  position: fixed;
+  right: 0px;
+  top: -5px;
+  height: 100%;
+  visibility: hidden;
+}
+
+.removecaret.dropdown-toggle::after {
+  display: none;
+}
+
+.trellis-body {
+  overflow: hidden;
+}
+
+.table-container {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdown {
+  height: 90%;
+}
+
+#settings-menu {
+  overflow: auto;
+  max-height: 100%;
+  font-size: small !important;
+}
+
+.selection {
+  visibility: hidden;
+  pointer-events: none;
+  position: absolute;
+  border: 1px solid #677085;
+  background-color: rgba(0, 90, 230, 0.17);
+  width: 0;
+  height: 0;
+  top: 0;
+  left: 0;
+}
+
+.selection-bg {
+  visibility: hidden;
+  position: absolute;
+  background-color: rgba(200, 90, 230, 0);
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+}
+
+/* custom scrollbar 
+::-webkit-scrollbar {
+  width: 20px;
+  border-style: Solid;
+  border-top-left-radius: 0px;
+  border-top-right-radius: 0px;
+  border-bottom-left-radius: 0px;
+  border-bottom-right-radius: 0px;
+  border-top-width: 1px;
+  border-right-width: 1px;
+  border-bottom-width: 1px;
+  border-left-width: 1px;
+  background-color: #1907e8;
+  border-top-color: #e7650e;
+  border-right-color: #C6C8CC;
+  border-bottom-color: #C6C8CC;
+  border-left-color: #C6C8CC;
+}*/
+
+::-webkit-scrollbar {
+  width: 14px;
+}
+
+::-webkit-scrollbar-track {
+
+  border-style: Solid;
+  border-top-left-radius: 0px;
+  border-top-right-radius: 0px;
+  border-bottom-left-radius: 0px;
+  border-bottom-right-radius: 0px;
+  border-top-width: 1px;
+  border-right-width: 1px;
+  border-bottom-width: 1px;
+  border-left-width: 1px;
+  background-color: #F8F8F8;
+  border-top-color: #C6C8CC;
+  border-right-color: #C6C8CC;
+  border-bottom-color: #C6C8CC;
+  border-left-color: #C6C8CC;
+
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 8px;
+  background-clip: content-box;
+  background-image: linear-gradient(to right, #C6C8CC, #C6C8CC);
+}
+
+::-webkit-scrollbar-button:single-button {
+  background-size: 10px;
+  background-repeat: no-repeat;
+  border-style: Solid;
+  border-top-left-radius: 0px;
+  border-top-right-radius: 0px;
+  border-bottom-left-radius: 0px;
+  border-bottom-right-radius: 0px;
+  border-top-width: 1px;
+  border-right-width: 1px;
+  border-bottom-width: 1px;
+  border-left-width: 1px;
+  background-color: #F8F8F8;
+  border-top-color: #C6C8CC;
+  border-right-color: #C6C8CC;
+  border-bottom-color: #C6C8CC;
+  border-left-color: #C6C8CC;
+}
+
+/* Up */
+::-webkit-scrollbar-button:single-button:vertical:decrement {
+  height: 12px;
+  width: 15px;
+  background-position: center 3px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='75' height='75' fill='rgb(223,225,227)'><polygon points='37,00 0,37 75,37'/></svg>");
+}
+
+::-webkit-scrollbar-button:single-button:vertical:decrement:hover {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='75' height='75' fill='rgb(112, 112, 112)'><polygon points='37,00 0,37 75,37'/></svg>");
+}
+
+/*
+::-webkit-scrollbar-button:single-button:vertical:decrement:active {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' fill='rgb(223,225,227)'><polygon points='50,00 0,50 100,50'/></svg>");
+}*/
+
+/* Down */
+::-webkit-scrollbar-button:single-button:vertical:increment {
+  height: 12px;
+  width: 15px;
+  background-position: center 3px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='75' height='75' fill='rgb(223,225,227)'><polygon points='0,0 75,0 37,37'/></svg>");
+}
+
+::-webkit-scrollbar-button:single-button:vertical:increment:hover {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='75' height='75' fill='rgb(112, 112, 112)'><polygon points='0,0 75,0 37,37'/></svg>");
+}
+
+/*
+::-webkit-scrollbar-button:single-button:vertical:increment:active {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' fill='rgb(223,225,227)'><polygon points='0,0 100,0 50,50'/></svg>");
+}*/
+
+.medium-font {
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -o-user-select: none;
+  user-select: none;
+  font-size: small !important;
+}
+
+.small-font {
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -o-user-select: none;
+  user-select: none;
+  font-size: x-small !important;
+}
+
+.smaller-font {
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -o-user-select: none;
+  user-select: none;
+  font-size: xx-small !important;
+}
+
+.trend-line {
+  fill: none;
+  stroke-width: 2px;
+
+}
+
+.trend-line-config {
+  fill: none;
+  stroke-width: 1px;
+}
+
+.comparison-circle {
+  stroke-width: 2px;
+  stroke: darkgrey;
+  fill: none;
+}
+
+.comparison-circle-highlighted {
+  fill: none;
+}
+
+.comparison-circle-significantly-different {
+  stroke: rgb(255, 0, 0);
+  fill: none;
+}
+
+.point-highlighted {
+  fill: none;
+}
+
+.reference-line {
+  stroke-width: 1px;
+}
+
+#box-plot-highlight-rect {
+  fill:none;
+}
+
+.box-plot-marked-rect {
+  fill: none;
+  stroke: black;
+}
+
+.not-marked {
+  filter: contrast(50%) brightness(150%)
+}
+
+.area-highlighted {
+  stroke: black;
+  shape-rendering: geometricPrecision;
+
+
+}
+
+.rect-selection {
+  fill: #85A2CB;
+  stroke: #313336;
+  fill-opacity: 0.5;
+  stroke-opacity: 1;
+  stroke-width: 0.5;
+}
+
+#trellis-zoom-container {
+  width: 25px;
+  position: fixed;
+  top: 10px;
+  left: 10px;
+
+}
+
+#modalscontainer {
+  min-width: 150px;
+  max-width: 150px;
+}
+
+.stroke-array-dropdown-highlighted {
+  color: #16181b !important;
+  text-decoration: none;
+  background-color: #bdbebe !important;
+}

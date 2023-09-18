@@ -1,0 +1,225 @@
+{
+    "apiVersion": "1.2.0",
+    "version": "1.0.0",
+    "name": "Violin Plot",
+    "id": "spotfire-genware-mods-violin-plot",
+    "icon": "icon.svg",
+    "properties": [
+        {
+            "name": "xAxisFiltered",
+            "type": "boolean",
+            "defaultValue": "false"
+        },
+        {
+            "name": "colorForViolin",
+            "type": "boolean",
+            "defaultValue": "false"
+        },
+        {
+            "name": "includeBoxplot",
+            "type": "boolean",
+            "defaultValue": "false"
+        },
+        {
+            "name": "includeViolin",
+            "type": "boolean",
+            "defaultValue": "true"
+        },
+        {
+            "name": "violinBandwidth",
+            "type": "double",
+            "defaultValue": "0.01"
+        },
+        {
+            "name": "violinSmoothness",
+            "type": "double",
+            "defaultValue": 512
+        },
+        {
+            "name": "includeYAxisGrid",
+            "type": "boolean",
+            "defaultValue": "false"
+        },
+        {
+            "name": "yZoomMin",
+            "type": "double",
+            "defaultValue": "0"
+        },
+        {
+            "name": "yZoomMax",
+            "type": "double",
+            "defaultValue": "0"
+        },
+        {
+            "name": "yZoomMinUnset",
+            "type": "boolean",
+            "defaultValue": true
+        },
+        {
+            "name": "yZoomMaxUnset",
+            "type": "boolean",
+            "defaultValue": true
+        },
+        {
+            "name": "yAxisLog",
+            "type": "boolean",
+            "defaultValue": false
+        },
+        {
+            "name": "statisticsConfig",
+            "type": "string",
+            "defaultValue": ""
+        },
+        {
+            "name": "orderBy",
+            "type": "string",
+            "defaultValue": ""
+        },
+        {
+            "name": "yAxisDecimals",
+            "type": "double",
+            "defaultValue": "2.0"
+        },
+        {
+            "name": "yAxisUseThousandsSeparator",
+            "type": "boolean",
+            "defaultValue": "false"
+        },
+        {
+            "name": "yAxisUseShortNumberFormat",
+            "type": "boolean",
+            "defaultValue": "false"
+        },
+        {
+            "name": "yAxisDecimals",
+            "type": "double",
+            "defaultValue": "2.0"
+        },
+        {
+            "name": "maxColumnsPerPage",
+            "type": "double",
+            "defaultValue": 2
+        },
+        {
+            "name": "maxRowsPerPage",
+            "type": "double",
+            "defaultValue": 2
+        },
+        { 
+            "name": "showZoomSliders",
+            "type": "boolean",
+            "defaultValue": "false"
+        },
+        {
+            "name": "trellisIndividualZoomSettings",
+            "type": "string",
+            "defaultValue": ""
+        },
+        {
+            "name": "boxPlotColor",
+            "type": "string",
+            "defaultValue": "#FAA264"
+        },
+        {
+            "name": "violinColor",
+            "type": "string",
+            "defaultValue": "#7289f9"
+        },
+        {
+            "name": "boxWidth",
+            "type": "double",
+            "defaultValue": 8
+        },
+        {
+            "name": "showPvalue",
+            "type": "boolean",
+            "defaultValue": "false"
+        },
+        {
+            "name": "circleSize",
+            "type": "double",
+            "defaultValue": 8.0
+        },        
+        {
+            "name": "comparisonCirclesEnabled",
+            "type": "boolean",
+            "defaultValue" : "false"
+        },
+        {
+            "name": "comparisonCirclesAlpha",
+            "type": "double",
+            "defaultValue": 0.05
+        },
+        {
+            "name": "individualZoomSlider",
+            "type": "boolean",
+            "defaultValue": "false"
+        },
+        {
+            "name": "ignoreAggregatedYAxisWarning",
+            "type": "boolean",
+            "defaultValue": false
+        },
+        {
+            "name": "ignoreIncorrectCountExpression",
+            "type": "boolean",
+            "defaultValue": false
+        },
+        {
+            "name": "reloadTrigger",
+            "type": "double",
+            "defaultValue": "0.0"
+        }
+    ],
+    "dataViewDefinition": {
+        "axes": [
+            {
+                "name": "Count",
+                "mode": "continuous",
+                "placement": "none"
+            },
+            {
+                "name": "X",
+                "mode": "categorical",
+                "placement": "bottom",
+                "dropTarget": {
+                    "icon": "XAxis3D",
+                    "description": "Use {0} on the X-axis"
+                }
+            },
+            {
+                "name": "Y",
+                "mode": "continuous",
+                "placement": "left",
+                "dropTarget": {
+                    "icon": "YAxis3D",
+                    "description": "Use {0} on the Y-axis"
+                },
+                "allowNonAggregatingMeasures": true             
+            },
+            {
+                "name": "Trellis",
+                "mode": "categorical",
+                "placement": "none",
+                "dropTarget": {
+                    "icon": "TrellisPanels",
+                    "description": "Use {0} on the mod's Trellis axis"
+                },
+                "automaticConfiguration" : {"expressionHeuristics":"none"} 
+            }
+        ]
+    },
+    "files": [
+        "index.html",
+        "main.css",
+        "bundle.js",        
+        "modal-steps.min.js",
+        "jquery.min.js",
+        "bootstrap.bundle.min.js",
+        "bootstrap.min.css",
+        "errors_warnings.css",
+        "colorpicker.css"
+    ],
+    "externalResources" : [
+    ]
+}
