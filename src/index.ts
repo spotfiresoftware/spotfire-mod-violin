@@ -71,7 +71,8 @@ export enum LOG_CATEGORIES {
     DebugDataBailout,
     DebugLatestMarking,
     DebugMarkingOffset,
-    DebugZoomReset
+    DebugZoomReset,
+    DebugSingleRowMarking
 }
 
 /**

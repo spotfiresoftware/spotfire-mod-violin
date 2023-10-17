@@ -30,8 +30,8 @@ export function renderViolin(plotData: Data, xScale: d3.scaleBand, yScale: d3.sc
      */
     const violinXscale = d3.scaleLinear().range([1, xScale.bandwidth() - padding.violinX]).domain([-plotData.maxKdeValue, plotData.maxKdeValue]);
 
-    Log.green(LOG_CATEGORIES.DebugLatestMarking)("plotData.densitiesAll", plotData.densitiesAll);
-    Log.green(LOG_CATEGORIES.DebugLatestMarking)("plotData.densitiesSplitByMarking", plotData.densitiesSplitByMarking);
+    Log.green(LOG_CATEGORIES.DebugSingleRowMarking)("plotData.densitiesAll", plotData.densitiesAll);
+    Log.green(LOG_CATEGORIES.DebugSingleRowMarking)("plotData.densitiesSplitByMarking", plotData.densitiesSplitByMarking);
 
     /**
      * Add the violin to the svg

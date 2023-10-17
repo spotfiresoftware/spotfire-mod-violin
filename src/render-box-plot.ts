@@ -412,6 +412,7 @@ export function renderBoxplot(
         .attr("x", xScale.bandwidth() / 2)
         .attr("y", function (d: any) {
             if (isScaleLog && d.stats.q3 <= LOG_Y_MIN) return yScale(LOG_Y_MIN);
+            Log.blue(LOG_CATEGORIES.DebugSingleRowMarking)("d", d, d.stats.q3, "yScale", yScale(d.stats.q3));
             return yScale(d.stats.q3) as number;
         })
         .attr("height", function (d: any) {

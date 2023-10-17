@@ -144,10 +144,10 @@ export async function buildData(
     const maxRefTrendLines = d3.max(referenceAndTrendLinesMinMaxAll.map((entry: any) => entry.max));
 
     // Determine min, max for axis values, combining reference line data and actual data
-    let minValue = Math.min(minRefTrendLines ? minRefTrendLines : rowData[0]?.y, d3.min(rowData.map((d: any) => d?.y)));
-    let maxValue = Math.max(maxRefTrendLines ? maxRefTrendLines : rowData[0]?.y, d3.max(rowData.map((d: any) => d?.y)));
+    let minY = Math.min(minRefTrendLines ? minRefTrendLines : rowData[0]?.y, d3.min(rowData.map((d: any) => d?.y)));
+    let maxY = Math.max(maxRefTrendLines ? maxRefTrendLines : rowData[0]?.y, d3.max(rowData.map((d: any) => d?.y)));
     
-    Log.blue(LOG_CATEGORIES.DebugLatestMarking)(maxValue, minValue);
+    Log.blue(LOG_CATEGORIES.DebugLatestMarking)(maxY, minY);
 
     const markedYValuesMap = d3.rollup(
         rowData,
@@ -177,14 +177,19 @@ export async function buildData(
         (k: any) => k.x
     );
 
+    Log.red(LOG_CATEGORIES.DebugSingleRowMarking)("dataPointsGroupedByCat", dataPointsGroupedByCat);
+
+
     // Looking at grouping the data manually into bins of marked/not marked!
     for (const [, value] of dataPointsGroupedByCat) {
         let previousElement = value[0];
         let markingGroupId = 0;
-        value.forEach((element: RowData) => {
-            if ((element.Marked && !previousElement.Marked) || (!element.Marked && previousElement.Marked)) {
+        Log.red(LOG_CATEGORIES.DebugSingleRowMarking)("value", value);
+        value.forEach((element: RowData) => {            
+            if (element.Marked != previousElement.Marked) {
                 markingGroupId++;
             }
+            //Log.blue(LOG_CATEGORIES.DebugSingleRowMarking)("element", element, previousElement, markingGroupId, element.Marked, previousElement.Marked);
             element.markingGroupId = markingGroupId;
             previousElement = element;
         });
@@ -208,7 +213,7 @@ export async function buildData(
 
     // Calculate densities if violin is enabled
     if (config.includeViolin.value()) {
-        Log.green(LOG_CATEGORIES.DebugShowAllXValues)(dataPointsGroupedByCat);
+        Log.green(LOG_CATEGORIES.DebugSingleRowMarking)("dataPointsGroupedByCat", dataPointsGroupedByCat);
 
         for (const [key, value] of dataPointsGroupedByCat) {
             // Now need a data structure where data points are grouped by x, then marked values
@@ -223,19 +228,13 @@ export async function buildData(
             const thresholds = [];
             const markingGroups = dataPointsGroupedByCatAndMarking.get(key);
             Log.green(LOG_CATEGORIES.DebugLatestMarking)(markingGroups);
-            let previousThreshold;
             for (const [, points] of markingGroups) {
                 const threshold: any = {
                     min: d3.min(points.map((d: any) => d.y)),
                     max: d3.max(points.map((d: any) => d.y)),
                     marked: points.some((d: any) => d.Marked)
                 };
-                thresholds.push(threshold);
-                // Max of previousThreshold should be min of this threshold
-                if (previousThreshold) {
-                    //previousThreshold.max = threshold.min;
-                }
-                previousThreshold = threshold;
+                thresholds.push(threshold);                
             }
 
             // Now set max of last threshold
@@ -245,7 +244,7 @@ export async function buildData(
             markingThresholds.set(key, thresholds);
         }
 
-        Log.green(LOG_CATEGORIES.DebugLatestMarking)(markingThresholds);
+        Log.green(LOG_CATEGORIES.DebugSingleRowMarking)(markingThresholds);
 
         // Now calculate the densities
         for (const [category, points] of dataPointsGroupedByCat) {
@@ -255,7 +254,7 @@ export async function buildData(
                         points.map((d: any) => d.y),
                         {
                             size: config.violinSmoothness.value(),
-                            bandwidth: (maxValue - minValue) * config.violinBandwidth.value()
+                            bandwidth: (maxY - minY) * config.violinBandwidth.value()
                         }
                     )
                     .points()
@@ -274,10 +273,10 @@ export async function buildData(
 
             Log.green(LOG_CATEGORIES.Stats)("densityPoints", densityPoints);
             const thresholds = markingThresholds.get(category);
-            Log.green(LOG_CATEGORIES.DebugLatestMarking)("thresholds", thresholds, minValue);
+            Log.green(LOG_CATEGORIES.DebugLatestMarking)("thresholds", thresholds, minY);
             for (let i = 0; i < thresholds.length; i++) {
                 const threshold = thresholds[i];
-                Log.green(LOG_CATEGORIES.DebugLatestMarking)(
+                Log.green(LOG_CATEGORIES.DebugSingleRowMarking)(
                     "threshold",
                     threshold,
                     i,
@@ -287,9 +286,10 @@ export async function buildData(
                 let min = threshold.min;
                 let max = threshold.max;
 
-                if (min == max) {
+                if (min == max) { // The threshold covers a single row of data
                     // Adjust the thresholds slightly so we capture some marked stuff
-                    const adjustmentFactor = 0.001;
+                    const adjustmentFactor = (maxY-minY)/200;
+                    Log.red(LOG_CATEGORIES.DebugSingleRowMarking)("adjustmentFactor", adjustmentFactor);
                     min = min - adjustmentFactor;
                     max = max + adjustmentFactor;
                 }
@@ -482,15 +482,19 @@ export async function buildData(
     }
 
     Log.green(LOG_CATEGORIES.DebugLatestMarking)("maxKdeValue", maxKdeValue);
-    Log.green(LOG_CATEGORIES.DebugShowAllXValues)("minValue", minValue, maxValue);
+    
     Log.blue(LOG_CATEGORIES.DebugLatestMarking)("densities", densitiesAll, densitiesSplitByMarking, ...(Array.from(densitiesSplitByMarking.values()).map((d:any) => d.densityPoints)));
 
     // Adjust min/max to include the full extents of the violin data
     Array.from(densitiesSplitByMarking.values()).map((d:any) => d.densityPoints).forEach(element => {
-        Log.blue(LOG_CATEGORIES.DebugLatestMarking)("densityPoints", element);
-        maxValue = Math.max(maxValue, d3.max(element.map((e:any)=>e.x)));
-        minValue = Math.min(minValue, d3.min(element.map((e:any)=>e.x)))
+        Log.blue(LOG_CATEGORIES.DebugSingleRowMarking)("densityPoints", element, d3.max(element.map((e:any)=>e.x)));
+        if (element.length != 0) {
+            maxY = Math.max(maxY, d3.max(element.map((e:any)=>e.x)));
+            minY = Math.min(minY, d3.min(element.map((e:any)=>e.x)));
+        }        
     });
+
+    Log.green(LOG_CATEGORIES.DebugSingleRowMarking)("minY, maxY", minY, maxY);
 
     return {
         clearMarking: () => {
@@ -498,8 +502,8 @@ export async function buildData(
             dataView.clearMarking();
         },
         yDataDomain: {
-            min: config.yAxisLog.value() && minValue < LOG_Y_MIN ? LOG_Y_MIN : minValue,
-            max: config.yAxisLog.value() && maxValue < LOG_Y_MIN ? LOG_Y_MIN : maxValue
+            min: config.yAxisLog.value() && minY < LOG_Y_MIN ? LOG_Y_MIN : minY,
+            max: config.yAxisLog.value() && maxY < LOG_Y_MIN ? LOG_Y_MIN : maxY
         },
         xScale: categories,
         dataPoints: rowData,
