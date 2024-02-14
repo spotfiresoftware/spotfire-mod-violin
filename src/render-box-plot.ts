@@ -24,7 +24,7 @@ export function renderBoxplot(
     config: Partial<Options>
 ) {
     const isScaleLog = config.yAxisLog.value();
-    const LOG_Y_MIN = 0.01; // Centralize these?
+    const LOG_Y_MIN = 0; // Centralize these?
 
     // Boxes will be opaque if violin is NOT shown. Otherwise, a small amount of
     // transparency, so that violins will show through
@@ -632,6 +632,7 @@ export function renderBoxplot(
             return xScale.bandwidth() / 2;
         })
         .attr("cy", function (d: any) {
+            Log.green(LOG_CATEGORIES.DebugLogYAxis)("cy", d, d.y, yScale(d.y));
             return isScaleLog && d.y < LOG_Y_MIN ? yScale(LOG_Y_MIN) : (yScale(d.y) as number);
         })
         .attr("r", pointRadius)

@@ -33,6 +33,26 @@ const SumStatsConfig: SumStatsSettings[] = [
         rotation: 0
     },
     {
+        name: "CountUndef",
+        property: "countUndefined",
+        type: SumStatReferenceType.Line,
+        format: "~s",
+        size: function () {
+            return 0;
+        },
+        path: function (xBandwidth: number) {
+            return horizontalLineGenerator(-1 * (xBandwidth / 4), xBandwidth / 4);
+        },
+        labelHorizOffset: function (xBandwidth: number) {
+            return 3 * xBandwidth / 4;
+        },
+        verticalOffset: function () {
+            return 0;
+        },
+        dashArray: 3.1,
+        rotation: 0
+    },
+    {
         name: "Min",
         property: "min",
         type: SumStatReferenceType.Point,

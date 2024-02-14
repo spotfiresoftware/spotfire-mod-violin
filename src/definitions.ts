@@ -167,4 +167,6 @@ export interface Options {
 
     GetYAxisFormatString(): string;
 
+    IsStatisticsConfigItemEnabled(name: string) : boolean;
+
 }

@@ -56,7 +56,7 @@ export function renderStatisticsTable(
         const statisticsValues = [];
         statisticsValues.push(entry.name);
 
-        const propertyName = SumStatsConfig.find((e: SumStatsSettings) => e.name === entry.name).property;
+        const propertyName = SumStatsConfig.find((e: SumStatsSettings) => e.name === entry.name)!.property;
         Log.blue(LOG_CATEGORIES.DebugShowingStatsTable)("orderedCategories", orderedCategories);
         orderedCategories.forEach((category:string, i:number) => {
             Log.red(LOG_CATEGORIES.DebugShowingStatsTable)("category", category);
