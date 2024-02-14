@@ -24,7 +24,6 @@ export function renderViolin(plotData: Data, xScale: d3.scaleBand, yScale: d3.sc
     const padding = { violinX: 20 };
     const isScaleLog = config.yAxisLog.value();
     const curveType = d3.curveLinear;
-    const LOG_Y_MIN = 0;
     /**
      * violinXscale is used for the correct placing of violin area
      */
@@ -66,7 +65,7 @@ export function renderViolin(plotData: Data, xScale: d3.scaleBand, yScale: d3.sc
             // ... so swap them round
             const datum = d.densityPoints.map(function (point: any) {
                 return { violinX: point.y, violinY: point.x, trellis: d.trellis, category: d.x, sumStats: plotData.sumStats.get(d.x), count:d.count}
-            }).filter((p: any) => !isScaleLog || p.violinY > LOG_Y_MIN);
+            });
             Log.green(LOG_CATEGORIES.Rendering)("datum", datum);
             return datum;
         }) // So now we are working bin per bin
@@ -200,7 +199,7 @@ export function renderViolin(plotData: Data, xScale: d3.scaleBand, yScale: d3.sc
         .datum((d: any) => {
             const datum = d.densityPoints.map(function (point: any) {
                 return { violinX: point.y, violinY: point.x, trellis: d.trellis, category: d.x, sumStats: plotData.sumStats.get(d.x) }
-            }).filter((p: any) => !isScaleLog || p.violinY > LOG_Y_MIN);
+            });
             Log.green(LOG_CATEGORIES.Rendering)("datum", datum);
             return datum;
         }) // So now we are working bin per bin        

@@ -232,7 +232,7 @@ export function renderStatisticsTable(
                         d3.format(config.GetYAxisFormatString())(plotData.comparisonCirclesStats.alpha) +
                         "<br/>" +
                         "Root MSE: " +
-                        d3.format(config.GetYAxisFormatString())(Math.sqrt(plotData.comparisonCirclesStats.rootMse)) +
+                        d3.format(config.GetYAxisFormatString())(plotData.comparisonCirclesStats.rootMse) +
                         "<br/>" +
                         "sqrt(2)q*: " +
                         d3.format(config.GetYAxisFormatString())(plotData.comparisonCirclesStats.q))

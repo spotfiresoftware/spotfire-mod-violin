@@ -78,12 +78,13 @@ export enum LOG_CATEGORIES {
   DebugZoomReset,
   DebugSingleRowMarking,
   DebugLogYAxis,
+  DebugYScaleTicks
 }
 
 /**
  * Set this array to any number of categories, or None to hide all logging
  */
-const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.DebugLogYAxis];
+const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.ComparisonCircles];
 
 /**
  * Log helper - pass the log category as the first argument, then any number of args as you would with console.log
@@ -149,7 +150,6 @@ let isInteractive = true; // Easy way to track if the view is "interactive", i.e
  * Create a persistent state used by the rendering code
  */
 const state: RenderState = { preventRender: false, disableAnimation: false };
-export const LOG_Y_MIN = 0;
 
 export function setTrellisPanelZoomedTitle(title: string) {
   trellisPanelZoomedTitle = title;
@@ -593,7 +593,10 @@ Spotfire.initialize(async (mod) => {
           name == "Q3" && config.includeBoxplot.value() ||
           name == "LAV" && config.includeBoxplot.value() ||
           name == "UAV" && config.includeBoxplot.value() ||
-          name == "Median" && config.includeBoxplot.value() 
+          name == "Median" && config.includeBoxplot.value() ||
+          name == "Count" && config.comparisonCirclesEnabled.value() ||
+          name == "StdDev" && config.comparisonCirclesEnabled.value() ||
+          name == "Avg" && config.comparisonCirclesEnabled.value()
         );
       },
       GetYAxisFormatString() {

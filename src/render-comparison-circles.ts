@@ -1,4 +1,4 @@
-import { getBorderColor, getComparisonCircleHighlightedColor, getComplementaryColor, getContrastingColor, Log, LOG_CATEGORIES, LOG_Y_MIN } from "./index";
+import { getBorderColor, getComparisonCircleHighlightedColor, getComplementaryColor, getContrastingColor, Log, LOG_CATEGORIES } from "./index";
 // @ts-ignore
 import * as d3 from "d3";
 import { D3_SELECTION, Data, Options } from "./definitions";
@@ -24,14 +24,10 @@ export function renderComparisonCircles(
         .attr("height", heightAvailable)
         .attr("fill", "none");
 
-    g.selectAll(".comparison-circle")
-        // Filter data if log y scale to exclude those where y0 or radius is < LOG_Y_MIN
+    g.selectAll(".comparison-circle")        
         .data(
-            new Map(
-                [...plotData.comparisonCirclesData].filter(
-                    ([, v]) => !isScaleLog || (v.y0 >= LOG_Y_MIN && v.y0 - v.radius >= LOG_Y_MIN)
-                )
-            )
+            
+            plotData.comparisonCirclesData
         )
         .enter()
         .append("g")

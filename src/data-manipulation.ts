@@ -2,7 +2,7 @@
 import * as d3 from "d3";
 
 import { oneWay } from "ml-anova";
-import { IAnoletesult } from "ml-anova/lib/utils";
+import { IAnovaResult } from "ml-anova/lib/utils";
 // @ts-ignore
 
 // @ts-ignore
@@ -27,7 +27,7 @@ import {
   StatisticsConfig,
   SumStatsSettings,
 } from "./definitions";
-import { Log, LOG_CATEGORIES, LOG_Y_MIN } from "./index";
+import { Log, LOG_CATEGORIES } from "./index";
 import { SumStatsConfig } from "./sumstatsconfig";
 import { log } from "console";
 
@@ -505,10 +505,10 @@ export async function buildData(
         sumAll += count * element.stdDev * element.stdDev;
         df += count - 1;
         k++;
-      }
+      }      
     });
 
-    let qTukey: number = NaN;
+    let qTukey: number = 0;
 
     // studentized range (q) distribution
     if (k >= 2 && df >= 3 && df > k) {
@@ -517,12 +517,12 @@ export async function buildData(
         qtukey(1 - config.comparisonCirclesAlpha.value(), k, df) / Math.SQRT2;
     }
 
-    let stdErr: number = NaN;
+    let stdErr: number = 0;
     if (df != 0) {
       stdErr = sumAll / df;
     }
 
-    Log.green(LOG_CATEGORIES.ComparisonCircles)(df, sumAll, qTukey, stdErr);
+    Log.green(LOG_CATEGORIES.ComparisonCircles)("df, k, sumAll, qTukey, stdErr", df, k, sumAll, qTukey, stdErr);
 
     for (const [key, element] of sumStats.entries()) {
       Log.green(LOG_CATEGORIES.ComparisonCircles)(element);
@@ -538,8 +538,8 @@ export async function buildData(
 
     comparisonCirclesStats = {
       alpha: config.comparisonCirclesAlpha.value(),
-      rootMse: stdErr,
-      q: qTukey,
+      rootMse: Math.sqrt(stdErr),
+      q: Math.SQRT2 * qTukey,
     };
 
     Log.green(LOG_CATEGORIES.ComparisonCircles)(
@@ -554,13 +554,13 @@ export async function buildData(
   let pValue: any;
   if (config.showPvalue.value()) {
     /* function for calculating p-value */
-    function oneWayAnovaHelper(data: any[], classes: any[]): IAnoletesult {
+    function oneWayAnovaHelper(data: any[], classes: any[]): IAnovaResult {
       return oneWay(data, classes, { alpha: 0.05 });
     }
 
     const dataX = rowData.map((d) => d.x);
     const dataY = rowData.map((d) => d.y);
-    let oneWayAnoletes: IAnoletesult;
+    let oneWayAnovaResult: IAnovaResult;
     Log.green(LOG_CATEGORIES.Stats)(dataX);
     Log.green(LOG_CATEGORIES.Stats)(dataX.length);
     if (dataX.length > 0) {
@@ -578,7 +578,7 @@ export async function buildData(
           pValue = "NA";
         }
 
-        Log.green(LOG_CATEGORIES.Stats)(oneWayAnoletes, oneWayAnoletes?.pValue);
+        Log.green(LOG_CATEGORIES.Stats)(oneWayAnovaResult, oneWayAnovaResult?.pValue);
       } else {
         Log.green(LOG_CATEGORIES.Stats)("dataXSet NA");
         pValue = "NA"; // The number of unique values in x is less than 1
