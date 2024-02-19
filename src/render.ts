@@ -426,19 +426,33 @@ export async function render(
       .scaleLog()
       .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
       .range([heightAvailable - padding.betweenPlotAndTable, 0]);
+    let modulus =
+      20 - Math.floor((heightAvailable - padding.betweenPlotAndTable) / 40);
     Log.blue(LOG_CATEGORIES.DebugYScaleTicks)(
       "modulus",
-      Math.floor(heightAvailable - padding.betweenPlotAndTable),
+      modulus,
       yScale.ticks()
     );
-    ticks = yScale
-      .ticks()
-      .filter(
-        (t: number, i: number) =>
-          i %
-            Math.floor((heightAvailable - padding.betweenPlotAndTable) / 40) ==
-          0
+
+    ticks = yScale.ticks();
+    let currentPower = Math.floor(Math.log10(ticks[0]));
+    ticks = ticks.filter((t: number, i: number) => {
+      //i %
+      //  modulus ==
+      //0
+      let pow = Math.floor(Math.log10(t));
+      Log.blue(LOG_CATEGORIES.DebugYScaleTicks)(
+        "pow, currentPow, t",
+        pow,
+        currentPower,
+        t
       );
+      if (pow != currentPower) {
+        currentPower = pow;
+        return true;
+      }
+      return i == 0 || i == ticks.length - 1;
+    });
   } else {
     yScale = d3
       .scaleLinear()
@@ -661,15 +675,41 @@ export async function render(
    * Draw grid lines
    */
   if (config.includeYAxisGrid.value() && styling.scales.line.stroke != "none") {
-    svg
-      .selectAll(".tick")
+    Log.green(LOG_CATEGORIES.DebugYScaleTicks)(ticks);
+    g.selectAll("line.horizontalGrid")
+      .data(yScale.ticks())
+      .enter()
       .append("line")
       .attr("class", "horizontal-grid")
+      .attr("x1", 0)
       .attr("x2", width)
-      //.attr("fill", styling.scales.line.stroke)
+      .attr("y1", (d: number) => yScale(d))
+      .attr("y2", (d: number) => yScale(d))
+      .attr("stroke", styling.scales.line.stroke)
+      .attr("shape-rendering", "crispEdges");
+    //.attr("stroke", styling.scales.line.stroke)
+
+    g.selectAll("line.horizontalGridHover")
+      .data(yScale.ticks())
+      .enter()
+      .append("line")
+      .attr("class", "horizontal-grid-hover")
+      .attr("style", "opacity:0;")
+      .attr("x1", 0)
+      .attr("x2", width)
+      .attr("y1", (d: number) => yScale(d))
+      .attr("y2", (d: number) => yScale(d))
+      .attr("stroke", styling.scales.line.stroke)      
+      .attr("stroke-width", 10)
       .attr("shape-rendering", "crispEdges")
-      //.attr("stroke", styling.scales.line.stroke)
-      .attr("stroke-width", "1px");
+      //.attr("stroke", styling.scales.line.stroke)  
+      .on("mouseover", function (event: d3.event, d: any) {
+        tooltip.show(d3.format(config.GetYAxisFormatString())(d));
+      })
+      .on("mouseover", function (event: d3.event, d: any) {
+        tooltip.show(d3.format(config.GetYAxisFormatString())(d));
+      })
+      .on("mouseout", () => tooltip.hide());
   }
 
   // Styling of ticks and lines
@@ -1370,7 +1410,7 @@ export async function render(
         const minY = Math.min(element.y1, element.y2);
         const maxY = Math.max(element.y1, element.y2);
         const rowsToMark: DataViewRow[] = plotData.dataPoints
-          .filter((p) => p.y >= minY && p.y <= maxY && p.x == element.category)
+          .filter((p) => p.y >= minY && p.y <= maxY && p.category == element.category)
           .map((r) => r.row);
 
         violinRowsMarkedCount += rowsToMark.length;
@@ -1379,7 +1419,7 @@ export async function render(
           rowsToMark,
           minY,
           maxY,
-          plotData.dataPoints.filter((p) => p.x == element.category)
+          plotData.dataPoints.filter((p) => p.category == element.category)
         );
         plotData.mark(rowsToMark, ctrlKey ? "ToggleOrAdd" : "Replace");
       });

@@ -32,7 +32,7 @@ export interface RenderedPanel {
 }
 
 export interface RowData {
-    x: string;
+    category: string;
     y: number;
     trellis: string;
     Color: string;
@@ -75,11 +75,8 @@ export interface Data {
     clearMarking(): void;
     dataPoints: RowData[];
     dataPointsGroupedByCat: Map<any, any>;
-    dataPointsGroupedByCatAndMarking: Map<any, any>;
-    markedYValues: Map<any, any>;
     densitiesSplitByMarking: any[];
     densitiesAll: any[];
-    markingThresholds: Map<any, any>;
     sumStats: Map<any, any>;
     categories: string[];
     isAnyMarkedRecords: boolean;

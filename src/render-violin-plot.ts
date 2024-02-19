@@ -38,12 +38,12 @@ export function renderViolin(plotData: Data, xScale: d3.scaleBand, yScale: d3.sc
 
     // Segments for the violin - marked/unmarked        
     g.selectAll(".violin-path")
+        // This is all violins that will be displayed, including category
         .data(plotData.densitiesSplitByMarking)
-        .enter() // So now we are working group per group
+        .enter() 
         .append("g")
-        .attr("transform", function (d: any) {
-            Log.green(LOG_CATEGORIES.DebugViolinXPos)("test data", d, d.x, xScale(d.x));
-            return "translate(" + ((xScale(d.x) ? xScale(d.x) : 0) + padding.violinX / 2) + " ,0)";
+        .attr("transform", function (d: any) {            
+            return "translate(" + ((xScale(d.category) ? xScale(d.category) : 0) + padding.violinX / 2) + " ,0)";
         })
         .style("stroke", config.violinColor.value())
         .style("fill", function (d: any) {
@@ -64,7 +64,7 @@ export function renderViolin(plotData: Data, xScale: d3.scaleBand, yScale: d3.sc
             // point is a density point; y is the density, x is the value (plot's y value) being reported
             // ... so swap them round
             const datum = d.densityPoints.map(function (point: any) {
-                return { violinX: point.y, violinY: point.x, trellis: d.trellis, category: d.x, sumStats: plotData.sumStats.get(d.x), count:d.count}
+                return { violinX: point.y, violinY: point.x, trellis: d.trellis, category: d.category, sumStats: plotData.sumStats.get(d.category), count:d.count}
             });
             Log.green(LOG_CATEGORIES.Rendering)("datum", datum);
             return datum;
@@ -190,15 +190,15 @@ export function renderViolin(plotData: Data, xScale: d3.scaleBand, yScale: d3.sc
         .enter() // So now we are working group per group
         .append("g")
         .attr("transform", function (d: any) {
-            Log.green(LOG_CATEGORIES.Rendering)("test data", d, d.x, xScale(d.x));
-            return "translate(" + ((xScale(d.x) ? xScale(d.x) : 0) + padding.violinX / 2) + " ,0)";
+            Log.green(LOG_CATEGORIES.Rendering)("test data", d, d.category, xScale(d.category));
+            return "translate(" + ((xScale(d.category) ? xScale(d.category) : 0) + padding.violinX / 2) + " ,0)";
         }) // Translation on the right to be at the group position        
         .style("fill", "none")
         .append("path")
         .classed("violin-path-markable", true)
         .datum((d: any) => {
             const datum = d.densityPoints.map(function (point: any) {
-                return { violinX: point.y, violinY: point.x, trellis: d.trellis, category: d.x, sumStats: plotData.sumStats.get(d.x) }
+                return { violinX: point.y, violinY: point.x, trellis: d.trellis, category: d.category, sumStats: plotData.sumStats.get(d.category) }
             });
             Log.green(LOG_CATEGORIES.Rendering)("datum", datum);
             return datum;

@@ -84,7 +84,7 @@ export enum LOG_CATEGORIES {
 /**
  * Set this array to any number of categories, or None to hide all logging
  */
-const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.ComparisonCircles];
+const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.General, LOG_CATEGORIES.DebugLogYAxis];
 
 /**
  * Log helper - pass the log category as the first argument, then any number of args as you would with console.log
@@ -1411,7 +1411,7 @@ Spotfire.initialize(async (mod) => {
     if (!isTrellis) {
       buildData(await trellisAxisHierarchy.root(), dataView, config)
         .then(async (data) => {
-          Log.red(LOG_CATEGORIES.DebugLatestMarking)("Got data");
+          Log.red(LOG_CATEGORIES.DebugLogYAxis)("Got data");
           if (data == undefined) {
             // something's gone wrong with the data building
             // most likely to do with dataView expiring. For now, bail out.
@@ -1474,7 +1474,7 @@ Spotfire.initialize(async (mod) => {
           );
         })
         .catch((error: Error) => {
-          Log.red(LOG_CATEGORIES.DebugDataBailout)(
+          Log.red(LOG_CATEGORIES.DebugLogYAxis)(
             "Caught error in buildData",
             error
           );
@@ -1485,7 +1485,7 @@ Spotfire.initialize(async (mod) => {
             mod.controls.progress.hide();
             MOD_CONTAINER.selectAll("*").remove();
             mod.controls.errorOverlay.show(error.message);
-            throw error.message;
+            throw error;
           }
         });
     } else {

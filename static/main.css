@@ -62,7 +62,10 @@
   display: none;
 }
 
-
+.horizontal-grid {
+  opacity: 1;
+  stroke-width: 1px;
+}
 
 .table-container {
   position: relative;

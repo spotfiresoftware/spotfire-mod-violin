@@ -94,7 +94,7 @@ export function renderBoxplot(
       return yScale(d.stats.q3) as number;
     })
     .attr("stroke", function () {
-      return config.boxPlotColor.value(); // (d:any) => {Log.green(LOG_CATEGORIES.Rendering)(d, plotData.dataPoints.filter((dx:any) => dx.x == d[0]).some((p: any) => p.y < d[1])); return config.boxPlotColor.value()})
+      return config.boxPlotColor.value(); 
     })
     .style("opacity", BOX_OPACITY)
     .style("stroke-width", height < 600 ? 2 : 5)
@@ -161,7 +161,7 @@ export function renderBoxplot(
         category: d[0],
         dataPoints: plotData.dataPoints.filter(
           (r: any) =>
-            r.y == d[1].uav && r.x === d[0] && r.trellis == d[1].trellis
+            r.y == d[1].uav && r.category === d[0] && r.trellis == d[1].trellis
         ),
         stats: d[1],
       };
@@ -639,7 +639,7 @@ export function renderBoxplot(
       // A highlight circle is a black ring overlaid on a white ring
       // in light mode, and a white circle overlaid on a black ring in dark mode
       g.append("circle")
-        .attr("transform", "translate(" + xScale(d.x) + " ,0)")
+        .attr("transform", "translate(" + xScale(d.category) + " ,0)")
         .attr("id", "highlightcircle")
         .classed("point-highlighted", true)
         .attr("cx", xScale.bandwidth() / 2)
@@ -648,7 +648,7 @@ export function renderBoxplot(
         .attr("stroke", styling.generalStylingInfo.backgroundColor)
         .attr("stroke-width", "3px");
       g.append("circle")
-        .attr("transform", "translate(" + xScale(d.x) + " ,0)")
+        .attr("transform", "translate(" + xScale(d.category) + " ,0)")
         .attr("id", "highlightcircle")
         .classed("point-highlighted", true)
         .attr("cx", xScale.bandwidth() / 2)

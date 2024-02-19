@@ -57,7 +57,7 @@ export function renderStatisticsTable(
         statisticsValues.push(entry.name);
 
         const propertyName = SumStatsConfig.find((e: SumStatsSettings) => e.name === entry.name)!.property;
-        Log.blue(LOG_CATEGORIES.DebugShowingStatsTable)("orderedCategories", orderedCategories);
+        Log.blue(LOG_CATEGORIES.DebugLogYAxis)("orderedCategories", orderedCategories);
         orderedCategories.forEach((category:string, i:number) => {
             Log.red(LOG_CATEGORIES.DebugShowingStatsTable)("category", category);
             // Avoid "Comparison" category if comparison circles are enabled
