@@ -161,7 +161,7 @@ export async function buildData(
       rowData,
       config.yAxisLog.value()
     );
-    filteredRowData = rowData.filter((r: any) => r.y > 0);
+    filteredRowData = rowData; //.filter((r: any) => r.y > 0);
     Log.red(LOG_CATEGORIES.DebugLogYAxis)("rowData filtered", rowData);
   }
 
@@ -289,7 +289,7 @@ export async function buildData(
       );
 
       if (config.yAxisLog.value()) {
-        densityPointsSorted = densityPointsSorted.filter((p: any) => p.x > 0);
+        //densityPointsSorted = densityPointsSorted.filter((p: any) => p.x > 0);
       }
 
       densitiesAll.push({
@@ -305,11 +305,6 @@ export async function buildData(
         minY
       );
 
-      // This is all the densities for the current category, split by marking
-      const currentCategoryDensitiesSplitByMarking: any = [];
-
-      // Problem is that min for the threshold doesn't cover the first threshold; missing values. First density point in
-      // densitiesSplitByMaring is 93something; it should be 71something
       thresholds.forEach((threshold: any) => {
         let min = threshold.min;
         let max = threshold.max;
@@ -374,53 +369,8 @@ export async function buildData(
             "densitiesSplitByMarking",
             densitiesSplitByMarking
           );
-
-          currentCategoryDensitiesSplitByMarking.push(filteredPoints);
         }
       });
-
-      /* const length = currentCategoryDensitiesSplitByMarking.length;
-        for (let i = 1; i < length; i++) {
-
-
-
-          const previousDensityPoints = (
-            currentCategoryDensitiesSplitByMarking[i - 1] as any
-          ).densityPoints as any;
-          const currentDensityPoints = currentCategoryDensitiesSplitByMarking[i]
-            .densityPoints as any;
-
-          Log.green(LOG_CATEGORIES.DebugLogYAxis)(
-            "i, previous, current",
-            i,
-            previousDensityPoints,
-            currentDensityPoints,
-            currentCategoryDensitiesSplitByMarking
-          );
-          if (
-            previousDensityPoints?.length > 0 &&
-            currentDensityPoints?.length > 0
-          ) {
-            const betweenDensities = densityPointsSorted.filter((p: any) => {
-              return (
-                p.x >=
-                  (
-                    previousDensityPoints[
-                      previousDensityPoints.length - 1
-                    ] as any
-                  )?.x && p.x <= (currentDensityPoints[0] as any)?.x
-              );
-            });
-
-            densitiesSplitByMarking.push({
-              category: category,
-              trellis: trellisNode.formattedPath(),
-              densityPoints: betweenDensities,
-              Marked: false,
-              IsGap: true,
-            });
-          }
-        }*/
 
       // Now fill in the "gaps", where there are no data points for parts of the violin
       if (isAnyMarkedRecords) {
@@ -441,9 +391,16 @@ export async function buildData(
             Array.from(densityPointsSorted).reverse();
 
           // Get index of densityPoint that's just greater than min of next threshold
-          const maxIndex = densityPointsSorted.findIndex(
+          let maxIndex = Math.min(densityPointsSorted.findIndex(
             (p: any) => p.x > thresholds[i + 1]?.min
-          ) + 1;
+          ), densityPointsSorted.length - 1);
+          
+          //Log.blue(LOG_CATEGORIES.DebugLogYAxis)(
+          //  "thresholds maxIndex", maxIndex, densityPointsSorted);
+
+          if (maxIndex == undefined) {
+            maxIndex = densityPointsSorted.length - 1 as number;
+          }
 
           // Get index of densityPoint that's just less than max of this threshold
           const minIndex =
@@ -468,6 +425,8 @@ export async function buildData(
             maxIndex,
             threshold.max,
             thresholds[i + 1]?.min,
+            densityPointsSorted[minIndex]?.x,
+            densityPointsSorted[maxIndex]?.x,
             gapPoints,
             densityPointsSorted
           );

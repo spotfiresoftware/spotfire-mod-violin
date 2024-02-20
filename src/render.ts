@@ -335,7 +335,6 @@ export async function render(
   /**
    * Set the width and height of svg and translate it
    */
-
   svg.attr(
     "style",
     "width:" +
@@ -417,15 +416,15 @@ export async function render(
     config.yZoomMinUnset.value(),
     config.yZoomMaxUnset.value()
   );
-  Log.green(LOG_CATEGORIES.Rendering)("minZoom, maxZoom", minZoom, maxZoom);
+  Log.green(LOG_CATEGORIES.DebugLogYAxis)("minZoom, maxZoom", minZoom, maxZoom);
 
   let yScale = d3.scale;
   let ticks: number[];
   if (isScaleLog) {
     yScale = d3
-      .scaleLog()
+      .scaleSymlog()
       .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
-      .range([heightAvailable - padding.betweenPlotAndTable, 0]);
+      .range([heightAvailable - padding.betweenPlotAndTable, 0]).constant(1);
     let modulus =
       20 - Math.floor((heightAvailable - padding.betweenPlotAndTable) / 40);
     Log.blue(LOG_CATEGORIES.DebugYScaleTicks)(
