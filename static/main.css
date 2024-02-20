@@ -65,6 +65,11 @@
 .horizontal-grid {
   opacity: 1;
   stroke-width: 1px;
+  /*z-index: -100;*/
+}
+
+.horizontal-grid-hover {
+  /*z-index: -100;*/
 }
 
 .table-container {

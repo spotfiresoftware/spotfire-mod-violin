@@ -31,16 +31,19 @@ export const addHandlersSelection = (callback) => {
     });
 
     document.onmousedown = (e) => {
-        Log.green(LOG_CATEGORIES.Marking)(e.target, e.target.classList);
-        if (e.target.nodeName != "svg" || e.target.classList.contains("dropdown-toggle")) {
+        Log.green(LOG_CATEGORIES.Marking)(e.target, "nodeName", e.target.nodeName, e.target.nodeName == "line", e.target.classList);
+        if (e.target.nodeName != "svg" && e.target.nodeName != "line" || e.target.classList.contains("dropdown-toggle")) {
+            Log.green(LOG_CATEGORIES.Marking)("Returning, not marking due to target not matching");
             return; // do not respond to mouseup on anything other than svg
         }
         if (e.button != 0) {
-            // Ignore anything other than the right mouse button
+            // Ignore anything other than the left mouse button
             return;
         }
+
         //Log.green(LOG_CATEGORIES.Marking)("ui marking", d3.select("#root-container").node().offset());
         if (e.target.classList?.contains("markable") || e.target.classList?.contains("markable-points")) {
+            Log.green(LOG_CATEGORIES.Marking)("Returning, not marking due to classList not matching");
             return; // Do not start the drag behaviour if an element is clicked
         }
         callback({ dragSelectActive: true });

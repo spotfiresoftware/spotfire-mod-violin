@@ -678,6 +678,10 @@ function buildSumStats(
   data: any,
   trellisName: string
 ) {
+
+  // Quick fix to filter <= 0 for Log Y Axis (or not)
+  const filter = false;
+  const filterCount = false;
   /**
    * Grouping data by the categories and calculating metrics for box plot
    */
@@ -691,7 +695,7 @@ function buildSumStats(
         count = d3.count(
           d.map(function (g: any) {
             //Log.green(LOG_CATEGORIES.DebugLogYAxis)(g, g.y);
-            return (config.yAxisLog.value() && g.y > 0) ||
+            return !filterCount || (config.yAxisLog.value() && g.y > 0) ||
               !config.yAxisLog.value()
               ? (g.y as number)
               : NaN;
@@ -705,8 +709,7 @@ function buildSumStats(
         countUndefined = d3.count(
           d.map(function (g: any) {
             //Log.green(LOG_CATEGORIES.DebugLogYAxis)(g, g.y);
-            return (config.yAxisLog.value() && g.y <= 0) ||
-              !config.yAxisLog.value()
+            return g.y <= 0
               ? 1
               : NaN;
           })
@@ -718,7 +721,7 @@ function buildSumStats(
         stdDev = d3.deviation(
           d.map(function (g: any) {
             //if(DEBUG) Log.green(LOG_CATEGORIES.General)(g.y);
-            return (config.yAxisLog.value() && g.y > 0) ||
+            return !filter || (config.yAxisLog.value() && g.y > 0) ||
               !config.yAxisLog.value()
               ? (g.y as number)
               : NaN;
@@ -731,7 +734,7 @@ function buildSumStats(
         avg = d3.mean(
           d.map(function (g: any) {
             //if(DEBUG) Log.green(LOG_CATEGORIES.General)(g.y);
-            return (config.yAxisLog.value() && g.y > 0) ||
+            return !filter || (config.yAxisLog.value() && g.y > 0) ||
               !config.yAxisLog.value()
               ? (g.y as number)
               : NaN;
@@ -744,7 +747,7 @@ function buildSumStats(
         sum = d3.sum(
           d.map(function (g: any) {
             //if(DEBUG) Log.green(LOG_CATEGORIES.General)(g.y);
-            return (config.yAxisLog.value() && g.y > 0) ||
+            return !filter || (config.yAxisLog.value() && g.y > 0) ||
               !config.yAxisLog.value()
               ? (g.y as number)
               : NaN;
@@ -757,7 +760,7 @@ function buildSumStats(
         q1 = d3.quantile(
           d
             .map(function (g: any) {
-              return (config.yAxisLog.value() && g.y > 0) ||
+              return !filter || (config.yAxisLog.value() && g.y > 0) ||
                 !config.yAxisLog.value()
                 ? (g.y as number)
                 : NaN;
@@ -772,7 +775,7 @@ function buildSumStats(
         median = d3.quantile(
           d
             .map(function (g: any) {
-              return (config.yAxisLog.value() && g.y > 0) ||
+              return !filter || (config.yAxisLog.value() && g.y > 0) ||
                 !config.yAxisLog.value()
                 ? (g.y as number)
                 : NaN;
@@ -787,7 +790,7 @@ function buildSumStats(
         q3 = d3.quantile(
           d
             .map(function (g: any) {
-              return (config.yAxisLog.value() && g.y > 0) ||
+              return !filter || (config.yAxisLog.value() && g.y > 0) ||
                 !config.yAxisLog.value()
                 ? (g.y as number)
                 : NaN;
@@ -802,7 +805,7 @@ function buildSumStats(
       const min: number = d3.min(
         d.map(function (g: any) {
           //if(DEBUG) Log.green(LOG_CATEGORIES.General)(g.y);
-          return (config.yAxisLog.value() && g.y > 0) ||
+          return !filter || (config.yAxisLog.value() && g.y > 0) ||
             !config.yAxisLog.value()
             ? (g.y as number)
             : NaN;
@@ -820,7 +823,7 @@ function buildSumStats(
         max = d3.max(
           d.map(function (g: any) {
             //if(DEBUG) Log.green(LOG_CATEGORIES.General)(g.y);
-            return (config.yAxisLog.value() && g.y > 0) ||
+            return !filter || (config.yAxisLog.value() && g.y > 0) ||
               !config.yAxisLog.value()
               ? (g.y as number)
               : NaN;
@@ -832,7 +835,7 @@ function buildSumStats(
       if (config.IsStatisticsConfigItemEnabled("LAV")) {
         lav = d3.min(
           d.map((g: any) => {
-            if (config.yAxisLog.value() && g.y <= 0) return NaN;
+            if (filter && config.yAxisLog.value() && g.y <= 0) return NaN;
             return g.y >= lif ? (g.y as number) : (max as number);
           })
         );
@@ -845,7 +848,7 @@ function buildSumStats(
       if (config.IsStatisticsConfigItemEnabled("UAV")) {
         uav = d3.max(
           d.map((g: any) => {
-            if (config.yAxisLog.value() && g.y <= 0) return NaN;
+            if (filter && config.yAxisLog.value() && g.y <= 0) return NaN;
             return g.y <= uif ? (g.y as number) : NaN;
           })
         );
@@ -857,7 +860,7 @@ function buildSumStats(
       if (config.IsStatisticsConfigItemEnabled("Outliers")) {
         outlierCount = d3.count(
           d.map(function (g: any) {
-            if (config.yAxisLog.value() && g.y <= 0) return NaN;
+            if (filter || (config.yAxisLog.value() && g.y <= 0)) return NaN;
             return g.y > uav ? g.y : null || g.y < lav ? g.y : null;
           })
         );

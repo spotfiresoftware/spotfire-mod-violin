@@ -683,12 +683,12 @@ export async function render(
       .attr("x1", 0)
       .attr("x2", width)
       .attr("y1", (d: number) => yScale(d))
-      .attr("y2", (d: number) => yScale(d))
+      .attr("y2", (d: number) => yScale(d))      
       .attr("stroke", styling.scales.line.stroke)
       .attr("shape-rendering", "crispEdges");
     //.attr("stroke", styling.scales.line.stroke)
 
-    g.selectAll("line.horizontalGridHover")
+    g.selectAll("line.horizontal-grid-hover")
       .data(yScale.ticks())
       .enter()
       .append("line")
