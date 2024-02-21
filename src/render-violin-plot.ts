@@ -60,11 +60,11 @@ export function renderViolin(plotData: Data, xScale: d3.scaleBand, yScale: d3.sc
         .classed("violin-path", true)
         .classed("violin-gap", ((d: any) => d.IsGap))
         .datum((d: any) => {
-            Log.green(LOG_CATEGORIES.DebugLatestMarking)("violin datum", d);
+            Log.green(LOG_CATEGORIES.DebugLogYAxis)("violin datum", d);
             // point is a density point; y is the density, x is the value (plot's y value) being reported
             // ... so swap them round
             const datum = d.densityPoints.map(function (point: any) {
-                return { violinX: point.y, violinY: point.x, trellis: d.trellis, category: d.category, sumStats: plotData.sumStats.get(d.category), count:d.count}
+                return { isGap:d.IsGap, violinX: point.y, violinY: point.x, trellis: d.trellis, category: d.category, sumStats: plotData.sumStats.get(d.category), count:d.count}
             });
             Log.green(LOG_CATEGORIES.Rendering)("datum", datum);
             return datum;
@@ -93,8 +93,8 @@ export function renderViolin(plotData: Data, xScale: d3.scaleBand, yScale: d3.sc
                 tooltip.show(
                     "No data\n" +
                     xAxisSpotfire.parts[0]?.displayName + ": " + d[0].category +
-                    "\nY min: " + d3.min(d.map((p: any) => p.violinY)) +
-                    "\nY max: " + d3.max(d.map((p: any) => p.violinY)));
+                    "\nY min: " + d3.min(d.map((p: any) => d3.format(config.GetYAxisFormatString())(p.violinY))) +
+                    "\nY max: " + d3.max(d.map((p: any) => d3.format(config.GetYAxisFormatString())(p.violinY))));
             } else {
                 Log.green(LOG_CATEGORIES.DebugLatestMarking)("datum in mouseover", d[0]);
 
@@ -122,8 +122,8 @@ export function renderViolin(plotData: Data, xScale: d3.scaleBand, yScale: d3.sc
                 tooltip.show(
                     "No data\n" +
                     xAxisSpotfire.parts[0]?.displayName + ": " + d[0].category +
-                    "\nY min: " + d3.min(d.map((p: any) => p.violinY)) +
-                    "\nY max: " + d3.max(d.map((p: any) => p.violinY)));
+                    "\nY min: " + d3.min(d.map((p: any) => d3.format(config.GetYAxisFormatString())(p.violinY))) +
+                    "\nY max: " + d3.max(d.map((p: any) => d3.format(config.GetYAxisFormatString())(p.violinY))));
             } else {
                 tooltip.show(
                     xAxisSpotfire.parts[0]?.displayName + ": " + d[0].category +
@@ -150,12 +150,14 @@ export function renderViolin(plotData: Data, xScale: d3.scaleBand, yScale: d3.sc
             highlightMarkedComparisonCircles(g, xScale, heightAvailable, config, plotData, generalStylingInfo.backgroundColor);
         })
         .on("click", (event: MouseEvent, d: any) => {
+            Log.green(LOG_CATEGORIES.DebugLogYAxis)("clicked violin", d);
+            if (d[0].isGap || d[1].isGap) return; // Don't attempt to do anything if the user clicks a gap!
             const dataPoints = plotData.dataPoints.filter((r: any) => {
                 if (d[0].category == "(None)") return true;
                 return r.row.categorical("X").formattedValue() === d[0].category;
             });
             state.disableAnimation = true;
-            Log.green(LOG_CATEGORIES.Rendering)("clicked violin", dataPoints);
+            
             plotData.mark(dataPoints.map((r: any) => r.row) as DataViewRow[], event.ctrlKey ? "ToggleOrAdd" : "Replace");
         })
         .transition()

@@ -149,20 +149,19 @@ export async function buildData(
     });
   }
 
-  const unfilteredRowData = rowData;
   let filteredRowData = rowData;
 
   const sumStats = buildSumStats(config, rowData, trellisNode.formattedPath());
 
   // If log Y axis, filter out all negative values
-  if (config.yAxisLog.value() == true) {
+  if (config.yAxisScaleType.value() == "log") {
     Log.red(LOG_CATEGORIES.DebugLogYAxis)(
       "rowData not filtered",
       rowData,
-      config.yAxisLog.value()
+      config.yAxisScaleType.value()
     );
-    filteredRowData = rowData; //.filter((r: any) => r.y > 0);
-    Log.red(LOG_CATEGORIES.DebugLogYAxis)("rowData filtered", rowData);
+    filteredRowData = rowData.filter((r: any) => r.y > 0);
+    Log.red(LOG_CATEGORIES.DebugLogYAxis)("rowData filtered", filteredRowData);
   }
 
   // Get mins and maxes of any enabled reference or trend lines
@@ -213,34 +212,40 @@ export async function buildData(
 
   Log.blue(LOG_CATEGORIES.DebugLogYAxis)("minY, maxY", minY, maxY);
 
-  const dataPointsGroupedByCat = new d3.rollup(
-    unfilteredRowData,
+  const rowDataGroupedByCat = new d3.rollup(
+    filteredRowData,
     (d: any) => d.sort((a: any, b: any) => d3.ascending(a.y, b.y)),
     (k: any) => k.category
   );
 
   Log.red(LOG_CATEGORIES.DebugLogYAxis)(
     "dataPointsGroupedByCat",
-    dataPointsGroupedByCat
+    rowDataGroupedByCat
   );
 
-  const dataPointsGroupedByCatAndMarking = new Map<number, any>();
   const densitiesSplitByMarking: any = [];
 
   // Calculate densities if violin is enabled
   if (config.includeViolin.value()) {
-    const dataPointsGroupedByCat = new d3.rollup(
-      unfilteredRowData,
+    const rowDataGroupedByCat = new d3.rollup(
+      rowData, // Always calculate this on all data
       (d: any) => d.sort((a: any, b: any) => d3.ascending(a.y, b.y)),
       (k: any) => k.category
     );
 
     // Group the data manually into bins of marked/not marked
-    for (const [category, points] of dataPointsGroupedByCat) {
-      let previousElement = points[0];
+    for (const [category, categoryRowData] of rowDataGroupedByCat) {
+
+      let filteredCategoryRowData = categoryRowData;
+
+      if (config.yAxisScaleType.value() == "log") {
+        filteredCategoryRowData = categoryRowData.filter((r:RowData) => r.y > 0);
+      }
+
       let markingGroupId = 0;
-      Log.red(LOG_CATEGORIES.DebugSingleRowMarking)("value", points);
-      points.forEach((element: RowData) => {
+      
+      let previousElement = categoryRowData[0];
+      filteredCategoryRowData.forEach((element: RowData) => {
         if (element.Marked != previousElement.Marked) {
           markingGroupId++;
         }
@@ -249,10 +254,12 @@ export async function buildData(
         previousElement = element;
       });
 
+      // Calculate the densities - note - in the result, x is the y axis in the plot; y is the width of the violin at
+      // that point.
       let densityPointsSorted = Array.from(
         kde_pkg
           .density1d(
-            points.map((d: any) => d.y),
+            categoryRowData.map((d: any) => d.y),
             {
               size: config.violinSmoothness.value(),
               bandwidth: (maxY - minY) * config.violinBandwidth.value(),
@@ -262,23 +269,23 @@ export async function buildData(
       ).sort((a: any, b: any) => d3.ascending(a.x, b.x));
 
       // Now need a data structure where data points are grouped by marking
-      const pointsGroupedByAndMarking = d3.rollup(
-        points,
+      const pointsGroupedByMarking = d3.rollup(
+        filteredCategoryRowData,
         (d: any) => d,
         (d: any) => d.markingGroupId
       );
       Log.blue(LOG_CATEGORIES.DebugLogYAxis)(
-        "dataPointsGroupedByCatAndMarking",
-        pointsGroupedByAndMarking
+        "dataPointsGroupedByMarking",
+        pointsGroupedByMarking
       );
 
       // Thresholds is the thresholds of each block (group) of marked/unmarked data
       const thresholds: any = [];
-      for (const [, points] of pointsGroupedByAndMarking) {
+      for (const [, filteredPoints] of pointsGroupedByMarking) {
         const threshold: any = {
-          min: d3.min(points.map((d: any) => d.y)),
-          max: d3.max(points.map((d: any) => d.y)),
-          marked: points.some((d: any) => d.Marked),
+          min: d3.min(filteredPoints.map((d: any) => d.y)),
+          max: d3.max(filteredPoints.map((d: any) => d.y)),
+          marked: filteredPoints.some((d: any) => d.Marked),
         };
         thresholds.push(threshold);
       }
@@ -288,8 +295,9 @@ export async function buildData(
         densityPointsSorted
       );
 
-      if (config.yAxisLog.value()) {
-        //densityPointsSorted = densityPointsSorted.filter((p: any) => p.x > 0);
+      // Filter out any points <= 0, if scale is log
+      if (config.yAxisScaleType.value() == "log") {
+        densityPointsSorted = densityPointsSorted.filter((p: any) => p.x > 0);
       }
 
       densitiesAll.push({
@@ -361,7 +369,7 @@ export async function buildData(
             densityPoints: filteredPoints,
             Marked: threshold.marked,
             IsGap: false,
-            count: dataPointsGroupedByCat.get(category).filter((d: any) => {
+            count: rowDataGroupedByCat.get(category).filter((d: any) => {
               return d.y >= threshold.min && d.y <= threshold.max;
             }).length,
           });
@@ -374,43 +382,59 @@ export async function buildData(
 
       // Now fill in the "gaps", where there are no data points for parts of the violin
       if (isAnyMarkedRecords) {
-        // Now add the bottom/top
+       
         // bottom (min):
-        densitiesSplitByMarking.push({
-          category: category,
-          trellis: trellisNode.formattedPath(),
-          densityPoints: densityPointsSorted.filter(
-            (p: any) => p.x < thresholds[0].min
-          ),
-          Marked: false,
-          IsGap: true,
-        });
+        // Find the first point that's just greater than thresholds[0].min
+        const maxIndex =  Math.min(
+            densityPointsSorted.findIndex(
+              (p: any) => p.x > thresholds[0]?.min
+            ),
+            densityPointsSorted.length - 1) + 1;
+
+        const gapPoints = densityPointsSorted.filter(
+          (p: any, i:number) => i < maxIndex
+        );
+
+        Log.green(LOG_CATEGORIES.DebugLogYAxis)("Bottom gap points", gapPoints, maxIndex);
+        if (gapPoints.length > 0) {
+          densitiesSplitByMarking.push({
+            category: category,
+            trellis: trellisNode.formattedPath(),
+            densityPoints: gapPoints,
+            Marked: false,
+            IsGap: true,
+          });
+        }
 
         thresholds.forEach((threshold: any, i: number) => {
           const densityPointsReversed =
             Array.from(densityPointsSorted).reverse();
 
           // Get index of densityPoint that's just greater than min of next threshold
-          let maxIndex = Math.min(densityPointsSorted.findIndex(
-            (p: any) => p.x > thresholds[i + 1]?.min
-          ), densityPointsSorted.length - 1);
-          
+          let maxIndex = Math.min(
+            densityPointsSorted.findIndex(
+              (p: any) => p.x > thresholds[i + 1]?.min
+            ),
+            densityPointsSorted.length - 1
+          );
+
           //Log.blue(LOG_CATEGORIES.DebugLogYAxis)(
           //  "thresholds maxIndex", maxIndex, densityPointsSorted);
 
           if (maxIndex == undefined) {
-            maxIndex = densityPointsSorted.length - 1 as number;
+            maxIndex = (densityPointsSorted.length - 1) as number;
           }
 
           // Get index of densityPoint that's just less than max of this threshold
           const minIndex =
             densityPointsSorted.length -
-            densityPointsReversed.findIndex((p: any) => p.x < threshold.max) - 1;
+            densityPointsReversed.findIndex((p: any) => p.x < threshold.max) -
+            1;
 
           const gapPoints = densityPointsSorted.filter(
             (p: any, i: number) => i >= minIndex && i <= maxIndex //p.x >= threshold.max && p.x <= thresholds[i + 1]?.min
-          )
-          
+          );
+
           densitiesSplitByMarking.push({
             category: category,
             trellis: trellisNode.formattedPath(),
@@ -606,7 +630,7 @@ export async function buildData(
     dataPoints: rowData,
     densitiesSplitByMarking: densitiesSplitByMarking,
     densitiesAll: densitiesAll,
-    dataPointsGroupedByCat: dataPointsGroupedByCat,
+    dataPointsGroupedByCat: rowDataGroupedByCat,
     sumStats: sumStats,
     categories: categories,
     isAnyMarkedRecords: isAnyMarkedRecords,
@@ -678,10 +702,10 @@ function buildSumStats(
   data: any,
   trellisName: string
 ) {
-
   // Quick fix to filter <= 0 for Log Y Axis (or not)
-  const filter = false;
-  const filterCount = false;
+  const filter = config.yAxisScaleType.value() == "log";
+  const filterCount = config.yAxisScaleType.value() == "log";
+
   /**
    * Grouping data by the categories and calculating metrics for box plot
    */
@@ -695,7 +719,8 @@ function buildSumStats(
         count = d3.count(
           d.map(function (g: any) {
             //Log.green(LOG_CATEGORIES.DebugLogYAxis)(g, g.y);
-            return !filterCount || (config.yAxisLog.value() && g.y > 0) ||
+            return !filterCount ||
+              (config.yAxisLog.value() && g.y > 0) ||
               !config.yAxisLog.value()
               ? (g.y as number)
               : NaN;
@@ -709,9 +734,7 @@ function buildSumStats(
         countUndefined = d3.count(
           d.map(function (g: any) {
             //Log.green(LOG_CATEGORIES.DebugLogYAxis)(g, g.y);
-            return g.y <= 0
-              ? 1
-              : NaN;
+            return g.y <= 0 ? 1 : NaN;
           })
         );
       }
@@ -721,7 +744,8 @@ function buildSumStats(
         stdDev = d3.deviation(
           d.map(function (g: any) {
             //if(DEBUG) Log.green(LOG_CATEGORIES.General)(g.y);
-            return !filter || (config.yAxisLog.value() && g.y > 0) ||
+            return !filter ||
+              (config.yAxisLog.value() && g.y > 0) ||
               !config.yAxisLog.value()
               ? (g.y as number)
               : NaN;
@@ -734,7 +758,8 @@ function buildSumStats(
         avg = d3.mean(
           d.map(function (g: any) {
             //if(DEBUG) Log.green(LOG_CATEGORIES.General)(g.y);
-            return !filter || (config.yAxisLog.value() && g.y > 0) ||
+            return !filter ||
+              (config.yAxisLog.value() && g.y > 0) ||
               !config.yAxisLog.value()
               ? (g.y as number)
               : NaN;
@@ -747,7 +772,8 @@ function buildSumStats(
         sum = d3.sum(
           d.map(function (g: any) {
             //if(DEBUG) Log.green(LOG_CATEGORIES.General)(g.y);
-            return !filter || (config.yAxisLog.value() && g.y > 0) ||
+            return !filter ||
+              (config.yAxisLog.value() && g.y > 0) ||
               !config.yAxisLog.value()
               ? (g.y as number)
               : NaN;
@@ -760,7 +786,8 @@ function buildSumStats(
         q1 = d3.quantile(
           d
             .map(function (g: any) {
-              return !filter || (config.yAxisLog.value() && g.y > 0) ||
+              return !filter ||
+                (config.yAxisLog.value() && g.y > 0) ||
                 !config.yAxisLog.value()
                 ? (g.y as number)
                 : NaN;
@@ -775,7 +802,8 @@ function buildSumStats(
         median = d3.quantile(
           d
             .map(function (g: any) {
-              return !filter || (config.yAxisLog.value() && g.y > 0) ||
+              return !filter ||
+                (config.yAxisLog.value() && g.y > 0) ||
                 !config.yAxisLog.value()
                 ? (g.y as number)
                 : NaN;
@@ -790,7 +818,8 @@ function buildSumStats(
         q3 = d3.quantile(
           d
             .map(function (g: any) {
-              return !filter || (config.yAxisLog.value() && g.y > 0) ||
+              return !filter ||
+                (config.yAxisLog.value() && g.y > 0) ||
                 !config.yAxisLog.value()
                 ? (g.y as number)
                 : NaN;
@@ -805,7 +834,8 @@ function buildSumStats(
       const min: number = d3.min(
         d.map(function (g: any) {
           //if(DEBUG) Log.green(LOG_CATEGORIES.General)(g.y);
-          return !filter || (config.yAxisLog.value() && g.y > 0) ||
+          return !filter ||
+            (config.yAxisLog.value() && g.y > 0) ||
             !config.yAxisLog.value()
             ? (g.y as number)
             : NaN;
@@ -823,7 +853,8 @@ function buildSumStats(
         max = d3.max(
           d.map(function (g: any) {
             //if(DEBUG) Log.green(LOG_CATEGORIES.General)(g.y);
-            return !filter || (config.yAxisLog.value() && g.y > 0) ||
+            return !filter ||
+              (config.yAxisLog.value() && g.y > 0) ||
               !config.yAxisLog.value()
               ? (g.y as number)
               : NaN;

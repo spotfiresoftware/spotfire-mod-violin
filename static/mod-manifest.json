@@ -66,6 +66,11 @@
             "defaultValue": false
         },
         {
+            "name": "yAxisScaleType",
+            "type": "string",
+            "defaultValue": "linear"
+        },
+        {
             "name": "statisticsConfig",
             "type": "string",
             "defaultValue": ""

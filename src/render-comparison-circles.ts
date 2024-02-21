@@ -12,7 +12,6 @@ export function renderComparisonCircles(
     tooltip: Tooltip,
     heightAvailable: number,
     plotData: Data,
-    isScaleLog: boolean,
     backgroundColor: string,
     state: any
 ) {

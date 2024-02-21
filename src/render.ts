@@ -196,13 +196,9 @@ export async function render(
     // .attr("id", "dragcont")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-  // Prepare for y axis, but don't render it yet
-  const isScaleLog = config.yAxisLog.value();
-
   /**
    * Order categories, build plotData.sumStats (summary statistics)
    */
-
   let orderedCategories = plotData.categories;
   Log.red(LOG_CATEGORIES.DebugShowAllXValues)(
     "orderedCategories before sort:",
@@ -420,11 +416,25 @@ export async function render(
 
   let yScale = d3.scale;
   let ticks: number[];
-  if (isScaleLog) {
+
+  // Symmetrical log
+  if (config.yAxisScaleType.value() == "symlog") {
     yScale = d3
       .scaleSymlog()
       .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
       .range([heightAvailable - padding.betweenPlotAndTable, 0]).constant(1);
+  }
+
+  // Log
+  if (config.yAxisScaleType.value() == "log") {
+    yScale = d3
+      .scaleLog()
+      .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
+      .range([heightAvailable - padding.betweenPlotAndTable, 0]);
+  }
+
+  // Settings common to both symmetrical log and log
+  if (config.yAxisScaleType.value() == "symlog" || config.yAxisScaleType.value() == "log") {
     let modulus =
       20 - Math.floor((heightAvailable - padding.betweenPlotAndTable) / 40);
     Log.blue(LOG_CATEGORIES.DebugYScaleTicks)(
@@ -452,7 +462,9 @@ export async function render(
       }
       return i == 0 || i == ticks.length - 1;
     });
-  } else {
+  } 
+
+  if (config.yAxisScaleType.value() == "linear") {
     yScale = d3
       .scaleLinear()
       .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
@@ -831,8 +843,7 @@ export async function render(
       yScale,
       tooltip,
       heightAvailable,
-      plotData,
-      isScaleLog,
+      plotData,      
       styling.generalStylingInfo.backgroundColor,
       state
     );

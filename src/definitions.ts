@@ -105,6 +105,9 @@ export interface Options {
     //** y-axis types include linear and log */
     yAxisLog: ModProperty<boolean>;
 
+    // y-axis scale type - linear/log/symlog
+    yAxisScaleType: ModProperty<string>;
+
     includeViolin: ModProperty<boolean>;
     /** To do: would color the violing area instead of individual points*/
     colorForViolin: boolean;

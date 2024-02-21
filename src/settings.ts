@@ -900,6 +900,17 @@ export function createSettingsPopout(
 
   AddDivider(dropDownContainer);
   section = AddSection("Y-axis", dropDownContainer);
+
+  AddRadioButton(
+    config.yAxisScaleType,
+    [
+        { text: "Linear", value: "linear" },
+        { text: "Log (filtered to > 0)", value: "log" },
+        { text: "Symmetrical Log (experimental)", value: "symlog" }
+    ],
+    section
+  )
+
   AddCheckbox("Log scale", config.yAxisLog, section, () => {});
   AddCheckbox("Show gridlines", config.includeYAxisGrid, section, () => {});
   AddCheckbox("Show P-Value", config.showPvalue, section, () => {});
