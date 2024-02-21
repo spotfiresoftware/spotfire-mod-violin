@@ -78,13 +78,14 @@ export enum LOG_CATEGORIES {
   DebugZoomReset,
   DebugSingleRowMarking,
   DebugLogYAxis,
-  DebugYScaleTicks
+  DebugYScaleTicks,
+  DebugMedian
 }
 
 /**
  * Set this array to any number of categories, or None to hide all logging
  */
-const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.Marking];
+const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.DebugMedian];
 
 /**
  * Log helper - pass the log category as the first argument, then any number of args as you would with console.log

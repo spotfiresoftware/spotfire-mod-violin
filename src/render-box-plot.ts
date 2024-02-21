@@ -66,17 +66,14 @@ export function renderBoxplot(
   // Q3 to UAV (Upper Adjacent Value) - top vertical line
   boxplot
     .append("line")
-    .datum((d: any) => {
-      /*if (isNaN(yScale(d[1].q3) || isNaN(yScale(d[1].uav)))) {
-                return {};
-            }*/
+    .datum((d: any) => {     
       return {
         category: d[0],
         dataPoints: plotData.dataPoints.filter(
           (r: any) =>
             r.y <= d[1].uav &&
             r.y > d[1].q3 &&
-            r.x === d[0] &&
+            r.category === d[0] &&
             r.trellis == d[1].trellis
         ),
         stats: d[1],
@@ -87,17 +84,17 @@ export function renderBoxplot(
     .attr("x1", xScale.bandwidth() / 2)
     .attr("x2", xScale.bandwidth() / 2)
     // Before animation
-    .attr("y1", function (d: any) {
+    .attr("y1", function (d: any) {     
       return yScale(d.stats.q3) as number;
     })
     .attr("y2", function (d: any) {
       return yScale(d.stats.q3) as number;
     })
     .attr("stroke", function () {
-      return config.boxPlotColor.value(); 
+      return config.boxPlotColor.value();
     })
     .style("opacity", BOX_OPACITY)
-    .style("stroke-width", height < 600 ? 2 : 5)
+    .style("stroke-width", height < 600 ? 3 : 5)
     .classed("not-marked", function (d: any) {
       if (!plotData.isAnyMarkedRecords) {
         return false;
@@ -177,7 +174,7 @@ export function renderBoxplot(
     })
     .attr("stroke", config.boxPlotColor.value())
     .style("opacity", BOX_OPACITY)
-    .style("stroke-width", height < 600 ? 2 : 5)
+    .style("stroke-width", height < 600 ? 3 : 5)
     .classed("not-marked", function (d: any) {
       if (!plotData.isAnyMarkedRecords) {
         return false;
@@ -238,7 +235,7 @@ export function renderBoxplot(
           (r: any) =>
             r.y >= d[1].lav &&
             r.y < d[1].q1 &&
-            r.x === d[0] &&
+            r.category === d[0] &&
             r.trellis == d[1].trellis
         ),
         stats: d[1],
@@ -256,7 +253,7 @@ export function renderBoxplot(
     })
     .attr("stroke", config.boxPlotColor.value()) // (d:any) => {Log.green(LOG_CATEGORIES.Rendering)(d, plotData.dataPoints.filter((dx:any) => dx.x == d[0]).some((p: any) => p.y < d[1])); return config.boxPlotColor.value()})
     .style("opacity", BOX_OPACITY)
-    .style("stroke-width", height < 600 ? 2 : 5)
+    .style("stroke-width", height < 600 ? 3 : 5)
     .classed("not-marked", function (d: any) {
       if (!plotData.isAnyMarkedRecords) {
         return false;
@@ -322,7 +319,7 @@ export function renderBoxplot(
         category: d[0],
         dataPoints: plotData.dataPoints.filter(
           (r: any) =>
-            r.y == d[1].lav && r.x === d[0] && r.trellis == d[1].trellis
+            r.y == d[1].lav && r.category === d[0] && r.trellis == d[1].trellis
         ),
         stats: d[1],
       };
@@ -338,7 +335,7 @@ export function renderBoxplot(
     })
     .attr("stroke", config.boxPlotColor.value())
     .style("opacity", BOX_OPACITY)
-    .style("stroke-width", height < 600 ? 2 : 5)
+    .style("stroke-width", height < 600 ? 3 : 5)
     .classed("not-marked", function (d: any) {
       if (!plotData.isAnyMarkedRecords) {
         return false;
@@ -400,7 +397,7 @@ export function renderBoxplot(
           (r: any) =>
             r.y >= d[1].median &&
             r.y <= d[1].q3 &&
-            r.x === d[0] &&
+            r.category === d[0] &&
             r.trellis == d[1].trellis
         ),
         stats: d[1],
@@ -457,12 +454,12 @@ export function renderBoxplot(
             boxWidth / 2 -
             (height < 600 ? 2 : 5) / 2
         )
-        .attr("y", yScale(d.stats.q3) - (height < 600 ? 2 : 5) / 2)
+        .attr("y", yScale(d.stats.q3) + (height < 600 ? 2 : 5) / 2)
         .attr(
           "height",
           Math.max(
             0,
-            yScale(d.stats.median) - yScale(d.stats.q3) + (height < 600 ? 2 : 5)
+            yScale(d.stats.median) - yScale(d.stats.q3) - (height < 600 ? 2 : 5)
           )
         )
         .attr("width", boxWidth + (height < 600 ? 2 : 5));
@@ -487,13 +484,14 @@ export function renderBoxplot(
   boxplot
     .append("rect")
     .datum((d: any) => {
+      Log.green(LOG_CATEGORIES.DebugMedian)(d);
       return {
         category: d[0],
         dataPoints: plotData.dataPoints.filter(
           (r: any) =>
             r.y >= d[1].q1 &&
             r.row?.continuous("Y").value() < d[1].median &&
-            r.x === d[0] &&
+            r.category === d[0] &&
             r.trellis == d[1].trellis
         ),
         stats: d[1],
@@ -543,12 +541,12 @@ export function renderBoxplot(
             boxWidth / 2 -
             (height < 600 ? 2 : 5) / 2
         )
-        .attr("y", yScale(d.stats.median) - (height < 600 ? 2 : 5))
+        .attr("y", yScale(d.stats.median) + (height < 600 ? 2 : 5))
         .attr(
           "height",
           Math.max(
             0,
-            yScale(d.stats.q1) - yScale(d.stats.median) + (height < 600 ? 2 : 5)
+            yScale(d.stats.q1) - yScale(d.stats.median) - (height < 600 ? 2 : 5)
           )
         )
         .attr("width", boxWidth + (height < 600 ? 2 : 5));
@@ -572,21 +570,57 @@ export function renderBoxplot(
   // median
   boxplot
     .append("line")
+    .datum((d: any) => {
+      Log.green(LOG_CATEGORIES.DebugMedian)("Datum", d);
+      return {
+        category: d[0],
+        dataPoints: plotData.dataPoints.filter(
+          (r: any) =>
+            r.y == d[1].median && r.category === d[0] && r.trellis == d[1].trellis
+        ),
+        stats: d[1],
+      };
+    })
     .classed("markable", false)
-    .attr("x1", xScale.bandwidth() / 2)
-    .attr("x2", xScale.bandwidth() / 2)
+    .classed("median-line", true)
+    .attr("x1", xScale.bandwidth() / 2 - boxWidth / 2)
+    .attr("x2", xScale.bandwidth() / 2 + boxWidth / 2)
     .attr("y1", function (d: any) {
-      yScale(d[1].median) as number;
+      //Log.green(LOG_CATEGORIES.DebugMedian)(d, d.median, yScale(d.median));
+      return yScale(d.stats.median) as number;
     })
     .attr("y2", function (d: any) {
-      yScale(d[1].median) as number;
+      return yScale(d.stats.median) as number;
     })
-    .attr("stroke", "white")
-    .style("stroke-width", 2)
-    .transition()
-    .duration(animationSpeed)
-    .attr("x1", xScale.bandwidth() / 2 - boxWidth / 2)
-    .attr("x2", xScale.bandwidth() / 2 + boxWidth / 2);
+    .attr("stroke", styling.generalStylingInfo.backgroundColor)
+    .on("mouseover", function (event: d3.event, d: any) {
+      tooltip.show(
+        d.category +
+          "\nMedian: " +
+          d3.format(config.GetYAxisFormatString())(d.stats.median)
+      );
+      // draw a rect around the median area
+      g.append("rect")
+        .attr("id", "box-plot-highlight-rect")
+        .attr(
+          "stroke",
+          getMarkerHighlightColor(styling.generalStylingInfo.backgroundColor)
+        )
+        .attr(
+          "x",
+          (xScale(d.category) ? xScale(d.category) : 0) +
+            xScale.bandwidth() / 2 -
+            boxWidth / 2 -
+            (height < 600 ? 2 : 5) / 2
+        )
+        .attr("y", yScale(d.stats.median) - 2)
+        .attr("height", "3px")
+        .attr("width", boxWidth + (height < 600 ? 2 : 5));
+    })
+    .on("mouseout", () => {
+      tooltip.hide();
+      d3.select("#box-plot-highlight-rect").remove();
+    });
 
   /**Radius of individual data   point circles */
   const pointRadius = (height * config.circleSize.value()) / 1000;

@@ -425,8 +425,8 @@ export async function buildData(
             maxIndex,
             threshold.max,
             thresholds[i + 1]?.min,
-            densityPointsSorted[minIndex]?.x,
-            densityPointsSorted[maxIndex]?.x,
+            densityPointsSorted[minIndex],
+            densityPointsSorted[maxIndex],
             gapPoints,
             densityPointsSorted
           );

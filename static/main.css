@@ -68,8 +68,9 @@
   /*z-index: -100;*/
 }
 
-.horizontal-grid-hover {
-  /*z-index: -100;*/
+.median-line {
+  stroke-width: 2px;
+  opacity: 1;
 }
 
 .table-container {
