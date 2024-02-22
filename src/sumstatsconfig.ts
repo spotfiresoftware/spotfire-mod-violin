@@ -33,20 +33,6 @@ const SumStatsConfig: SumStatsSettings[] = [
     rotation: 0,
   },
   {
-    name: "Count <= 0",
-    property: "countUndefined",
-    type: SumStatReferenceType.Line,
-    format: "~s",
-    size: function () {
-      return 0;
-    },
-    path: undefined,
-    labelHorizOffset: undefined,
-    verticalOffset: undefined,
-    dashArray: undefined,
-    rotation: undefined,
-  },
-  {
     name: "Min",
     property: "min",
     type: SumStatReferenceType.Point,

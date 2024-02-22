@@ -53,27 +53,30 @@ export function renderStatisticsTable(
     Log.blue(LOG_CATEGORIES.DebugShowingStatsTable)("sumstats", plotData.sumStats);
     Array.from(config.GetStatisticsConfigItems().values()).filter((statisticsConfig: StatisticsConfig) => statisticsConfig.tableEnabled).forEach((entry: StatisticsConfig) => {
         // Now iterate over the orderedCategories, getting the value for each metric
-        const statisticsValues = [];
-        statisticsValues.push(entry.name);
+        const configProperty = SumStatsConfig.find((e: SumStatsSettings) => e.name === entry.name);
+        if (configProperty != undefined) {
+            const statisticsValues = [];
+            statisticsValues.push(entry.name);
 
-        const propertyName = SumStatsConfig.find((e: SumStatsSettings) => e.name === entry.name)!.property;
-        Log.blue(LOG_CATEGORIES.DebugLogYAxis)("orderedCategories", orderedCategories);
-        orderedCategories.forEach((category:string, i:number) => {
-            Log.red(LOG_CATEGORIES.DebugShowingStatsTable)("category", category);
-            // Avoid "Comparison" category if comparison circles are enabled
-            if (!config.comparisonCirclesEnabled.value() || i < orderedCategories.length - 1) {
-                const sumStats = plotData.sumStats.get(category);
-                Log.green(LOG_CATEGORIES.DebugComparisonCirclesInTable)("category", category, i);
-                if (sumStats) {
-                    Log.green(LOG_CATEGORIES.DebugComparisonCirclesInTable)(entry.name, propertyName, category, sumStats["max"]);
-                    statisticsValues.push(sumStats[propertyName]);
-                } else {
-                    statisticsValues.push("");
-                }
-            }            
-        });
-        Log.red(LOG_CATEGORIES.DebugShowAllXValues)("statisticsValues", statisticsValues);
-        tableData.push(statisticsValues);
+            const propertyName = SumStatsConfig.find((e: SumStatsSettings) => e.name === entry.name)!.property;
+            Log.blue(LOG_CATEGORIES.DebugLogYAxis)("orderedCategories", orderedCategories);
+            orderedCategories.forEach((category:string, i:number) => {
+                Log.red(LOG_CATEGORIES.DebugShowingStatsTable)("category", category);
+                // Avoid "Comparison" category if comparison circles are enabled
+                if (!config.comparisonCirclesEnabled.value() || i < orderedCategories.length - 1) {
+                    const sumStats = plotData.sumStats.get(category);
+                    Log.green(LOG_CATEGORIES.DebugComparisonCirclesInTable)("category", category, i);
+                    if (sumStats) {
+                        Log.green(LOG_CATEGORIES.DebugComparisonCirclesInTable)(entry.name, propertyName, category, sumStats["max"]);
+                        statisticsValues.push(sumStats[propertyName]);
+                    } else {
+                        statisticsValues.push("");
+                    }
+                }            
+            });
+            Log.red(LOG_CATEGORIES.DebugShowAllXValues)("statisticsValues", statisticsValues);
+            tableData.push(statisticsValues);
+        }
     });
     Log.red(LOG_CATEGORIES.DebugShowingStatsTable)(tableData);
 

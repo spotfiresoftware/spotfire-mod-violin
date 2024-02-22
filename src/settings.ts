@@ -904,14 +904,12 @@ export function createSettingsPopout(
   AddRadioButton(
     config.yAxisScaleType,
     [
-        { text: "Linear", value: "linear" },
-        { text: "Log (filtered to > 0)", value: "log" },
+        { text: "Linear", value: "linear" },        
         { text: "Symmetrical Log (experimental)", value: "symlog" }
     ],
     section
   )
 
-  AddCheckbox("Log scale", config.yAxisLog, section, () => {});
   AddCheckbox("Show gridlines", config.includeYAxisGrid, section, () => {});
   AddCheckbox("Show P-Value", config.showPvalue, section, () => {});
 
