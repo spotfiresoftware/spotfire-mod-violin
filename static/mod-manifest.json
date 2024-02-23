@@ -71,6 +71,11 @@
             "defaultValue": "linear"
         },
         {
+            "name": "symLogWarningDismissed",
+            "type": "boolean",
+            "defaultValue": false
+        },
+        {
             "name": "statisticsConfig",
             "type": "string",
             "defaultValue": ""
