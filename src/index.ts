@@ -80,13 +80,16 @@ export enum LOG_CATEGORIES {
   DebugLogYAxis,
   DebugYScaleTicks,
   DebugMedian,
-  PopupWarning
+  PopupWarning,
+  CurrencyFormatting,
 }
 
 /**
  * Set this array to any number of categories, or None to hide all logging
  */
-const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.PopupWarning];
+const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [
+  LOG_CATEGORIES.CurrencyFormatting,
+];
 
 /**
  * Log helper - pass the log category as the first argument, then any number of args as you would with console.log
@@ -353,7 +356,9 @@ Spotfire.initialize(async (mod) => {
     mod.property<boolean>("yZoomMinUnset"),
     mod.property<boolean>("yZoomMaxUnset"),
     mod.property<string>("orderBy"),
+    mod.property<string>("yAxisFormatType"),
     mod.property<number>("yAxisDecimals"),
+    mod.property<string>("yAxisCurrencySymbol"),
     mod.property<boolean>("yAxisUseThousandsSeparator"),
     mod.property<boolean>("yAxisUseShortNumberFormat"),
     mod.property<number>("maxRowsPerPage"),
@@ -399,7 +404,9 @@ Spotfire.initialize(async (mod) => {
    * @param {ModProperty<double>} yZoomMinUnset
    * @param {ModProperty<double>} yZoomMaxUnset
    * @param {ModProperty<string>} orderBy
+   * @param {ModProperty<string>} yAxisFormatType
    * @param {ModProperty<double>} yAxisDecimals
+   * @param {ModProperty<string>} yAxisCurrencySymbol
    * @param {ModProperty<boolean>} yAxisUseThousandsSeparator
    * @param {ModProperty<boolean>} yAxisUseShortNumberFormat
    * @param {ModProperty<number>} maxColumnsPerPage
@@ -436,7 +443,9 @@ Spotfire.initialize(async (mod) => {
     yZoomMinUnset: ModProperty<boolean>,
     yZoomMaxUnset: ModProperty<boolean>,
     orderBy: ModProperty<string>,
+    yAxisFormatType: ModProperty<string>,
     yAxisDecimals: ModProperty<number>,
+    yAxisCurrencySymbol: ModProperty<string>,
     yAxisUseThousandsSeparator: ModProperty<boolean>,
     yAxisUseShortNumberFormat: ModProperty<boolean>,
     maxColumnsPerPage: ModProperty<number>,
@@ -458,7 +467,10 @@ Spotfire.initialize(async (mod) => {
   ) {
     Log.red(LOG_CATEGORIES.DebugLogYAxis)("OnChange", yAxisLog.value());
     // Reload trigger is set in warning.ts - to trigger a reload
-    Log.green(LOG_CATEGORIES.DebugLogYAxis)("reloadTrigger", reloadTrigger.value());
+    Log.green(LOG_CATEGORIES.DebugLogYAxis)(
+      "reloadTrigger",
+      reloadTrigger.value()
+    );
     Log.green(LOG_CATEGORIES.ShowHideZoomSliders)(
       "is interactive in onchange",
       context.interactive
@@ -467,7 +479,6 @@ Spotfire.initialize(async (mod) => {
     scrollY = window.scrollY;
     Log.green(LOG_CATEGORIES.General)("ui_y", window.scrollY);
 
-    Log.green(LOG_CATEGORIES.General)("boxPlotColor", boxPlotColor.value());
     const config: Options = {
       xAxisFiltered: xAxisFiltered,
       yAxisLog: yAxisLog,
@@ -484,7 +495,9 @@ Spotfire.initialize(async (mod) => {
       yZoomMinUnset: yZoomMinUnset,
       yZoomMaxUnset: yZoomMaxUnset,
       orderBy: orderBy,
+      yAxisFormatType: yAxisFormatType,
       yAxisDecimals: yAxisDecimals,
+      yAxisCurrencySymbol: yAxisCurrencySymbol,
       yAxisUseThousandsSeparator: yAxisUseThousandsSeparator,
       yAxisUseShortNumberFormat: yAxisUseShortNumberFormat,
       showZoomSliders: showZoomSliders,
@@ -597,27 +610,54 @@ Spotfire.initialize(async (mod) => {
           this.GetStatisticsConfigItem(name).refEnabled ||
           this.GetStatisticsConfigItem(name).trendEnabled ||
           this.GetStatisticsConfigItem(name).tableEnabled ||
-
           // All the below are required if box plot is shown
-          name == "Q1" && config.includeBoxplot.value() ||
-          name == "Q3" && config.includeBoxplot.value() ||
-          name == "LAV" && config.includeBoxplot.value() ||
-          name == "UAV" && config.includeBoxplot.value() ||
-          name == "Median" && config.includeBoxplot.value() ||
-          name == "Count" && config.comparisonCirclesEnabled.value() ||
-          name == "StdDev" && config.comparisonCirclesEnabled.value() ||
-          name == "Avg" && config.comparisonCirclesEnabled.value()
+          (name == "Q1" && config.includeBoxplot.value()) ||
+          (name == "Q3" && config.includeBoxplot.value()) ||
+          (name == "LAV" && config.includeBoxplot.value()) ||
+          (name == "UAV" && config.includeBoxplot.value()) ||
+          (name == "Median" && config.includeBoxplot.value()) ||
+          (name == "Count" && config.comparisonCirclesEnabled.value()) ||
+          (name == "StdDev" && config.comparisonCirclesEnabled.value()) ||
+          (name == "Avg" && config.comparisonCirclesEnabled.value())
         );
       },
       GetYAxisFormatString() {
-        return (
-          (config.yAxisUseThousandsSeparator.value() ? "," : "") +
-          "." +
-          config.yAxisDecimals.value() +
-          (config.yAxisUseShortNumberFormat.value() ? "s" : "f")
-        );
+        let formatString = "";
+        switch (config.yAxisFormatType.value()) {
+          case "floatingPoint":
+            formatString = config.yAxisUseThousandsSeparator.value()
+              ? ","
+              : "" + "." + config.yAxisDecimals.value() + "f";
+            break;
+          case "exponent":
+            // Can't have thousands separator
+            formatString = "." + config.yAxisDecimals.value() + "e";
+            break;
+          case "shortNumber":
+            // Can't have thousands separator
+            formatString = "." + config.yAxisDecimals.value() + "s";
+            break;
+          case "currency":
+            formatString =
+              "$" +
+              (config.yAxisUseThousandsSeparator.value() ? "," : "") +
+              "." +
+              config.yAxisDecimals.value() +
+              "f";
+
+            // Locale - for currency formatting
+            d3.formatDefaultLocale({
+              currency: [config.yAxisCurrencySymbol.value(), ""],
+            });
+            break;
+        }
+
+        Log.green(LOG_CATEGORIES.CurrencyFormatting)(formatString);
+        return formatString;
       },
     };
+
+    config.yAxisCurrencySymbol.value();
 
     mod.controls.errorOverlay.hide();
 
@@ -1501,7 +1541,7 @@ Spotfire.initialize(async (mod) => {
     } else {
       Log.green(LOG_CATEGORIES.General)("Rendering trellising with root node");
       try {
-        // todo: should we await here or not?       
+        // todo: should we await here or not?
         TrellisedRender(
           rootContainer,
           globalZoomSliderContainer,

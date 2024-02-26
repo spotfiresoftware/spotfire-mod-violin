@@ -133,7 +133,10 @@ export interface Options {
 
     orderBy?: ModProperty<string>;
 
+    // Y axis formatting
+    yAxisFormatType: ModProperty<string>;
     yAxisDecimals: ModProperty<number>;
+    yAxisCurrencySymbol: ModProperty<string>;
     yAxisUseThousandsSeparator: ModProperty<boolean>;
     yAxisUseShortNumberFormat: ModProperty<boolean>;
 

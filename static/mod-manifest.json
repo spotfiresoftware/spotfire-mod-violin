@@ -86,9 +86,19 @@
             "defaultValue": ""
         },
         {
+            "name": "yAxisFormatType",
+            "type": "string",
+            "defaultValue": "floatingPoint"
+        },        
+        {
             "name": "yAxisDecimals",
             "type": "double",
             "defaultValue": "2.0"
+        },
+        {
+            "name": "yAxisCurrencySymbol",
+            "type": "string",
+            "defaultValue": "$"
         },
         {
             "name": "yAxisUseThousandsSeparator",

@@ -375,9 +375,12 @@ function AddRadioButton(
 
     input.addEventListener("change", (event) => {
       const target = event.currentTarget as HTMLInputElement;
-      Log.red(LOG_CATEGORIES.PopupWarning)("about to call onChanged", onChanged);
+      Log.red(LOG_CATEGORIES.PopupWarning)(
+        "about to call onChanged",
+        onChanged
+      );
       onChanged(target.getAttribute("value"));
-      if (target.checked) property.set(target.getAttribute("value"));     
+      if (target.checked) property.set(target.getAttribute("value"));
       event.stopPropagation();
     });
 
@@ -400,7 +403,9 @@ function AddRadioButton(
 function AddTextfield(
   label: string,
   property: ModProperty,
-  container: HTMLElement
+  container: HTMLElement, 
+  shallApplyOnKeyPress: boolean = false,
+  maxCharacters: number = -1
 ) {
   //<input class="form-control form-control-sm" type="text" placeholder=".form-control-sm" aria-label=".form-control-sm example">
 
@@ -424,9 +429,19 @@ function AddTextfield(
   });
 
   div.addEventListener("keypress", (event) => {
-    if (event.key === "Enter") {
-      const target = event.currentTarget as HTMLInputElement;
-      property.set(target.value);
+    const target = event.currentTarget as HTMLInputElement;
+    if (maxCharacters != -1 && target.value.length > maxCharacters) {
+        target.value = target.value.substring(0, maxCharacters -1);
+        target.focus();
+        event.stopPropagation();
+        Log.green(LOG_CATEGORIES.CurrencyFormatting)("maxchars");
+        return;
+    }
+
+    if (event.key === "Enter" || shallApplyOnKeyPress) {      
+      property.set(event.key);      
+      target.focus();
+      Log.green(LOG_CATEGORIES.CurrencyFormatting)("applying on keypress", target.value);
     }
   });
 
@@ -700,7 +715,7 @@ function AddSlider(
     .step(step)
     .silentValue(property.value())
     .tickFormat(showTickNumbers ? null : () => {})
-    .width(80)
+    .width(95)
     .displayValue(true)
     .on("end", (val: any) => {
       property.set(val);
@@ -898,7 +913,8 @@ export function createSettingsPopout(
       { text: "All values", value: false },
       { text: "Non-empty values", value: true },
     ],
-    section, () => {}
+    section,
+    () => {}
   );
 
   AddDivider(dropDownContainer);
@@ -907,15 +923,15 @@ export function createSettingsPopout(
   AddRadioButton(
     config.yAxisScaleType,
     [
-        { text: "Linear", value: "linear" },        
-        { text: "Symmetrical Log (experimental)", value: "symlog" }
+      { text: "Linear", value: "linear" },
+      { text: "Symmetrical Log (experimental)", value: "symlog" },
     ],
     section,
     (value: any) => {
-        Log.red(LOG_CATEGORIES.PopupWarning)("changed to ", value);
-        if (value == "symlog") {
-            config.symLogWarningDismissed.set(false);
-        }
+      Log.red(LOG_CATEGORIES.PopupWarning)("changed to ", value);
+      if (value == "symlog") {
+        config.symLogWarningDismissed.set(false);
+      }
     }
   );
 
@@ -924,25 +940,66 @@ export function createSettingsPopout(
 
   AddDivider(dropDownContainer);
   section = AddSection("Y-axis Formatting", dropDownContainer);
-  AddPlaceholder(section);
-  AddNumericDropDown(
-    "Decimals",
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-    config.yAxisDecimals,
-    section
+  placeholder = AddPlaceholder(section);
+  let precisionPlaceholder = AddPlaceholder(section);
+
+  AddRadioButton(
+    config.yAxisFormatType,
+    [
+      { text: "Exponent", value: "exponent" },
+      { text: "Floating Point", value: "floatingPoint" },
+      { text: "Short Number Format", value: "shortNumber" },
+      { text: "Currency", value: "currency" },
+    ],
+    placeholder,
+    (value: any) => {
+      // Remove any controls that customize the format
+      d3.select(precisionPlaceholder).remove();
+      AddDecimalPlacesSlider(precisionPlaceholder, value);
+      if (value == "currency") {
+        AddCurrencyChooser(precisionPlaceholder);
+        
+        // Default for currency is 2 decimal places
+        config.yAxisDecimals.set(2);
+      }
+
+      // Default for short number format is 3 significant figures
+      if (value == "shortNumber") {
+        config.yAxisDecimals.set(3);
+      }
+    }
   );
+
+  function AddDecimalPlacesSlider(container: HTMLElement, formatType: string) {
+    if (
+      formatType == "exponent" ||
+      formatType == "floatingPoint" ||
+      formatType == "currency"
+    ) {
+      AddSlider("Decimal Places", config.yAxisDecimals, container, 0, 12, 1);
+    } else {
+        AddSlider("Significant Figures", config.yAxisDecimals, container, 0, 12, 1);
+    }    
+  }
+
+  function AddCurrencyChooser(container: HTMLElement) {
+    AddTextfield("Currency Symbol", config.yAxisCurrencySymbol, container, true, 1);
+  }
+
+  if (config.yAxisFormatType.value() == "currency") {
+    AddCurrencyChooser(precisionPlaceholder);
+  }
+  
+  AddDecimalPlacesSlider(precisionPlaceholder, config.yAxisFormatType.value());
+
+  if (config.yAxisFormatType.value() != "shortNumber")
   AddCheckbox(
     "Use Thousands Separator",
     config.yAxisUseThousandsSeparator,
     section,
     () => {}
   );
-  AddCheckbox(
-    "Use Short Number Format",
-    config.yAxisUseShortNumberFormat,
-    section,
-    () => {}
-  );
+
 
   AddDivider(dropDownContainer);
   section = AddSection("Statistics Measures", dropDownContainer);
