@@ -348,7 +348,8 @@ function AddDivider(container: HTMLElement) {
 function AddRadioButton(
   property: ModProperty,
   values: any[],
-  container: HTMLElement
+  container: HTMLElement,
+  onChanged: (value: any) => any
 ): HTMLElement {
   const radioContainer = document.createElement("div");
   values.forEach((element) => {
@@ -374,8 +375,9 @@ function AddRadioButton(
 
     input.addEventListener("change", (event) => {
       const target = event.currentTarget as HTMLInputElement;
-
-      if (target.checked) property.set(target.getAttribute("value"));
+      Log.red(LOG_CATEGORIES.PopupWarning)("about to call onChanged", onChanged);
+      onChanged(target.getAttribute("value"));
+      if (target.checked) property.set(target.getAttribute("value"));     
       event.stopPropagation();
     });
 
@@ -805,7 +807,8 @@ export function createSettingsPopout(
             { text: "Stepped", value: 256 },
             { text: "Smooth", value: 512 },
           ],
-          violinOptionsPlaceholder
+          violinOptionsPlaceholder,
+          () => {}
         );
 
         AddColorfield(
@@ -895,7 +898,7 @@ export function createSettingsPopout(
       { text: "All values", value: false },
       { text: "Non-empty values", value: true },
     ],
-    section
+    section, () => {}
   );
 
   AddDivider(dropDownContainer);
@@ -907,8 +910,14 @@ export function createSettingsPopout(
         { text: "Linear", value: "linear" },        
         { text: "Symmetrical Log (experimental)", value: "symlog" }
     ],
-    section
-  )
+    section,
+    (value: any) => {
+        Log.red(LOG_CATEGORIES.PopupWarning)("changed to ", value);
+        if (value == "symlog") {
+            config.symLogWarningDismissed.set(false);
+        }
+    }
+  );
 
   AddCheckbox("Show gridlines", config.includeYAxisGrid, section, () => {});
   AddCheckbox("Show P-Value", config.showPvalue, section, () => {});

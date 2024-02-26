@@ -159,6 +159,29 @@ export async function render(
    * Calculating the position and size of the chart
    */
 
+  // Display warning if symlog y axis
+  d3.select(".warning-icon")
+    .attr(
+      "style",
+      "visibility:" +
+        (config.yAxisScaleType.value() == "symlog" && config.symLogWarningDismissed.value() == false ? "visible;" : "hidden;")
+    )
+    .on("click", () => {
+      d3.select(".warning-info-popup").attr("style", "visibility:visible");
+    });
+
+  Log.blue(LOG_CATEGORIES.PopupWarning)(
+    d3.select(".warning-info-popup"),
+    d3.select(".warning-info-popup").select("a")
+  );
+  d3.select(".warning-info-popup")
+    .select("a")
+    .on("click", (event:MouseEvent) => {
+      Log.blue(LOG_CATEGORIES.PopupWarning)("clicked");
+      event.stopPropagation();
+      config.symLogWarningDismissed.set(true);
+    });
+
   const margin = {
     top: 20,
     bottom: isTrellis ? 40 : 15,
@@ -422,7 +445,8 @@ export async function render(
     yScale = d3
       .scaleSymlog()
       .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
-      .range([heightAvailable - padding.betweenPlotAndTable, 0]).constant(1);
+      .range([heightAvailable - padding.betweenPlotAndTable, 0])
+      .constant(1);
   }
 
   // Log
@@ -431,10 +455,16 @@ export async function render(
       .scaleLog()
       .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
       .range([heightAvailable - padding.betweenPlotAndTable, 0]);
+
+    // Add a warning to the chart
+    svg.append;
   }
 
   // Settings common to both symmetrical log and log
-  if (config.yAxisScaleType.value() == "symlog" || config.yAxisScaleType.value() == "log") {
+  if (
+    config.yAxisScaleType.value() == "symlog" ||
+    config.yAxisScaleType.value() == "log"
+  ) {
     let modulus =
       20 - Math.floor((heightAvailable - padding.betweenPlotAndTable) / 40);
     Log.blue(LOG_CATEGORIES.DebugYScaleTicks)(
@@ -462,7 +492,7 @@ export async function render(
       }
       return i == 0 || i == ticks.length - 1;
     });
-  } 
+  }
 
   if (config.yAxisScaleType.value() == "linear") {
     yScale = d3
@@ -695,7 +725,7 @@ export async function render(
       .attr("x1", 0)
       .attr("x2", width)
       .attr("y1", (d: number) => yScale(d))
-      .attr("y2", (d: number) => yScale(d))      
+      .attr("y2", (d: number) => yScale(d))
       .attr("stroke", styling.scales.line.stroke)
       .attr("shape-rendering", "crispEdges");
     //.attr("stroke", styling.scales.line.stroke)
@@ -710,10 +740,10 @@ export async function render(
       .attr("x2", width)
       .attr("y1", (d: number) => yScale(d))
       .attr("y2", (d: number) => yScale(d))
-      .attr("stroke", styling.scales.line.stroke)      
+      .attr("stroke", styling.scales.line.stroke)
       .attr("stroke-width", 10)
       .attr("shape-rendering", "crispEdges")
-      //.attr("stroke", styling.scales.line.stroke)  
+      //.attr("stroke", styling.scales.line.stroke)
       .on("mouseover", function (event: d3.event, d: any) {
         tooltip.show(d3.format(config.GetYAxisFormatString())(d));
       })
@@ -843,7 +873,7 @@ export async function render(
       yScale,
       tooltip,
       heightAvailable,
-      plotData,      
+      plotData,
       styling.generalStylingInfo.backgroundColor,
       state
     );
@@ -1420,7 +1450,9 @@ export async function render(
         const minY = Math.min(element.y1, element.y2);
         const maxY = Math.max(element.y1, element.y2);
         const rowsToMark: DataViewRow[] = plotData.dataPoints
-          .filter((p) => p.y >= minY && p.y <= maxY && p.category == element.category)
+          .filter(
+            (p) => p.y >= minY && p.y <= maxY && p.category == element.category
+          )
           .map((r) => r.row);
 
         violinRowsMarkedCount += rowsToMark.length;

@@ -79,13 +79,14 @@ export enum LOG_CATEGORIES {
   DebugSingleRowMarking,
   DebugLogYAxis,
   DebugYScaleTicks,
-  DebugMedian
+  DebugMedian,
+  PopupWarning
 }
 
 /**
  * Set this array to any number of categories, or None to hide all logging
  */
-const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.DebugLogYAxis];
+const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.PopupWarning];
 
 /**
  * Log helper - pass the log category as the first argument, then any number of args as you would with console.log
@@ -340,6 +341,7 @@ Spotfire.initialize(async (mod) => {
     mod.property<boolean>("xAxisFiltered"),
     mod.property<string>("yAxisLog"),
     mod.property<string>("yAxisScaleType"),
+    mod.property<boolean>("symLogWarningDismissed"),
     mod.property<boolean>("colorForViolin"),
     mod.property<boolean>("includeViolin"),
     mod.property<number>("violinBandwidth"),
@@ -388,6 +390,7 @@ Spotfire.initialize(async (mod) => {
    * @param {Spotfire.Axis} xAxisSpotfire
    * @param {ModProperty<string>} yAxisLog
    * @param {ModProperty<string>} yAxisScaleType
+   * @param {ModProperty<string>} symLogWarningDismissed
    * @param {ModProperty<boolean>} colorForViolin
    * @param {ModProperty<boolean>} includeBoxplot
    * @param {ModProperty<boolean>} includeYAxisGrid
@@ -420,6 +423,7 @@ Spotfire.initialize(async (mod) => {
     xAxisFiltered: ModProperty<boolean>,
     yAxisLog: ModProperty<boolean>,
     yAxisScaleType: ModProperty<string>,
+    symLogWarningDismissed: ModProperty<boolean>,
     colorForViolin: ModProperty<boolean>,
     includeViolin: ModProperty<boolean>,
     violinBandwidth: ModProperty<number>,
@@ -468,6 +472,7 @@ Spotfire.initialize(async (mod) => {
       xAxisFiltered: xAxisFiltered,
       yAxisLog: yAxisLog,
       yAxisScaleType: yAxisScaleType,
+      symLogWarningDismissed: symLogWarningDismissed,
       includeViolin: includeViolin,
       colorForViolin: colorForViolin.value()!,
       violinBandwidth: violinBandwidth,
