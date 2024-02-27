@@ -93,21 +93,21 @@ export function renderViolin(plotData: Data, xScale: d3.scaleBand, yScale: d3.sc
                 tooltip.show(
                     "No data\n" +
                     xAxisSpotfire.parts[0]?.displayName + ": " + d[0].category +
-                    "\nY min: " + d3.min(d.map((p: any) => d3.format(config.GetYAxisFormatString())(p.violinY))) +
-                    "\nY max: " + d3.max(d.map((p: any) => d3.format(config.GetYAxisFormatString())(p.violinY))));
+                    "\nY min: " + d3.min(d.map((p: any) => config.FormatNumber(p.violinY))) +
+                    "\nY max: " + d3.max(d.map((p: any) => config.FormatNumber(p.violinY))));
             } else {
                 Log.green(LOG_CATEGORIES.DebugLatestMarking)("datum in mouseover", d[0]);
 
                 tooltip.show(
                     xAxisSpotfire.parts[0]?.displayName + ": " + d[0].category +
-                    "\ny: " + d3.format(config.GetYAxisFormatString())(yScale.invert(event.y)) +
-                    "\nMin: " + d3.format(config.GetYAxisFormatString())(d[0].sumStats.min) +
-                    "\nMax: " + d3.format(config.GetYAxisFormatString())(d[0].sumStats.max) +
-                    "\nUAV: " + d3.format(config.GetYAxisFormatString())(d[0].sumStats.uav) +
-                    "\nQ3: " + d3.format(config.GetYAxisFormatString())(d[0].sumStats.q3) +
-                    "\nMedian: " + d3.format(config.GetYAxisFormatString())(d[0].sumStats.median) +
-                    "\nQ1: " + d3.format(config.GetYAxisFormatString())(d[0].sumStats.q1) +
-                    "\nLAV: " + d3.format(config.GetYAxisFormatString())(d[0].sumStats.lav) +
+                    "\ny: " + config.FormatNumber(yScale.invert(event.y)) +
+                    "\nMin: " + config.FormatNumber(d[0].sumStats.min) +
+                    "\nMax: " + config.FormatNumber(d[0].sumStats.max) +
+                    "\nUAV: " + config.FormatNumber(d[0].sumStats.uav) +
+                    "\nQ3: " + config.FormatNumber(d[0].sumStats.q3) +
+                    "\nMedian: " + config.FormatNumber(d[0].sumStats.median) +
+                    "\nQ1: " + config.FormatNumber(d[0].sumStats.q1) +
+                    "\nLAV: " + config.FormatNumber(d[0].sumStats.lav) +
                     "\nCount: " + d[0].count);
             }
             Log.green(LOG_CATEGORIES.Rendering)(event.currentTarget);
@@ -122,19 +122,19 @@ export function renderViolin(plotData: Data, xScale: d3.scaleBand, yScale: d3.sc
                 tooltip.show(
                     "No data\n" +
                     xAxisSpotfire.parts[0]?.displayName + ": " + d[0].category +
-                    "\nY min: " + d3.min(d.map((p: any) => d3.format(config.GetYAxisFormatString())(p.violinY))) +
-                    "\nY max: " + d3.max(d.map((p: any) => d3.format(config.GetYAxisFormatString())(p.violinY))));
+                    "\nY min: " + d3.min(d.map((p: any) => config.FormatNumber(p.violinY))) +
+                    "\nY max: " + d3.max(d.map((p: any) => config.FormatNumber(p.violinY))));
             } else {
                 tooltip.show(
                     xAxisSpotfire.parts[0]?.displayName + ": " + d[0].category +
-                    "\ny: " + d3.format(config.GetYAxisFormatString())(yScale.invert(event.y)) +
-                    "\nMin: " + d3.format(config.GetYAxisFormatString())(d[0].sumStats.min) +
-                    "\nMax: " + d3.format(config.GetYAxisFormatString())(d[0].sumStats.max) +
-                    "\nUAV: " + d3.format(config.GetYAxisFormatString())(d[0].sumStats.uav) +
-                    "\nQ3: " + d3.format(config.GetYAxisFormatString())(d[0].sumStats.q3) +
-                    "\nMedian: " + d3.format(config.GetYAxisFormatString())(d[0].sumStats.median) +
-                    "\nQ1: " + d3.format(config.GetYAxisFormatString())(d[0].sumStats.q1) +
-                    "\nLAV: " + d3.format(config.GetYAxisFormatString())(d[0].sumStats.lav) +
+                    "\ny: " + config.FormatNumber(yScale.invert(event.y)) +
+                    "\nMin: " + config.FormatNumber(d[0].sumStats.min) +
+                    "\nMax: " + config.FormatNumber(d[0].sumStats.max) +
+                    "\nUAV: " + config.FormatNumber(d[0].sumStats.uav) +
+                    "\nQ3: " + config.FormatNumber(d[0].sumStats.q3) +
+                    "\nMedian: " + config.FormatNumber(d[0].sumStats.median) +
+                    "\nQ1: " + config.FormatNumber(d[0].sumStats.q1) +
+                    "\nLAV: " + config.FormatNumber(d[0].sumStats.lav) +
                     "\nCount: " + d[0].count);
             }
             Log.green(LOG_CATEGORIES.Rendering)(event.currentTarget);

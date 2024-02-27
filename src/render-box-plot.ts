@@ -106,9 +106,9 @@ export function renderBoxplot(
         d.category +
           "\nQ3 to UAV" +
           "\nQ3: " +
-          d3.format(config.GetYAxisFormatString())(d.stats.q3) +
+          config.FormatNumber(d.stats.q3) +
           "\nUAV: " +
-          d3.format(config.GetYAxisFormatString())(d.stats.uav) +
+          config.FormatNumber(d.stats.uav) +
           "\nCount: " +
           d.dataPoints.length
       );
@@ -186,7 +186,7 @@ export function renderBoxplot(
         d.category +
           "\nUAV" +
           "\nUAV: " +
-          d3.format(config.GetYAxisFormatString())(d.stats.uav) +
+          config.FormatNumber(d.stats.uav) +
           "\nCount: " +
           d.dataPoints.length
       );
@@ -265,9 +265,9 @@ export function renderBoxplot(
         d.category +
           "\nLAV to Q1" +
           "\nLAV: " +
-          d3.format(config.GetYAxisFormatString())(d.stats.lav) +
+          config.FormatNumber(d.stats.lav) +
           "\nQ1: " +
-          d3.format(config.GetYAxisFormatString())(d.stats.q1) +
+          config.FormatNumber(d.stats.q1) +
           "\nCount: " +
           d.dataPoints.length
       );
@@ -347,7 +347,7 @@ export function renderBoxplot(
         d.category +
           "\nLAV" +
           "\nLAV: " +
-          d3.format(config.GetYAxisFormatString())(d.stats.lav) +
+          config.FormatNumber(d.stats.lav) +
           "\nCount: " +
           d.dataPoints.length
       );
@@ -433,9 +433,9 @@ export function renderBoxplot(
       tooltip.show(
         d.category +
           "\nQ3: " +
-          d3.format(config.GetYAxisFormatString())(d.stats.q3) +
+          config.FormatNumber(d.stats.q3) +
           "\nMedian: " +
-          d3.format(config.GetYAxisFormatString())(d.stats.median) +
+          config.FormatNumber(d.stats.median) +
           "\nCount: " +
           d.dataPoints.length
       );
@@ -451,18 +451,17 @@ export function renderBoxplot(
           "x",
           (xScale(d.category) ? xScale(d.category) : 0) +
             xScale.bandwidth() / 2 -
-            boxWidth / 2 -
-            (height < 600 ? 2 : 5) / 2
+            boxWidth / 2
         )
-        .attr("y", yScale(d.stats.q3) + (height < 600 ? 2 : 5) / 2)
+        .attr("y", yScale(d.stats.q3))
         .attr(
           "height",
           Math.max(
             0,
-            yScale(d.stats.median) - yScale(d.stats.q3) - (height < 600 ? 2 : 5)
+            yScale(d.stats.median) - yScale(d.stats.q3)
           )
         )
-        .attr("width", boxWidth + (height < 600 ? 2 : 5));
+        .attr("width", boxWidth);
     })
     .on("mouseout", () => {
       tooltip.hide();
@@ -520,9 +519,9 @@ export function renderBoxplot(
       tooltip.show(
         d.category +
           "\nQ1: " +
-          d3.format(config.GetYAxisFormatString())(d.stats.q1) +
+          config.FormatNumber(d.stats.q1) +
           "\nMedian: " +
-          d3.format(config.GetYAxisFormatString())(d.stats.median) +
+          config.FormatNumber(d.stats.median) +
           "\nCount: " +
           d.dataPoints.length
       );
@@ -538,18 +537,17 @@ export function renderBoxplot(
           "x",
           (xScale(d.category) ? xScale(d.category) : 0) +
             xScale.bandwidth() / 2 -
-            boxWidth / 2 -
-            (height < 600 ? 2 : 5) / 2
+            boxWidth / 2 
         )
-        .attr("y", yScale(d.stats.median) + (height < 600 ? 2 : 5))
+        .attr("y", yScale(d.stats.median))
         .attr(
           "height",
           Math.max(
             0,
-            yScale(d.stats.q1) - yScale(d.stats.median) - (height < 600 ? 2 : 5)
+            yScale(d.stats.q1) - yScale(d.stats.median)
           )
         )
-        .attr("width", boxWidth + (height < 600 ? 2 : 5));
+        .attr("width", boxWidth);
     })
     .on("mouseout", () => {
       tooltip.hide();
@@ -597,7 +595,7 @@ export function renderBoxplot(
       tooltip.show(
         d.category +
           "\nMedian: " +
-          d3.format(config.GetYAxisFormatString())(d.stats.median)
+          config.FormatNumber(d.stats.median)
       );
       // draw a rect around the median area
       g.append("rect")
@@ -693,7 +691,7 @@ export function renderBoxplot(
           getMarkerHighlightColor(styling.generalStylingInfo.backgroundColor)
         ) // adjustColor(d.Color, -40));
         .attr("stroke-width", "1px");
-      tooltip.show("y: " + d3.format(config.GetYAxisFormatString())(d.y));
+      tooltip.show("y: " + config.FormatNumber(d.y));
       d3.select(event.currentTarget).classed("area-highlighted", true);
     })
     .on("mouseout", function (event: MouseEvent) {

@@ -88,7 +88,7 @@ export enum LOG_CATEGORIES {
  * Set this array to any number of categories, or None to hide all logging
  */
 const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [
-  LOG_CATEGORIES.CurrencyFormatting,
+  LOG_CATEGORIES.DebugYScaleTicks,
 ];
 
 /**
@@ -621,7 +621,7 @@ Spotfire.initialize(async (mod) => {
           (name == "Avg" && config.comparisonCirclesEnabled.value())
         );
       },
-      GetYAxisFormatString() {
+      FormatNumber(number: number) {
         let formatString = "";
         switch (config.yAxisFormatType.value()) {
           case "floatingPoint":
@@ -638,22 +638,14 @@ Spotfire.initialize(async (mod) => {
             formatString = "." + config.yAxisDecimals.value() + "s";
             break;
           case "currency":
-            formatString =
-              "$" +
-              (config.yAxisUseThousandsSeparator.value() ? "," : "") +
-              "." +
-              config.yAxisDecimals.value() +
-              "f";
-
-            // Locale - for currency formatting
-            d3.formatDefaultLocale({
-              currency: [config.yAxisCurrencySymbol.value(), ""],
-            });
-            break;
+            d3.formatDefaultLocale({                
+                currency: [config.yAxisCurrencySymbol.value(), ""]
+              });
+            return d3.formatPrefix("$.2", number)(number)        
         }
 
-        Log.green(LOG_CATEGORIES.CurrencyFormatting)(formatString);
-        return formatString;
+        //Log.green(LOG_CATEGORIES.CurrencyFormatting)(formatString);
+        return d3.format(formatString)(number);
       },
     };
 
@@ -1405,10 +1397,10 @@ Spotfire.initialize(async (mod) => {
           renderingInfo.data.yDataDomain.max = maxYDataDomain;
         }
 
-        const maxAsString = d3.format(config.GetYAxisFormatString())(
+        const maxAsString = config.FormatNumber(
           renderingInfo.data.yDataDomain.max
         );
-        const minAsString = d3.format(config.GetYAxisFormatString())(
+        const minAsString = config.FormatNumber(
           renderingInfo.data.yDataDomain.min
         );
 
@@ -1474,10 +1466,10 @@ Spotfire.initialize(async (mod) => {
 
           Log.green(LOG_CATEGORIES.DebugWebPlayerIssue)("data", data);
 
-          const maxAsString = d3.format(config.GetYAxisFormatString())(
+          const maxAsString = config.FormatNumber(
             data.yDataDomain.max
           );
-          const minAsString = d3.format(config.GetYAxisFormatString())(
+          const minAsString = config.FormatNumber(
             data.yDataDomain.min
           );
 

@@ -403,7 +403,7 @@ function AddRadioButton(
 function AddTextfield(
   label: string,
   property: ModProperty,
-  container: HTMLElement, 
+  container: HTMLElement,
   shallApplyOnKeyPress: boolean = false,
   maxCharacters: number = -1
 ) {
@@ -431,17 +431,20 @@ function AddTextfield(
   div.addEventListener("keypress", (event) => {
     const target = event.currentTarget as HTMLInputElement;
     if (maxCharacters != -1 && target.value.length > maxCharacters) {
-        target.value = target.value.substring(0, maxCharacters -1);
-        target.focus();
-        event.stopPropagation();
-        Log.green(LOG_CATEGORIES.CurrencyFormatting)("maxchars");
-        return;
+      target.value = target.value.substring(0, maxCharacters - 1);
+      target.focus();
+      event.stopPropagation();
+      Log.green(LOG_CATEGORIES.CurrencyFormatting)("maxchars");
+      return;
     }
 
-    if (event.key === "Enter" || shallApplyOnKeyPress) {      
-      property.set(event.key);      
+    if (event.key === "Enter" || shallApplyOnKeyPress) {
+      property.set(event.key);
       target.focus();
-      Log.green(LOG_CATEGORIES.CurrencyFormatting)("applying on keypress", target.value);
+      Log.green(LOG_CATEGORIES.CurrencyFormatting)(
+        "applying on keypress",
+        target.value
+      );
     }
   });
 
@@ -941,7 +944,7 @@ export function createSettingsPopout(
   AddDivider(dropDownContainer);
   section = AddSection("Y-axis Formatting", dropDownContainer);
   placeholder = AddPlaceholder(section);
-  let precisionPlaceholder = AddPlaceholder(section);
+  let yAxisCustomizationPlaceholder = AddPlaceholder(section);
 
   AddRadioButton(
     config.yAxisFormatType,
@@ -954,11 +957,11 @@ export function createSettingsPopout(
     placeholder,
     (value: any) => {
       // Remove any controls that customize the format
-      d3.select(precisionPlaceholder).remove();
-      AddDecimalPlacesSlider(precisionPlaceholder, value);
+      d3.select(yAxisCustomizationPlaceholder).remove();
+      AddDecimalPlacesSlider(yAxisCustomizationPlaceholder, value);
       if (value == "currency") {
-        AddCurrencyChooser(precisionPlaceholder);
-        
+        AddCurrencyChooser(yAxisCustomizationPlaceholder);
+
         // Default for currency is 2 decimal places
         config.yAxisDecimals.set(2);
       }
@@ -967,39 +970,65 @@ export function createSettingsPopout(
       if (value == "shortNumber") {
         config.yAxisDecimals.set(3);
       }
+
+      AddThousandsCheckBoxIfNeeded(yAxisCustomizationPlaceholder, config.yAxisFormatType.value());
     }
   );
 
   function AddDecimalPlacesSlider(container: HTMLElement, formatType: string) {
     if (
       formatType == "exponent" ||
-      formatType == "floatingPoint" ||
-      formatType == "currency"
+      formatType == "floatingPoint" 
     ) {
       AddSlider("Decimal Places", config.yAxisDecimals, container, 0, 12, 1);
-    } else {
-        AddSlider("Significant Figures", config.yAxisDecimals, container, 0, 12, 1);
-    }    
+    } else if (formatType != "currency") {
+      AddSlider(
+        "Significant Figures",
+        config.yAxisDecimals,
+        container,
+        0,
+        12,
+        1
+      );
+    }
+  }
+
+  function AddThousandsCheckBoxIfNeeded(
+    container: HTMLElement,
+    formatType: string
+  ) {
+    if (formatType != "shortNumber" && formatType != "exponent" && formatType != "currency")
+      AddCheckbox(
+        "Use Thousands Separator",
+        config.yAxisUseThousandsSeparator,
+        container,
+        () => {}
+      );
   }
 
   function AddCurrencyChooser(container: HTMLElement) {
-    AddTextfield("Currency Symbol", config.yAxisCurrencySymbol, container, true, 1);
+    AddTextfield(
+      "Currency Symbol",
+      config.yAxisCurrencySymbol,
+      container,
+      true,
+      1
+    );
   }
 
   if (config.yAxisFormatType.value() == "currency") {
-    AddCurrencyChooser(precisionPlaceholder);
+    AddCurrencyChooser(yAxisCustomizationPlaceholder);
   }
-  
-  AddDecimalPlacesSlider(precisionPlaceholder, config.yAxisFormatType.value());
 
-  if (config.yAxisFormatType.value() != "shortNumber")
-  AddCheckbox(
-    "Use Thousands Separator",
-    config.yAxisUseThousandsSeparator,
-    section,
-    () => {}
+  AddDecimalPlacesSlider(
+    yAxisCustomizationPlaceholder,
+    config.yAxisFormatType.value()
   );
 
+  AddThousandsCheckBoxIfNeeded(
+    yAxisCustomizationPlaceholder,
+    config.yAxisFormatType.value()
+  );
 
   AddDivider(dropDownContainer);
   section = AddSection("Statistics Measures", dropDownContainer);

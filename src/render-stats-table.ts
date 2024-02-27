@@ -185,7 +185,7 @@ export function renderStatisticsTable(
             if (typeof c[0] == "string") return c[0];
             if (isNaN(c[0])) return "";
             if (c[1] != undefined) return d3.format(c[1])(c[0]); // for Count
-            else return d3.format(config.GetYAxisFormatString())(c[0]);
+            else return config.FormatNumber(c[0]);
         })
         .on("mouseover", ((event: Event) => {
             tooltip.show(d3.select(event.currentTarget).node().outerText);
@@ -232,13 +232,13 @@ export function renderStatisticsTable(
                     .attr("style", () => "width:" + cellWidth + "px")
                     .html(
                         "Alpha level: " +
-                        d3.format(config.GetYAxisFormatString())(plotData.comparisonCirclesStats.alpha) +
+                        config.FormatNumber(plotData.comparisonCirclesStats.alpha) +
                         "<br/>" +
                         "Root MSE: " +
-                        d3.format(config.GetYAxisFormatString())(plotData.comparisonCirclesStats.rootMse) +
+                        config.FormatNumber(plotData.comparisonCirclesStats.rootMse) +
                         "<br/>" +
                         "sqrt(2)q*: " +
-                        d3.format(config.GetYAxisFormatString())(plotData.comparisonCirclesStats.q))
+                        config.FormatNumber(plotData.comparisonCirclesStats.q))
                     .on("mouseover", ((event: Event) => {
                         tooltip.show(d3.select(event.currentTarget).node().outerText);
                     }))

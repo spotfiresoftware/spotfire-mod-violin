@@ -502,14 +502,13 @@ export async function render(
       .range([heightAvailable - padding.betweenPlotAndTable, 0]); //.nice();
     ticks = yScale.ticks((heightAvailable - padding.betweenPlotAndTable) / 40);
   }
-
-  Log.blue(LOG_CATEGORIES.DebugYScaleTicks)(yScale.ticks(4));
+  
   const yAxis = d3
     .axisLeft()
     .scale(yScale)
-    .tickFormat(d3.format(config.GetYAxisFormatString()));
-  //yAxis.tickValues().filter((t:number) => t == 600000 || t == 700000);
-  yAxis.tickValues(ticks);
+    .tickValues(ticks)
+    .tickFormat((d:any) => config.FormatNumber(d));
+    
 
   Log.green(LOG_CATEGORIES.Rendering)(
     "slider",
@@ -718,20 +717,20 @@ export async function render(
   if (config.includeYAxisGrid.value() && styling.scales.line.stroke != "none") {
     Log.green(LOG_CATEGORIES.DebugYScaleTicks)(ticks);
     g.selectAll("line.horizontalGrid")
-      .data(yScale.ticks())
+      .data(config.yAxisScaleType.value() == "linear" ? ticks : yScale.ticks)
       .enter()
       .append("line")
       .attr("class", "horizontal-grid")
       .attr("x1", 0)
       .attr("x2", width)
-      .attr("y1", (d: number) => yScale(d))
-      .attr("y2", (d: number) => yScale(d))
+      .attr("y1", (d: number) => yScale(d) + 0.5)
+      .attr("y2", (d: number) => yScale(d) + 0.5)
       .attr("stroke", styling.scales.line.stroke)
       .attr("shape-rendering", "crispEdges");
     //.attr("stroke", styling.scales.line.stroke)
 
     g.selectAll("line.horizontal-grid-hover")
-      .data(yScale.ticks())
+      .data(ticks)
       .enter()
       .append("line")
       .attr("class", "horizontal-grid-hover")
@@ -745,10 +744,10 @@ export async function render(
       .attr("shape-rendering", "crispEdges")
       //.attr("stroke", styling.scales.line.stroke)
       .on("mouseover", function (event: d3.event, d: any) {
-        tooltip.show(d3.format(config.GetYAxisFormatString())(d));
+        tooltip.show(config.FormatNumber(d));
       })
       .on("mouseover", function (event: d3.event, d: any) {
-        tooltip.show(d3.format(config.GetYAxisFormatString())(d));
+        tooltip.show(config.FormatNumber(d));
       })
       .on("mouseout", () => tooltip.hide());
   }
@@ -833,7 +832,7 @@ export async function render(
             tooltip.show(
               lineSettings.name +
                 ": " +
-                d3.format(config.GetYAxisFormatString())(
+                config.FormatNumber(
                   yScale.invert(event.clientY - margin.top)
                 )
             );
@@ -963,7 +962,7 @@ export async function render(
               "\n" +
               sumStatsSetting.name +
               ": " +
-              d3.format(config.GetYAxisFormatString())(
+              config.FormatNumber(
                 d[1][sumStatsSetting.property]
               )
           );

@@ -39,7 +39,7 @@ export function renderComparisonCircles(
         //.classed("markable", true)
         .on("mouseover", function (event: d3.event, d: any) {
             Log.green(LOG_CATEGORIES.Rendering)("mouseover");
-            tooltip.show(d[0] + "\n" + "Avg: " + d3.format(config.GetYAxisFormatString())(d[1].y0));
+            tooltip.show(d[0] + "\n" + "Avg: " + config.FormatNumber(d[1].y0));
             d3.select(event.currentTarget)
                 .classed("comparison-circle-highlighted", true)
                 .attr("style", "stroke:" + getComparisonCircleHighlightedColor(backgroundColor));

@@ -170,7 +170,7 @@ export interface Options {
 
     GetStatisticsConfigItem(name: string) : StatisticsConfig;
 
-    GetYAxisFormatString(): string;
+    FormatNumber(number: number): string;
 
     IsStatisticsConfigItemEnabled(name: string) : boolean;
 
