@@ -86,15 +86,14 @@ export enum LOG_CATEGORIES {
   PopupWarning,
   CurrencyFormatting,
   DebugYNaN,
-  DebugIndividualYScales
+  DebugIndividualYScales,
+  DebugResetGlobalZoom
 }
 
 /**
  * Set this array to any number of categories, or None to hide all logging
  */
-const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [
-  LOG_CATEGORIES.None,
-];
+const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.None];
 
 /**
  * Log helper - pass the log category as the first argument, then any number of args as you would with console.log
@@ -453,7 +452,7 @@ Spotfire.initialize(async (mod) => {
     yAxisCurrencySymbol: ModProperty<string>,
     yAxisUseThousandsSeparator: ModProperty<boolean>,
     yAxisUseShortNumberFormat: ModProperty<boolean>,
-    yScalePerTrellisPanel:ModProperty<boolean>,
+    yScalePerTrellisPanel: ModProperty<boolean>,
     maxColumnsPerPage: ModProperty<number>,
     maxRowsPerPage: ModProperty<number>,
     showZoomSliders: ModProperty<boolean>,
@@ -470,7 +469,10 @@ Spotfire.initialize(async (mod) => {
     ignoreIncorrectCountExpression: ModProperty<boolean>,
     reloadTrigger: ModProperty<number>
   ) {
-    Log.red(LOG_CATEGORIES.DebugIndividualYScales)("OnChange", yAxisLog.value());
+    Log.red(LOG_CATEGORIES.DebugIndividualYScales)(
+      "OnChange",
+      yAxisLog.value()
+    );
     // Reload trigger is set in warning.ts - to trigger a reload
     Log.green(LOG_CATEGORIES.DebugLogYAxis)(
       "reloadTrigger",
@@ -653,14 +655,19 @@ Spotfire.initialize(async (mod) => {
         return d3.format(formatString)(number);
       },
       GetTrellisZoomConfigs() {
-
         if (trellisZoomConfigsCache.length == 0) {
-            trellisZoomConfigsCache =
+          trellisZoomConfigsCache =
             config.trellisIndividualZoomSettings.value() == ""
               ? new Array<TrellisZoomConfig>()
               : JSON.parse(config.trellisIndividualZoomSettings.value());
         }
         return trellisZoomConfigsCache;
+      },
+      ResetGlobalZoom() {
+        config.trellisIndividualZoomSettings.set("");
+        trellisZoomConfigsCache = [];
+        config.yZoomMinUnset.set(true);
+        config.yZoomMaxUnset.set(true);
       },
     };
 
@@ -843,8 +850,7 @@ Spotfire.initialize(async (mod) => {
       context.styling.general.backgroundColor
     );
 
-    d3.select(".dropdown-container")      
-      .attr("height", "10px");
+    d3.select(".dropdown-container").attr("height", "10px");
 
     const rootContainer = MOD_CONTAINER.select("#root-container").empty()
       ? MOD_CONTAINER.append("div")
@@ -1081,9 +1087,10 @@ Spotfire.initialize(async (mod) => {
       );
 
       // Adjust panelWidth for individual zoom slider
-      panelWidth = config.yScalePerTrellisPanel.value() && config.showZoomSliders.value()
-        ? panelWidth - 5
-        : panelWidth - 4;
+      panelWidth =
+        config.yScalePerTrellisPanel.value() && config.showZoomSliders.value()
+          ? panelWidth - 5
+          : panelWidth - 4;
 
       Log.green(LOG_CATEGORIES.General)(
         "rows/cols per page",
@@ -1418,7 +1425,10 @@ Spotfire.initialize(async (mod) => {
         );
 
         const calculatedLeftMargin =
-          (config.yScalePerTrellisPanel.value() && config.showZoomSliders.value() ? 70 : 40) +
+          (config.yScalePerTrellisPanel.value() &&
+          config.showZoomSliders.value()
+            ? 70
+            : 40) +
           20 * (maxStringLength / 4);
 
         Log.red(LOG_CATEGORIES.DebugMarkingOffset)(

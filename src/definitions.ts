@@ -125,7 +125,6 @@ export interface Options {
     resolution?: ModProperty<number>;
 
     yZoomMin?: ModProperty<number>;
-
     yZoomMax?: ModProperty<number>;
 
     yZoomMinUnset?: ModProperty<boolean>;
@@ -175,5 +174,7 @@ export interface Options {
     IsStatisticsConfigItemEnabled(name: string) : boolean;
 
     GetTrellisZoomConfigs(): TrellisZoomConfig[];
+
+    ResetGlobalZoom(): void;
 
 }

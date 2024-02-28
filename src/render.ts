@@ -139,10 +139,7 @@ export async function render(
     isTrellis &&
     config.showZoomSliders.value() &&
     config.yScalePerTrellisPanel.value();
-  const isTrellisWithGlobalZoom =
-    isTrellis &&
-    (!config.showZoomSliders.value() || !config.yScalePerTrellisPanel.value());
-
+ 
   const isTrellisWithIndividualYscale =
     isTrellis && config.yScalePerTrellisPanel.value();
 
@@ -427,8 +424,8 @@ export async function render(
       maxZoom = plotData.yDataDomain.max;
     }
   } else {
-    Log.green(LOG_CATEGORIES.Rendering)(
-      "Getting min/max zoom from config if set"
+    Log.green(LOG_CATEGORIES.DebugResetGlobalZoom)(
+      "Getting min/max zoom from config if set", config.yZoomMaxUnset.value()
     );
     minZoom = config.yZoomMinUnset.value()
       ? plotData.yDataDomain.min
@@ -701,7 +698,7 @@ export async function render(
         },
       ])
       .then(() => {
-        if (config.yScalePerTrellisPanel.value()) {
+        if (isTrellis && config.yScalePerTrellisPanel.value()) {
           const trellisZoomConfigs = config.GetTrellisZoomConfigs();
 
           Log.blue(LOG_CATEGORIES.DebugIndividualYScales)(trellisZoomConfigs);
@@ -724,9 +721,10 @@ export async function render(
           );
 
         } else {
-          config.trellisIndividualZoomSettings.set("");
-          config.yZoomMinUnset.set(true);
-          config.yZoomMaxUnset.set(true);
+            Log.green(LOG_CATEGORIES.DebugResetGlobalZoom)(
+                "Resetting"
+              );
+          config.ResetGlobalZoom();
         }
       });
   });

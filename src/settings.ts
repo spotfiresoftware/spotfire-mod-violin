@@ -781,9 +781,7 @@ export function createSettingsPopout(
         if (!ignoreInitialEvent) {
           // Reset zoom
           Log.red(LOG_CATEGORIES.DebugZoomReset)("resetting zoom");
-          config.trellisIndividualZoomSettings.set("");
-          config.yZoomMinUnset.set(true);
-          config.yZoomMaxUnset.set(true);
+          config.ResetGlobalZoom();
         }
       }
     }
@@ -922,7 +920,9 @@ export function createSettingsPopout(
         { text: "Individual Scale per Panel", value: true },
       ],
       section,
-      () => {}
+      () => {
+        config.ResetGlobalZoom();
+      }
     );
   }
 
