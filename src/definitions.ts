@@ -140,6 +140,8 @@ export interface Options {
     yAxisUseThousandsSeparator: ModProperty<boolean>;
     yAxisUseShortNumberFormat: ModProperty<boolean>;
 
+    yScalePerTrellisPanel: ModProperty<boolean>;
+
     showZoomSliders? : ModProperty<boolean>;
     trellisIndividualZoomSettings?: ModProperty<string>;
 
@@ -162,8 +164,6 @@ export interface Options {
 
     statisticsConfig: ModProperty<string>;
 
-    individualZoomSlider: ModProperty<boolean>;
-
     GetStatisticsConfigItems(): Map<string, StatisticsConfig>;
 
     SetStatisticsConfigItem(statisticsConfigItem: StatisticsConfig) : void;
@@ -173,5 +173,7 @@ export interface Options {
     FormatNumber(number: number): string;
 
     IsStatisticsConfigItemEnabled(name: string) : boolean;
+
+    GetTrellisZoomConfigs(): TrellisZoomConfig[];
 
 }

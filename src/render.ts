@@ -81,7 +81,8 @@ if (!SVGElement.prototype.checkIntersection) {
 }
 
 /**
- * Renders the chart.
+ * Renders an instance of the Violin mod; this is called once if not trellised, or once per trellis panel
+ *
  * @param {RenderState} state
  * @param {Spotfire.DataView} dataView - dataView
  * @param {Spotfire.Size} containerSize - windowSize
@@ -135,10 +136,15 @@ export async function render(
   // IMPORTANT - use these to determine if is individual zoom slider!
   // - it's so easy to forget to check both conditions and get into a nasty mess...
   const isTrellisWithIndividualZoom =
-    isTrellis && config.individualZoomSlider.value();
+    isTrellis &&
+    config.showZoomSliders.value() &&
+    config.yScalePerTrellisPanel.value();
   const isTrellisWithGlobalZoom =
     isTrellis &&
-    (!config.showZoomSliders.value() || !config.individualZoomSlider.value());
+    (!config.showZoomSliders.value() || !config.yScalePerTrellisPanel.value());
+
+  const isTrellisWithIndividualYscale =
+    isTrellis && config.yScalePerTrellisPanel.value();
 
   //d3.select("#mod-container")
   const svg = container
@@ -164,7 +170,10 @@ export async function render(
     .attr(
       "style",
       "visibility:" +
-        (config.yAxisScaleType.value() == "symlog" && config.symLogWarningDismissed.value() == false ? "visible;" : "hidden;")
+        (config.yAxisScaleType.value() == "symlog" &&
+        config.symLogWarningDismissed.value() == false
+          ? "visible;"
+          : "hidden;")
     )
     .on("click", () => {
       d3.select(".warning-info-popup").attr("style", "visibility:visible");
@@ -176,7 +185,7 @@ export async function render(
   );
   d3.select(".warning-info-popup")
     .select("a")
-    .on("click", (event:MouseEvent) => {
+    .on("click", (event: MouseEvent) => {
       Log.blue(LOG_CATEGORIES.PopupWarning)("clicked");
       event.stopPropagation();
       config.symLogWarningDismissed.set(true);
@@ -383,14 +392,15 @@ export async function render(
   let minZoom: number;
   let maxZoom: number;
 
-  if (isTrellisWithIndividualZoom) {
+  if (isTrellisWithIndividualYscale) {
     Log.green(LOG_CATEGORIES.Rendering)(
       config.trellisIndividualZoomSettings.value()
     );
-    if (config.trellisIndividualZoomSettings.value() != "") {
-      const trellisZoomConfigs: TrellisZoomConfig[] = JSON.parse(
-        config.trellisIndividualZoomSettings.value()
-      );
+    if (
+      config.showZoomSliders.value() &&
+      config.trellisIndividualZoomSettings.value() != ""
+    ) {
+      const trellisZoomConfigs = config.GetTrellisZoomConfigs();
       Log.green(LOG_CATEGORIES.Rendering)(trellisZoomConfigs, trellisName);
       const trellisZoomConfig = trellisZoomConfigs.find(
         (d: TrellisZoomConfig) => d.trellisName == trellisName
@@ -502,13 +512,12 @@ export async function render(
       .range([heightAvailable - padding.betweenPlotAndTable, 0]); //.nice();
     ticks = yScale.ticks((heightAvailable - padding.betweenPlotAndTable) / 40);
   }
-  
+
   const yAxis = d3
     .axisLeft()
     .scale(yScale)
     .tickValues(ticks)
-    .tickFormat((d:any) => config.FormatNumber(d));
-    
+    .tickFormat((d: any) => config.FormatNumber(d));
 
   Log.green(LOG_CATEGORIES.Rendering)(
     "slider",
@@ -522,7 +531,7 @@ export async function render(
   /**
    * Zoom slider
    */
-  const verticalSlider = sliderLeft() //!isTrellis || isTrellisWithIndividualZoom ? yScale : undefined)
+  const verticalSlider = sliderLeft()
     .min(plotData.yDataDomain.min)
     .max(plotData.yDataDomain.max)
     .height(heightAvailable - padding.betweenPlotAndTable - 30)
@@ -530,22 +539,13 @@ export async function render(
     .ticks(1)
     .default([minZoom, maxZoom])
     .on("end ", (val: any) => {
-      /*Log.green(LOG_CATEGORIES.Rendering)(val);
-            Log.green(LOG_CATEGORIES.Rendering)("zoom on end minZoom, maxZoom", minZoom, maxZoom);
-            Log.green(LOG_CATEGORIES.Rendering)("config zoom", config.yZoomMin.value(), config.yZoomMax.value());
-            Log.green(LOG_CATEGORIES.Rendering)("zooom val: ", val);*/
-
       state.disableAnimation = true;
-
       if (isTrellisWithIndividualZoom) {
         // Keep track of individual zoomed panel so as not to re-render everything
         setTrellisPanelZoomedTitle(trellisName);
         // Current settings
-        const trellisZoomConfigs =
-          config.trellisIndividualZoomSettings.value() == ""
-            ? new Array<TrellisZoomConfig>()
-            : JSON.parse(config.trellisIndividualZoomSettings.value());
-        Log.green(LOG_CATEGORIES.Rendering)(
+        const trellisZoomConfigs = config.GetTrellisZoomConfigs();
+        Log.green(LOG_CATEGORIES.DebugIndividualYScales)(
           "trellisZoomConfigs",
           trellisZoomConfigs
         );
@@ -556,12 +556,17 @@ export async function render(
             return d.trellisName == trellisName;
           }
         );
+
         Log.green(LOG_CATEGORIES.Rendering)(
           "trellisZoomConfig",
           trellisZoomConfig
         );
 
         if (trellisZoomConfig != undefined) {
+          Log.red(LOG_CATEGORIES.DebugIndividualYScales)(
+            "Before setting",
+            JSON.stringify(trellisZoomConfigs)
+          );
           if (val[0] != plotData.yDataDomain.min) {
             trellisZoomConfig.minZoom = val[0];
             trellisZoomConfig.minZoomUnset = false;
@@ -574,7 +579,8 @@ export async function render(
           } else {
             trellisZoomConfig.maxZoomUnset = true;
           }
-          Log.green(LOG_CATEGORIES.Rendering)(
+          Log.red(LOG_CATEGORIES.DebugIndividualYScales)(
+            "After setting",
             JSON.stringify(trellisZoomConfigs)
           );
           // This will trigger a render, but not in time to stop code execution from continuing below
@@ -646,7 +652,8 @@ export async function render(
       .attr("class", "vertical-zoom-slider")
       .attr("transform", "translate(10, " + margin.top + ")")
       .call(verticalSlider);
-  } else if (isTrellisWithGlobalZoom) {
+  } else if (config.showZoomSliders.value() && !isTrellisWithIndividualYscale) {
+    // Show global zoom slider - zoom sliders are enabled, and a single y scale is selected
     verticalSlider.height(windowSize.height - margin.bottom - margin.top - 10);
     globalZoomSliderContainer.selectAll("*").remove();
     Log.green(LOG_CATEGORIES.Rendering)(
@@ -666,7 +673,7 @@ export async function render(
       .attr("class", "vertical-zoom-slider")
       .attr("transform", "translate(10, " + margin.top + ")")
       .call(verticalSlider);
-  } else {
+  } else if (config.showZoomSliders.value() && isTrellisWithIndividualYscale) {
     // Trellis - individual zoom sliders
     sliderSvg = svg
       .append("svg")
@@ -682,6 +689,7 @@ export async function render(
       .call(verticalSlider);
   }
 
+  // Reset zoom
   sliderSvg?.on("contextmenu", function (event: PointerEvent) {
     event.preventDefault(); // Prevents browser native context menu from being shown.
     event.stopPropagation(); // Prevents default mod context menu to be shown.
@@ -693,9 +701,33 @@ export async function render(
         },
       ])
       .then(() => {
-        config.trellisIndividualZoomSettings.set("");
-        config.yZoomMinUnset.set(true);
-        config.yZoomMaxUnset.set(true);
+        if (config.yScalePerTrellisPanel.value()) {
+          const trellisZoomConfigs = config.GetTrellisZoomConfigs();
+
+          Log.blue(LOG_CATEGORIES.DebugIndividualYScales)(trellisZoomConfigs);
+
+          let trellisZoomConfig = trellisZoomConfigs.find(
+            (zc: TrellisZoomConfig) => zc.trellisName == trellisName
+          );
+
+          if (trellisZoomConfig != undefined) {
+            trellisZoomConfig.minZoomUnset = true;
+            trellisZoomConfig.maxZoomUnset = true;
+          }
+          
+          // Keep track of the panel we are resetting
+          setTrellisPanelZoomedTitle(trellisName);
+
+          // Persist the individual zoom settings
+          config.trellisIndividualZoomSettings.set(
+            JSON.stringify(trellisZoomConfigs)
+          );
+
+        } else {
+          config.trellisIndividualZoomSettings.set("");
+          config.yZoomMinUnset.set(true);
+          config.yZoomMaxUnset.set(true);
+        }
       });
   });
 
@@ -730,7 +762,7 @@ export async function render(
     //.attr("stroke", styling.scales.line.stroke)
 
     g.selectAll("line.horizontal-grid-hover")
-      .data(ticks)
+      .data(config.yAxisScaleType.value() == "linear" ? ticks : yScale.ticks)
       .enter()
       .append("line")
       .attr("class", "horizontal-grid-hover")
@@ -740,10 +772,11 @@ export async function render(
       .attr("y1", (d: number) => yScale(d))
       .attr("y2", (d: number) => yScale(d))
       .attr("stroke", styling.scales.line.stroke)
-      .attr("stroke-width", 10)
+      .attr("stroke-width", 5)
       .attr("shape-rendering", "crispEdges")
       //.attr("stroke", styling.scales.line.stroke)
       .on("mouseover", function (event: d3.event, d: any) {
+        Log.green(LOG_CATEGORIES.DebugYScaleTicks)("mouseover", d);
         tooltip.show(config.FormatNumber(d));
       })
       .on("mouseover", function (event: d3.event, d: any) {
@@ -832,9 +865,7 @@ export async function render(
             tooltip.show(
               lineSettings.name +
                 ": " +
-                config.FormatNumber(
-                  yScale.invert(event.clientY - margin.top)
-                )
+                config.FormatNumber(yScale.invert(event.clientY - margin.top))
             );
           })
           .on("mouseout", () => tooltip.hide());
@@ -962,9 +993,7 @@ export async function render(
               "\n" +
               sumStatsSetting.name +
               ": " +
-              config.FormatNumber(
-                d[1][sumStatsSetting.property]
-              )
+              config.FormatNumber(d[1][sumStatsSetting.property])
           );
         })
         .on("mouseout", () => tooltip.hide());

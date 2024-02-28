@@ -776,14 +776,7 @@ export function createSettingsPopout(
     config.showZoomSliders,
     placeholder,
     (checked: boolean, ignoreInitialEvent: boolean) => {
-      if (checked && isTrellis) {
-        AddCheckbox(
-          "Show Individual Zoom Sliders",
-          config.individualZoomSlider,
-          zoomSliderOptionsPlaceholder,
-          () => {}
-        );
-      } else {
+      if (!(checked && isTrellis)) {
         d3.select(zoomSliderOptionsPlaceholder).selectAll("*").remove();
         if (!ignoreInitialEvent) {
           // Reset zoom
@@ -791,7 +784,6 @@ export function createSettingsPopout(
           config.trellisIndividualZoomSettings.set("");
           config.yZoomMinUnset.set(true);
           config.yZoomMaxUnset.set(true);
-          config.individualZoomSlider.set(false);
         }
       }
     }
@@ -920,6 +912,20 @@ export function createSettingsPopout(
     () => {}
   );
 
+  if (isTrellis) {
+    AddDivider(dropDownContainer);
+    section = AddSection("Y-axis Trellis", dropDownContainer);
+    AddRadioButton(
+      config.yScalePerTrellisPanel,
+      [
+        { text: "Single Y Scale", value: false },
+        { text: "Individual Scale per Panel", value: true },
+      ],
+      section,
+      () => {}
+    );
+  }
+
   AddDivider(dropDownContainer);
   section = AddSection("Y-axis", dropDownContainer);
 
@@ -971,15 +977,15 @@ export function createSettingsPopout(
         config.yAxisDecimals.set(3);
       }
 
-      AddThousandsCheckBoxIfNeeded(yAxisCustomizationPlaceholder, config.yAxisFormatType.value());
+      AddThousandsCheckBoxIfNeeded(
+        yAxisCustomizationPlaceholder,
+        config.yAxisFormatType.value()
+      );
     }
   );
 
   function AddDecimalPlacesSlider(container: HTMLElement, formatType: string) {
-    if (
-      formatType == "exponent" ||
-      formatType == "floatingPoint" 
-    ) {
+    if (formatType == "exponent" || formatType == "floatingPoint") {
       AddSlider("Decimal Places", config.yAxisDecimals, container, 0, 12, 1);
     } else if (formatType != "currency") {
       AddSlider(
@@ -997,7 +1003,11 @@ export function createSettingsPopout(
     container: HTMLElement,
     formatType: string
   ) {
-    if (formatType != "shortNumber" && formatType != "exponent" && formatType != "currency")
+    if (
+      formatType != "shortNumber" &&
+      formatType != "exponent" &&
+      formatType != "currency"
+    )
       AddCheckbox(
         "Use Thousands Separator",
         config.yAxisUseThousandsSeparator,

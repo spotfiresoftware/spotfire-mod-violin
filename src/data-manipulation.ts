@@ -235,15 +235,16 @@ export async function buildData(
 
     // Group the data manually into bins of marked/not marked
     for (const [category, categoryRowData] of rowDataGroupedByCat) {
-
       let filteredCategoryRowData = categoryRowData;
 
       if (config.yAxisScaleType.value() == "log") {
-        filteredCategoryRowData = categoryRowData.filter((r:RowData) => r.y > 0);
+        filteredCategoryRowData = categoryRowData.filter(
+          (r: RowData) => r.y > 0
+        );
       }
 
       let markingGroupId = 0;
-      
+
       let previousElement = categoryRowData[0];
       filteredCategoryRowData.forEach((element: RowData) => {
         if (element.Marked != previousElement.Marked) {
@@ -266,7 +267,11 @@ export async function buildData(
             }
           )
           .points()
-      ).sort((a: any, b: any) => d3.ascending(a.x, b.x));
+      )
+        .filter((p: any) => !isNaN(p.y))
+        .sort((a: any, b: any) => d3.ascending(a.x, b.x));
+
+      Log.green(LOG_CATEGORIES.DebugYNaN)(densityPointsSorted);
 
       // Now need a data structure where data points are grouped by marking
       const pointsGroupedByMarking = d3.rollup(
@@ -382,20 +387,23 @@ export async function buildData(
 
       // Now fill in the "gaps", where there are no data points for parts of the violin
       if (isAnyMarkedRecords) {
-       
         // bottom (min):
         // Find the first point that's just greater than thresholds[0].min
-        const maxIndex =  Math.min(
-            densityPointsSorted.findIndex(
-              (p: any) => p.x > thresholds[0]?.min
-            ),
-            densityPointsSorted.length - 1) + 1;
+        const maxIndex =
+          Math.min(
+            densityPointsSorted.findIndex((p: any) => p.x > thresholds[0]?.min),
+            densityPointsSorted.length - 1
+          ) + 1;
 
         const gapPoints = densityPointsSorted.filter(
-          (p: any, i:number) => i < maxIndex
+          (p: any, i: number) => i < maxIndex
         );
 
-        Log.green(LOG_CATEGORIES.DebugLogYAxis)("Bottom gap points", gapPoints, maxIndex);
+        Log.green(LOG_CATEGORIES.DebugLogYAxis)(
+          "Bottom gap points",
+          gapPoints,
+          maxIndex
+        );
         if (gapPoints.length > 0) {
           densitiesSplitByMarking.push({
             category: category,

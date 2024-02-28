@@ -28,6 +28,7 @@ import {
   StatisticsConfig,
   TrellisRenderingInfo,
   D3_SELECTION,
+  TrellisZoomConfig,
 } from "./definitions";
 import { buildData } from "./data-manipulation";
 import { clearWarning, createWarning } from "./warning";
@@ -40,6 +41,8 @@ let previousYAxisExpression: string = "";
 let previousCountAxisExpression: string = "";
 
 let statisticsConfigCache: Map<string, StatisticsConfig>;
+
+let trellisZoomConfigsCache: TrellisZoomConfig[] = [];
 
 /**
  * Use any of these categories to differentiate between sets of log messages. Add a new one
@@ -82,13 +85,15 @@ export enum LOG_CATEGORIES {
   DebugMedian,
   PopupWarning,
   CurrencyFormatting,
+  DebugYNaN,
+  DebugIndividualYScales
 }
 
 /**
  * Set this array to any number of categories, or None to hide all logging
  */
 const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [
-  LOG_CATEGORIES.DebugYScaleTicks,
+  LOG_CATEGORIES.None,
 ];
 
 /**
@@ -361,6 +366,7 @@ Spotfire.initialize(async (mod) => {
     mod.property<string>("yAxisCurrencySymbol"),
     mod.property<boolean>("yAxisUseThousandsSeparator"),
     mod.property<boolean>("yAxisUseShortNumberFormat"),
+    mod.property<boolean>("yScalePerTrellisPanel"),
     mod.property<number>("maxRowsPerPage"),
     mod.property<number>("maxColumnsPerPage"),
     mod.property<boolean>("showZoomSliders"),
@@ -373,7 +379,6 @@ Spotfire.initialize(async (mod) => {
     mod.property<boolean>("comparisonCirclesEnabled"),
     mod.property<number>("comparisonCirclesAlpha"),
     mod.property<string>("statisticsConfig"),
-    mod.property<boolean>("individualZoomSlider"),
     mod.property<boolean>("ignoreAggregatedYAxisWarning"),
     mod.property<boolean>("ignoreIncorrectCountExpression"),
     mod.property<boolean>("reloadTrigger")
@@ -409,6 +414,7 @@ Spotfire.initialize(async (mod) => {
    * @param {ModProperty<string>} yAxisCurrencySymbol
    * @param {ModProperty<boolean>} yAxisUseThousandsSeparator
    * @param {ModProperty<boolean>} yAxisUseShortNumberFormat
+   * @param {ModProperty<boolean>} yScalePerTrellisPanel
    * @param {ModProperty<number>} maxColumnsPerPage
    * @param {ModProperty<number>} maxRowsPerPage
    * @param {ModProperty<boolean>} showZoomSliders
@@ -418,7 +424,6 @@ Spotfire.initialize(async (mod) => {
    * @param {ModProperty<number>} boxWidth
    * @param {ModProperty<number>} circleSize
    * @param {ModProperty<string>} statisticsConfig
-   * @param {ModProperty<boolean>} individualZoomSlider
    * @param {ModProperty<boolean>} ignoreAggregatedYAxisWarning
    * @param {ModProperty<boolean>} ignoreIncorrectCountExpression
    * @param {ModProperty<boolean>} reloadTrigger
@@ -448,6 +453,7 @@ Spotfire.initialize(async (mod) => {
     yAxisCurrencySymbol: ModProperty<string>,
     yAxisUseThousandsSeparator: ModProperty<boolean>,
     yAxisUseShortNumberFormat: ModProperty<boolean>,
+    yScalePerTrellisPanel:ModProperty<boolean>,
     maxColumnsPerPage: ModProperty<number>,
     maxRowsPerPage: ModProperty<number>,
     showZoomSliders: ModProperty<boolean>,
@@ -460,12 +466,11 @@ Spotfire.initialize(async (mod) => {
     comparisonCirclesEnabled: ModProperty<boolean>,
     comparisonCirclesAlpha: ModProperty<number>,
     statisticsConfig: ModProperty<string>,
-    individualZoomSlider: ModProperty<boolean>,
     ignoreAggregatedYAxisWarning: ModProperty<boolean>,
     ignoreIncorrectCountExpression: ModProperty<boolean>,
     reloadTrigger: ModProperty<number>
   ) {
-    Log.red(LOG_CATEGORIES.DebugLogYAxis)("OnChange", yAxisLog.value());
+    Log.red(LOG_CATEGORIES.DebugIndividualYScales)("OnChange", yAxisLog.value());
     // Reload trigger is set in warning.ts - to trigger a reload
     Log.green(LOG_CATEGORIES.DebugLogYAxis)(
       "reloadTrigger",
@@ -500,6 +505,7 @@ Spotfire.initialize(async (mod) => {
       yAxisCurrencySymbol: yAxisCurrencySymbol,
       yAxisUseThousandsSeparator: yAxisUseThousandsSeparator,
       yAxisUseShortNumberFormat: yAxisUseShortNumberFormat,
+      yScalePerTrellisPanel: yScalePerTrellisPanel,
       showZoomSliders: showZoomSliders,
       trellisIndividualZoomSettings: trellisIndividualZoomSettings,
       boxPlotColor: boxPlotColor,
@@ -512,7 +518,6 @@ Spotfire.initialize(async (mod) => {
       comparisonCirclesEnabled: comparisonCirclesEnabled,
       comparisonCirclesAlpha: comparisonCirclesAlpha,
       statisticsConfig: statisticsConfig,
-      individualZoomSlider: individualZoomSlider,
       //statisticsConfigCache: statisticsConfig.value() == "" ? new Map<string, StatisticsConfig>() : new Map(JSON.parse(statisticsConfig.value())),
       GetStatisticsConfigItems(): Map<string, StatisticsConfig> {
         if (
@@ -638,14 +643,24 @@ Spotfire.initialize(async (mod) => {
             formatString = "." + config.yAxisDecimals.value() + "s";
             break;
           case "currency":
-            d3.formatDefaultLocale({                
-                currency: [config.yAxisCurrencySymbol.value(), ""]
-              });
-            return d3.formatPrefix("$.2", number)(number)        
+            d3.formatDefaultLocale({
+              currency: [config.yAxisCurrencySymbol.value(), ""],
+            });
+            return d3.formatPrefix("$.2", number)(number).replace("G", "B");
         }
 
         //Log.green(LOG_CATEGORIES.CurrencyFormatting)(formatString);
         return d3.format(formatString)(number);
+      },
+      GetTrellisZoomConfigs() {
+
+        if (trellisZoomConfigsCache.length == 0) {
+            trellisZoomConfigsCache =
+            config.trellisIndividualZoomSettings.value() == ""
+              ? new Array<TrellisZoomConfig>()
+              : JSON.parse(config.trellisIndividualZoomSettings.value());
+        }
+        return trellisZoomConfigsCache;
       },
     };
 
@@ -828,8 +843,7 @@ Spotfire.initialize(async (mod) => {
       context.styling.general.backgroundColor
     );
 
-    d3.select(".dropdown-container")
-      .style("background-color", context.styling.general.backgroundColor)
+    d3.select(".dropdown-container")      
       .attr("height", "10px");
 
     const rootContainer = MOD_CONTAINER.select("#root-container").empty()
@@ -846,7 +860,6 @@ Spotfire.initialize(async (mod) => {
                     Log.green(LOG_CATEGORIES.General)("mousewheel", event);
                     scrollOffset += event.deltaY;
                 })*/
-          .on("scroll", () => Log.green(LOG_CATEGORIES.General)("scroll"))
           .on("mousedown", (e: MouseEvent) =>
             Log.green(LOG_CATEGORIES.General)(
               "ui marking root container mousedown",
@@ -861,7 +874,6 @@ Spotfire.initialize(async (mod) => {
           "container-fluid",
           true
         );
-    //.classed("container-offset-right", true);
 
     d3.select("#gear-icon").style("fill", context.styling.general.font.color);
 
@@ -936,7 +948,7 @@ Spotfire.initialize(async (mod) => {
       if (
         isInteractive &&
         config.showZoomSliders.value() &&
-        !config.individualZoomSlider.value()
+        !config.yScalePerTrellisPanel.value()
       ) {
         d3.select("#trellis-zoom-container").select("*").remove();
         globalZoomSliderContainer = d3
@@ -995,11 +1007,11 @@ Spotfire.initialize(async (mod) => {
       rootContainer
         .classed(
           "root-container-trellis-with-global-zoom-slider",
-          !config.individualZoomSlider.value()
+          !config.yScalePerTrellisPanel.value()
         )
         .classed(
           "root-container-trellis-with-individual-zoom-slider",
-          config.individualZoomSlider.value()
+          config.yScalePerTrellisPanel.value() && config.showZoomSliders
         )
         .attr(
           "style",
@@ -1010,7 +1022,7 @@ Spotfire.initialize(async (mod) => {
             windowSize.height +
             "px; " +
             "left: " +
-            (config.individualZoomSlider.value() ||
+            (config.yScalePerTrellisPanel.value() ||
             !config.showZoomSliders.value()
               ? "0px"
               : globalZoomSliderContainer.node().getBoundingClientRect().width +
@@ -1069,7 +1081,7 @@ Spotfire.initialize(async (mod) => {
       );
 
       // Adjust panelWidth for individual zoom slider
-      panelWidth = config.individualZoomSlider.value()
+      panelWidth = config.yScalePerTrellisPanel.value() && config.showZoomSliders.value()
         ? panelWidth - 5
         : panelWidth - 4;
 
@@ -1083,10 +1095,6 @@ Spotfire.initialize(async (mod) => {
         panelWidth,
         panelHeight
       );
-
-      // If not individual zoom slider or is not trellis
-      //if (!config.individualZoomSlider.value() || !isTrellis) // todo - check!
-      //    rowWidth -= 40; // takes into consideration the margin used by the zoom bar
 
       let currentRow: d3.D3_SELECTION;
 
@@ -1330,7 +1338,7 @@ Spotfire.initialize(async (mod) => {
         trellisRenderingInfo.length
       );
 
-      // Now get the data, and work out the y data domain min/max, if shared y axis
+      // Now get the data, and work out the y data domain min/max, if single y axis
       let minYDataDomain: number;
       let maxYDataDomain: number;
       for (const renderingInfo of trellisRenderingInfo) {
@@ -1346,7 +1354,7 @@ Spotfire.initialize(async (mod) => {
               // A refresh of the dataView should sort things out (e.g. changing a filter)
               return;
             }
-            if (!config.individualZoomSlider.value()) {
+            if (!config.yScalePerTrellisPanel.value()) {
               minYDataDomain = minYDataDomain
                 ? Math.min(minYDataDomain, renderingInfo.data.yDataDomain.min)
                 : renderingInfo.data.yDataDomain.min;
@@ -1354,13 +1362,13 @@ Spotfire.initialize(async (mod) => {
                 ? Math.max(maxYDataDomain, renderingInfo.data.yDataDomain.max)
                 : renderingInfo.data.yDataDomain.max;
             }
-            Log.green(LOG_CATEGORIES.General)(
+            /*Log.green(LOG_CATEGORIES.DebugIndividualYScales)(
               "min/max",
               minYDataDomain,
               maxYDataDomain,
               renderingInfo.data.yDataDomain,
               renderingInfo.trellisName
-            );
+            );*/
           })
           .catch((error: Error) => {
             Log.red(LOG_CATEGORIES.DebugLogYAxis)(
@@ -1392,7 +1400,7 @@ Spotfire.initialize(async (mod) => {
       for (let i = 0; i < trellisRenderingInfo.length; i++) {
         const renderingInfo = trellisRenderingInfo[i];
         Log.green(LOG_CATEGORIES.General)("will render", renderingInfo);
-        if (!config.individualZoomSlider.value()) {
+        if (!config.yScalePerTrellisPanel.value()) {
           renderingInfo.data.yDataDomain.min = minYDataDomain;
           renderingInfo.data.yDataDomain.max = maxYDataDomain;
         }
@@ -1410,7 +1418,7 @@ Spotfire.initialize(async (mod) => {
         );
 
         const calculatedLeftMargin =
-          (config.individualZoomSlider.value() ? 70 : 40) +
+          (config.yScalePerTrellisPanel.value() && config.showZoomSliders.value() ? 70 : 40) +
           20 * (maxStringLength / 4);
 
         Log.red(LOG_CATEGORIES.DebugMarkingOffset)(
@@ -1466,12 +1474,8 @@ Spotfire.initialize(async (mod) => {
 
           Log.green(LOG_CATEGORIES.DebugWebPlayerIssue)("data", data);
 
-          const maxAsString = config.FormatNumber(
-            data.yDataDomain.max
-          );
-          const minAsString = config.FormatNumber(
-            data.yDataDomain.min
-          );
+          const maxAsString = config.FormatNumber(data.yDataDomain.max);
+          const minAsString = config.FormatNumber(data.yDataDomain.min);
 
           const maxStringLength = Math.max(
             maxAsString.length,
@@ -1484,7 +1488,7 @@ Spotfire.initialize(async (mod) => {
             calculatedLeftMargin
           );
           const zoommargin =
-            !config.individualZoomSlider.value() || !isTrellis ? 40 : 0;
+            !config.yScalePerTrellisPanel.value() || !isTrellis ? 40 : 0;
           const containerSize: Size = {
             height: windowSize.height,
             width: windowSize.width - zoommargin,
