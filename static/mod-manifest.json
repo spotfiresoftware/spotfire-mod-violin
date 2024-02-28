@@ -176,6 +176,11 @@
             "defaultValue": "false"
         },
         {
+            "name": "yScalePerTrellisPanel",
+            "type": "boolean",
+            "defaultValue": false
+        },
+        {
             "name": "ignoreAggregatedYAxisWarning",
             "type": "boolean",
             "defaultValue": false
