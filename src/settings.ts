@@ -811,7 +811,7 @@ export function createSettingsPopout(
         AddRadioButton(
           config.violinSmoothness,
           [
-            { text: "Histogram", value: 128 },
+            { text: "Histogram", value: 10 },
             { text: "Stepped", value: 256 },
             { text: "Smooth", value: 512 },
           ],

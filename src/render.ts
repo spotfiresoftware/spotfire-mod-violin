@@ -139,7 +139,7 @@ export async function render(
     isTrellis &&
     config.showZoomSliders.value() &&
     config.yScalePerTrellisPanel.value();
- 
+
   const isTrellisWithIndividualYscale =
     isTrellis && config.yScalePerTrellisPanel.value();
 
@@ -385,7 +385,6 @@ export async function render(
   /**
    * Draw y axis
    */
-
   let minZoom: number;
   let maxZoom: number;
 
@@ -425,7 +424,8 @@ export async function render(
     }
   } else {
     Log.green(LOG_CATEGORIES.DebugResetGlobalZoom)(
-      "Getting min/max zoom from config if set", config.yZoomMaxUnset.value()
+      "Getting min/max zoom from config if set",
+      config.yZoomMaxUnset.value()
     );
     minZoom = config.yZoomMinUnset.value()
       ? plotData.yDataDomain.min
@@ -446,6 +446,7 @@ export async function render(
 
   let yScale = d3.scale;
   let ticks: number[];
+  let allTicks: number[];
 
   // Symmetrical log
   if (config.yAxisScaleType.value() == "symlog") {
@@ -467,6 +468,14 @@ export async function render(
     svg.append;
   }
 
+  const testLog = d3.scaleLog(
+    [minZoom, maxZoom],
+    [heightAvailable - padding.betweenPlotAndTable, 0]
+  );
+  Log.green(LOG_CATEGORIES.InnovativeLogTicks)("log ticks", testLog.ticks());
+
+  // Keep track of the power labels so we can avoid hiding them later (for symlog scale)
+  const powerLabels: string[] = [];
   // Settings common to both symmetrical log and log
   if (
     config.yAxisScaleType.value() == "symlog" ||
@@ -480,9 +489,16 @@ export async function render(
       yScale.ticks()
     );
 
-    ticks = yScale.ticks();
-    let currentPower = Math.floor(Math.log10(ticks[0]));
-    ticks = ticks.filter((t: number, i: number) => {
+    allTicks = yScale.ticks();
+
+    //allTicks = allTicks.concat([100000000, 300000000, 500000000, 700000000, 900000000, 1100000000, 1300000000, 1500000000, 1700000000, 1900000000, 2100000000, 2300000000, 2500000000, 2600000000, 2700000000])
+
+    allTicks = allTicks.concat(minZoom);
+
+    Log.green(LOG_CATEGORIES.InnovativeLogTicks)("ticks", ticks);
+
+    let currentPower = Math.floor(Math.log10(allTicks[0]));
+    ticks = allTicks.filter((t: number, i: number) => {
       //i %
       //  modulus ==
       //0
@@ -494,12 +510,19 @@ export async function render(
         t
       );
       if (pow != currentPower) {
+        Log.green(LOG_CATEGORIES.InnovativeLogTicks)("tick", i, t, pow);
         currentPower = pow;
+        // Powers of 10 - don't remove them to avoid clashes later on!
+        powerLabels.push(config.FormatNumber(t));
         return true;
       }
-      return i == 0 || i == ticks.length - 1;
+      const shallUse = true || i == 0 || i == allTicks.length - 1;
+      Log.green(LOG_CATEGORIES.InnovativeLogTicks)("shallUse", i, t, shallUse);
+      return shallUse;
     });
   }
+
+  Log.green(LOG_CATEGORIES.InnovativeLogTicks)("ticks", ticks);
 
   if (config.yAxisScaleType.value() == "linear") {
     yScale = d3
@@ -508,6 +531,7 @@ export async function render(
       //.domain([0,50])
       .range([heightAvailable - padding.betweenPlotAndTable, 0]); //.nice();
     ticks = yScale.ticks((heightAvailable - padding.betweenPlotAndTable) / 40);
+    allTicks = ticks;
   }
 
   const yAxis = d3
@@ -515,6 +539,66 @@ export async function render(
     .scale(yScale)
     .tickValues(ticks)
     .tickFormat((d: any) => config.FormatNumber(d));
+
+  /**
+   * Draw grid lines
+   */
+  if (config.includeYAxisGrid.value() && styling.scales.line.stroke != "none") {
+    Log.green(LOG_CATEGORIES.DebugYScaleTicks)(ticks);
+    g.selectAll("line.horizontalGrid")
+      .data(config.yAxisScaleType.value() == "linear" ? ticks : ticks)
+      .enter()
+      .append("line")
+      .attr("class", "horizontal-grid")
+      .attr("x1", 0)
+      .attr("x2", width)
+      .attr("y1", (d: number) => yScale(d) + 0.5)
+      .attr("y2", (d: number) => yScale(d) + 0.5)
+      .attr("stroke", styling.scales.line.stroke)
+      .attr("shape-rendering", "crispEdges");
+    //.attr("stroke", styling.scales.line.stroke)
+
+    g.selectAll("line.horizontal-grid-hover")
+      .data(config.yAxisScaleType.value() == "linear" ? ticks : yScale.ticks)
+      .enter()
+      .append("line")
+      .attr("class", "horizontal-grid-hover")
+      .attr("style", "opacity:0;")
+      .attr("x1", 0)
+      .attr("x2", width)
+      .attr("y1", (d: number) => yScale(d))
+      .attr("y2", (d: number) => yScale(d))
+      .attr("stroke", styling.scales.line.stroke)
+      .attr("stroke-width", 5)
+      .attr("shape-rendering", "crispEdges")
+      //.attr("stroke", styling.scales.line.stroke)
+      .on("mouseover", function (event: d3.event, d: any) {
+        Log.green(LOG_CATEGORIES.DebugYScaleTicks)("mouseover", d);
+        tooltip.show(config.FormatNumber(d));
+      })
+      .on("mouseover", function (event: d3.event, d: any) {
+        tooltip.show(config.FormatNumber(d));
+      })
+      .on("mouseout", () => tooltip.hide());
+  }
+
+  // Styling of ticks and lines
+  container.selectAll(".tick line").attr("stroke", styling.scales.tick.stroke);
+
+  container.selectAll(".domain").attr("stroke", styling.scales.line.stroke);
+
+  // Render y axis
+  const yAxisRendered = g
+    .append("g")
+    .attr("class", "axis")
+    .style("font-family", styling.scales.font.fontFamily)
+    .style("font-weight", styling.scales.font.fontWeight)
+    .style("font-size", styling.scales.font.fontSize + "px")
+    .style("color", styling.scales.font.color)
+    .call(yAxis)
+    .on("drag", () => {
+      Log.green(LOG_CATEGORIES.Rendering)("drag");
+    });
 
   Log.green(LOG_CATEGORIES.Rendering)(
     "slider",
@@ -524,6 +608,173 @@ export async function render(
     yScale(plotData.yDataDomain.min),
     yScale(plotData.yDataDomain.max)
   );
+
+  const tickSelection = yAxisRendered.selectAll("g.tick");
+  //const boundingBoxes:any[] = [];
+
+  const labels = yAxisRendered.selectAll("g.tick").selectAll("text"); //.append("text");
+  //const boundingBoxes = ticks.map((l:any) => testers.text(l).node().getBBox());
+  Log.red(LOG_CATEGORIES.InnovativeLogTicks)("testers", labels);
+
+  labels.each((t: any, i: number, g: NodeList) => {
+    Log.red(LOG_CATEGORIES.InnovativeLogTicks)(
+      "t",
+      g.item(i).getBoundingClientRect()
+    );
+  });
+
+  interface AxisLabelRect {
+    SvgTextElement: Node;
+    BoundingClientRect: DOMRect;
+  }
+
+  /**
+   * Remove clashing labels; Returns true if a label was removed; false if no label was removed
+   * @param axisLabelRects
+   * @param powers
+   * @param topToBottom
+   * @returns
+   */
+  function removeLabelClashes(
+    axisLabelRects: AxisLabelRect[],
+    powers: string[],
+    topToBottom: boolean
+  ): boolean {
+    let didRemoveLabel = false;
+    for (let i = 0; i < axisLabelRects.length; i++) {
+      const axisLabelRect = axisLabelRects[i];
+      if (topToBottom) {
+        const thisRectBottom =
+          axisLabelRect.BoundingClientRect.top +
+          axisLabelRect.BoundingClientRect.height;
+        const nextRectTop = axisLabelRects[i + 1]?.BoundingClientRect.top;
+        const nextLabelText = d3
+          .select(axisLabelRects[i + 1]?.SvgTextElement)
+          .node()?.innerHTML;
+        const thisLabelText = d3
+          .select(axisLabelRects[i]?.SvgTextElement)
+          .node()?.innerHTML;
+        Log.blue(LOG_CATEGORIES.InnovativeLogTicks)(
+          "This Label Text",
+          thisLabelText
+        );
+        Log.red(LOG_CATEGORIES.InnovativeLogTicks)(
+          "Next Label Text",
+          nextLabelText
+        );
+        if (nextLabelText != undefined && nextRectTop <= thisRectBottom && !powers.includes(nextLabelText)) {
+          Log.red(LOG_CATEGORIES.InnovativeLogTicks)("Removing", nextLabelText);
+          d3.select(axisLabelRects[i + 1]?.SvgTextElement).remove();
+          didRemoveLabel = true;
+          break;
+        }
+      } else {
+        const thisRectTop = axisLabelRect.BoundingClientRect.top;
+        const nextRectBottom =
+          axisLabelRects[i + 1]?.BoundingClientRect.top +
+          axisLabelRects[i + 1]?.BoundingClientRect.height;
+        const nextLabelText = d3
+          .select(axisLabelRects[i + 1]?.SvgTextElement)
+          .node()?.innerHTML;
+        const thisLabelText = d3
+          .select(axisLabelRects[i]?.SvgTextElement)
+          .node()?.innerHTML;
+        Log.green(LOG_CATEGORIES.InnovativeLogTicks)(
+          "This Label Text",
+          thisLabelText
+        );
+        Log.red(LOG_CATEGORIES.InnovativeLogTicks)(
+          "Next Label Text",
+          nextLabelText
+        );
+        if (nextLabelText != undefined && nextRectBottom >= thisRectTop && !powers.includes(nextLabelText)) {
+          Log.red(LOG_CATEGORIES.InnovativeLogTicks)("Removing", nextLabelText);
+          d3.select(axisLabelRects[i + 1]?.SvgTextElement).remove();
+          didRemoveLabel = true;
+          break;
+        }
+      }
+    }
+
+    return didRemoveLabel;
+  }
+
+  // Now remove clashing labels iteratively
+  let areBottomUpClashingLabelsRemoved = false;
+  let areTopDownClashingLabelsRemoved = false;
+
+  // Guard against too many iterations of the algorithm to remove clashing labels
+  let iterations = 0;
+
+  while (
+    (!areBottomUpClashingLabelsRemoved ||
+    !areTopDownClashingLabelsRemoved) &&
+    iterations < allTicks.length * 2
+  ) {
+    Log.red(LOG_CATEGORIES.InnovativeLogTicks)(
+      "Iterating",
+      iterations % 2 == 0 ? "TopDown" : "BottomUp", areBottomUpClashingLabelsRemoved, areTopDownClashingLabelsRemoved, iterations
+    );
+    const axisLabelRects: AxisLabelRect[] = [];
+
+    yAxisRendered
+      .selectAll("g.tick")
+      .selectAll("text")
+      .each((t: any, i: number, g: NodeList) => {
+        //getAttribute("transform"));
+        axisLabelRects.push({
+          SvgTextElement: g.item(i),
+          BoundingClientRect: g.item(i).getBoundingClientRect(),
+        });
+      });
+    if (iterations % 2 == 0) {
+      // Sort the rects from top to bottom
+      axisLabelRects.sort(
+        (r1: AxisLabelRect, r2: AxisLabelRect) =>
+          r1.BoundingClientRect.top - r2.BoundingClientRect.top
+      );
+    } else {
+      // Sort the rects from bottom to top
+      axisLabelRects.sort(
+        (r1: AxisLabelRect, r2: AxisLabelRect) =>
+          r2.BoundingClientRect.top - r1.BoundingClientRect.top
+      );
+    }
+
+    Log.red(LOG_CATEGORIES.InnovativeLogTicks)(
+      "all axisLabelRects",
+      axisLabelRects,
+      "powerLabels",
+      powerLabels
+    );
+
+    if (iterations % 2 == 0) {
+      areTopDownClashingLabelsRemoved = !removeLabelClashes(
+        axisLabelRects,
+        powerLabels,
+        true
+      );
+    } else {
+      areBottomUpClashingLabelsRemoved = !removeLabelClashes(
+        axisLabelRects,
+        powerLabels,
+        false
+      );
+    }
+    iterations++;
+    Log.red(LOG_CATEGORIES.InnovativeLogTicks)(
+      "Done iteration",
+      iterations % 2 == 0 ? "TopDown" : "BottomUp", areBottomUpClashingLabelsRemoved, areTopDownClashingLabelsRemoved, iterations
+    );
+  }
+
+  /*each((tick:any) => {
+    const t = tick.append('text');
+    Log.red(LOG_CATEGORIES.InnovativeLogTicks)("tick", d3.select(tick));
+    //boundingBoxes.push(t.node().getBBox()); //.getBBox());
+  })*/
+
+  //Log.green(LOG_CATEGORIES.InnovativeLogTicks)("boundingBoxes",  boundingBoxes);
 
   /**
    * Zoom slider
@@ -711,7 +962,7 @@ export async function render(
             trellisZoomConfig.minZoomUnset = true;
             trellisZoomConfig.maxZoomUnset = true;
           }
-          
+
           // Keep track of the panel we are resetting
           setTrellisPanelZoomedTitle(trellisName);
 
@@ -719,74 +970,12 @@ export async function render(
           config.trellisIndividualZoomSettings.set(
             JSON.stringify(trellisZoomConfigs)
           );
-
         } else {
-            Log.green(LOG_CATEGORIES.DebugResetGlobalZoom)(
-                "Resetting"
-              );
+          Log.green(LOG_CATEGORIES.DebugResetGlobalZoom)("Resetting");
           config.ResetGlobalZoom();
         }
       });
   });
-
-  // Render y axis
-  g.append("g")
-    .attr("class", "axis")
-    .style("font-family", styling.scales.font.fontFamily)
-    .style("font-weight", styling.scales.font.fontWeight)
-    .style("font-size", styling.scales.font.fontSize + "px")
-    .style("color", styling.scales.font.color)
-    .call(yAxis)
-    .on("drag", () => {
-      Log.green(LOG_CATEGORIES.Rendering)("drag");
-    });
-
-  /**
-   * Draw grid lines
-   */
-  if (config.includeYAxisGrid.value() && styling.scales.line.stroke != "none") {
-    Log.green(LOG_CATEGORIES.DebugYScaleTicks)(ticks);
-    g.selectAll("line.horizontalGrid")
-      .data(config.yAxisScaleType.value() == "linear" ? ticks : yScale.ticks)
-      .enter()
-      .append("line")
-      .attr("class", "horizontal-grid")
-      .attr("x1", 0)
-      .attr("x2", width)
-      .attr("y1", (d: number) => yScale(d) + 0.5)
-      .attr("y2", (d: number) => yScale(d) + 0.5)
-      .attr("stroke", styling.scales.line.stroke)
-      .attr("shape-rendering", "crispEdges");
-    //.attr("stroke", styling.scales.line.stroke)
-
-    g.selectAll("line.horizontal-grid-hover")
-      .data(config.yAxisScaleType.value() == "linear" ? ticks : yScale.ticks)
-      .enter()
-      .append("line")
-      .attr("class", "horizontal-grid-hover")
-      .attr("style", "opacity:0;")
-      .attr("x1", 0)
-      .attr("x2", width)
-      .attr("y1", (d: number) => yScale(d))
-      .attr("y2", (d: number) => yScale(d))
-      .attr("stroke", styling.scales.line.stroke)
-      .attr("stroke-width", 5)
-      .attr("shape-rendering", "crispEdges")
-      //.attr("stroke", styling.scales.line.stroke)
-      .on("mouseover", function (event: d3.event, d: any) {
-        Log.green(LOG_CATEGORIES.DebugYScaleTicks)("mouseover", d);
-        tooltip.show(config.FormatNumber(d));
-      })
-      .on("mouseover", function (event: d3.event, d: any) {
-        tooltip.show(config.FormatNumber(d));
-      })
-      .on("mouseout", () => tooltip.hide());
-  }
-
-  // Styling of ticks and lines
-  container.selectAll(".tick line").attr("stroke", styling.scales.tick.stroke);
-
-  container.selectAll(".domain").attr("stroke", styling.scales.line.stroke);
 
   /**
    * Trend lines

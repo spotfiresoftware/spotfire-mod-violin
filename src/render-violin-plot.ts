@@ -142,6 +142,8 @@ export function renderViolin(
             d[0].category +
             "\ny: " +
             config.FormatNumber(yScale.invert(event.y)) +
+            "\nDensity: " +
+            config.FormatNumber(violinXscale.invert(event.x)) +
             "\nMin: " +
             config.FormatNumber(d[0].sumStats.min) +
             "\nMax: " +
@@ -192,6 +194,8 @@ export function renderViolin(
             d[0].category +
             "\ny: " +
             config.FormatNumber(yScale.invert(event.y)) +
+            "\nDensity: " +
+            d3.format(".2e")(violinXscale.invert(event.x)) +
             "\nMin: " +
             config.FormatNumber(d[0].sumStats.min) +
             "\nMax: " +

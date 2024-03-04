@@ -87,7 +87,8 @@ export enum LOG_CATEGORIES {
   CurrencyFormatting,
   DebugYNaN,
   DebugIndividualYScales,
-  DebugResetGlobalZoom
+  DebugResetGlobalZoom,
+  InnovativeLogTicks
 }
 
 /**
@@ -625,7 +626,9 @@ Spotfire.initialize(async (mod) => {
           (name == "Median" && config.includeBoxplot.value()) ||
           (name == "Count" && config.comparisonCirclesEnabled.value()) ||
           (name == "StdDev" && config.comparisonCirclesEnabled.value()) ||
-          (name == "Avg" && config.comparisonCirclesEnabled.value())
+          (name == "Avg" && config.comparisonCirclesEnabled.value()) ||
+          (name == "Min" && config.includeViolin.value()) ||
+          (name == "Max" && config.includeViolin.value())
         );
       },
       FormatNumber(number: number) {

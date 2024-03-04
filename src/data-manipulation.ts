@@ -255,6 +255,12 @@ export async function buildData(
         previousElement = element;
       });
 
+      const categorySumStats = sumStats.get(category);
+      Log.green(LOG_CATEGORIES.InnovativeLogTicks)("categorySumStats", categorySumStats.max);
+      const bandwidth = (categorySumStats.max - categorySumStats.min) * config.violinBandwidth.value();
+
+      Log.green(LOG_CATEGORIES.InnovativeLogTicks)("bandWidth", bandwidth);
+
       // Calculate the densities - note - in the result, x is the y axis in the plot; y is the width of the violin at
       // that point.
       let densityPointsSorted = Array.from(
@@ -263,7 +269,8 @@ export async function buildData(
             categoryRowData.map((d: any) => d.y),
             {
               size: config.violinSmoothness.value(),
-              bandwidth: (maxY - minY) * config.violinBandwidth.value(),
+              bandwidth: bandwidth,
+              extent: [categorySumStats.min, categorySumStats.max]
             }
           )
           .points()
@@ -295,7 +302,7 @@ export async function buildData(
         thresholds.push(threshold);
       }
 
-      Log.blue(LOG_CATEGORIES.DebugLogYAxis)(
+      Log.blue(LOG_CATEGORIES.InnovativeLogTicks)(
         "densityPointsSorted",
         densityPointsSorted
       );
@@ -838,17 +845,19 @@ function buildSumStats(
       }
 
       const interQuartileRange: number = q3! - q1!;
-
-      const min: number = d3.min(
-        d.map(function (g: any) {
-          //if(DEBUG) Log.green(LOG_CATEGORIES.General)(g.y);
-          return !filter ||
-            (config.yAxisLog.value() && g.y > 0) ||
-            !config.yAxisLog.value()
-            ? (g.y as number)
-            : NaN;
-        })
-      );
+      let min: number;
+      if (config.IsStatisticsConfigItemEnabled("Min")) {
+        min = d3.min(
+            d.map(function (g: any) {
+            //if(DEBUG) Log.green(LOG_CATEGORIES.General)(g.y);
+            return !filter ||
+                (config.yAxisLog.value() && g.y > 0) ||
+                !config.yAxisLog.value()
+                ? (g.y as number)
+                : NaN;
+            })
+        );
+      }
 
       const uif = q3 + 1.5 * interQuartileRange;
       const lif = q1 - 1.5 * interQuartileRange;
