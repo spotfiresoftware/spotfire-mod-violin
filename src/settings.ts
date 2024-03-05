@@ -861,14 +861,15 @@ export function createSettingsPopout(
           [],
           false
         );
-
-        AddColorfield(
-          config,
-          "Box Color",
-          config.boxPlotColor,
-          boxOptionsPlaceholder,
-          document.getElementById("modalscontainer")
-        );
+        if (!config.areColorAndXAxesMatching) {
+          AddColorfield(
+            config,
+            "Box Color",
+            config.boxPlotColor,
+            boxOptionsPlaceholder,
+            document.getElementById("modalscontainer")
+          );
+        }
       } else {
         d3.select(boxOptionsPlaceholder).selectAll("*").remove();
       }

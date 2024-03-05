@@ -55,6 +55,8 @@ export async function buildData(
 
   const xHierarchy = await dataView.hierarchy("X");
   const xHierarchyLeaves = (await xHierarchy!.root())!.leaves();
+  const colorAxis = await dataView.categoricalAxis("Color");
+
   Log.green(LOG_CATEGORIES.DebugLatestMarking)(
     xHierarchyLeaves,
     await trellisNode.leaves(),
@@ -86,11 +88,11 @@ export async function buildData(
             category: category,
             y: val,
             trellis: trellisNode.formattedPath(),
-            Color: config.boxPlotColor.value(),
+            Color: row.color().hexCode,
             Marked: row.isMarked(),
             id: row.elementId(true),
             markingGroupId: 0,
-            row: row,
+            row: row
           });
         }
       }
@@ -133,11 +135,12 @@ export async function buildData(
               );
               throw "Error - data size is too big - check Count axis, or reduce amount of data";
             }
+            Log.red(LOG_CATEGORIES.BoxPlotColorBy)(row.color().hexCode);
             rowData.push({
               category: category,
               y: val,
               trellis: trellisNode.formattedPath(),
-              Color: config.boxPlotColor.value(),
+              Color: row.color().hexCode,
               Marked: row.isMarked(),
               id: row.elementId(true),
               markingGroupId: 0,

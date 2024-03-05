@@ -163,6 +163,8 @@ export interface Options {
 
     statisticsConfig: ModProperty<string>;
 
+    areColorAndXAxesMatching : boolean;
+
     GetStatisticsConfigItems(): Map<string, StatisticsConfig>;
 
     SetStatisticsConfigItem(statisticsConfigItem: StatisticsConfig) : void;

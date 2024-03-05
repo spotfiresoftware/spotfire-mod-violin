@@ -191,12 +191,24 @@
             "defaultValue": false
         },
         {
+            "name": "ignoreColorXAxisMismatch",
+            "type": "boolean",
+            "defaultValue": false
+        },
+        {
             "name": "reloadTrigger",
             "type": "double",
             "defaultValue": "0.0"
         }
     ],
     "dataViewDefinition": {
+        "colorAxis": {
+            "mode": "categorical",
+            "dropTarget": {
+                "icon": "Color",
+                "description": "Color box plots by {0}"
+            }
+        },
         "axes": [
             {
                 "name": "Count",
@@ -211,7 +223,7 @@
                     "icon": "XAxis3D",
                     "description": "Use {0} on the X-axis"
                 }
-            },
+            },           
             {
                 "name": "Y",
                 "mode": "continuous",

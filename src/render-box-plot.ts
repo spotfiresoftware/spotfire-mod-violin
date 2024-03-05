@@ -11,10 +11,6 @@ import { Data, Options, RenderState } from "./definitions";
 import {
   LOG_CATEGORIES,
   Log,
-  adjustColor,
-  getBorderColor,
-  getComplementaryColor,
-  getContrastingColor,
   getMarkerHighlightColor,
 } from "./index";
 
@@ -66,20 +62,21 @@ export function renderBoxplot(
   // Q3 to UAV (Upper Adjacent Value) - top vertical line
   boxplot
     .append("line")
-    .datum((d: any) => {     
+    .datum((d: any) => { 
+      const dataPoints = plotData.dataPoints.filter(
+        (r: any) =>
+          r.y <= d[1].uav &&
+          r.y > d[1].q3 &&
+          r.category === d[0] &&
+          r.trellis == d[1].trellis
+      );  
       return {
         category: d[0],
-        dataPoints: plotData.dataPoints.filter(
-          (r: any) =>
-            r.y <= d[1].uav &&
-            r.y > d[1].q3 &&
-            r.category === d[0] &&
-            r.trellis == d[1].trellis
-        ),
+        dataPoints: dataPoints,
         stats: d[1],
+        color: !config.areColorAndXAxesMatching ? config.boxPlotColor.value() : dataPoints[0].Color
       };
     })
-
     .classed("markable", true)
     .attr("x1", xScale.bandwidth() / 2)
     .attr("x2", xScale.bandwidth() / 2)
@@ -90,12 +87,11 @@ export function renderBoxplot(
     .attr("y2", function (d: any) {
       return yScale(d.stats.q3) as number;
     })
-    .attr("stroke", function () {
-      return config.boxPlotColor.value();
-    })
+    .attr("stroke", (d:any) => d.color)      
     .style("opacity", BOX_OPACITY)
     .style("stroke-width", height < 600 ? 3 : 5)
     .classed("not-marked", function (d: any) {
+      if (config.areColorAndXAxesMatching) return false;
       if (!plotData.isAnyMarkedRecords) {
         return false;
       }
@@ -123,12 +119,11 @@ export function renderBoxplot(
           "x",
           (xScale(d.category) ? xScale(d.category) : 0) +
             xScale.bandwidth() / 2 -
-            (height < 600 ? 2 : 5) / 2 -
-            2.5
+            (height < 600 ? 2 : 5) / 2 
         )
         .attr("y", yScale(d.stats.uav))
         .attr("height", Math.max(0, yScale(d.stats.q3) - yScale(d.stats.uav)))
-        .attr("width", (height < 600 ? 2 : 5) * 2);
+        .attr("width", 4);
     })
     .on("mouseout", () => {
       tooltip.hide();
@@ -154,13 +149,15 @@ export function renderBoxplot(
   boxplot
     .append("line")
     .datum((d: any) => {
+      const dataPoints = plotData.dataPoints.filter(
+        (r: any) =>
+          r.y == d[1].uav && r.category === d[0] && r.trellis == d[1].trellis
+      );
       return {
         category: d[0],
-        dataPoints: plotData.dataPoints.filter(
-          (r: any) =>
-            r.y == d[1].uav && r.category === d[0] && r.trellis == d[1].trellis
-        ),
+        dataPoints: dataPoints,
         stats: d[1],
+        color: !config.areColorAndXAxesMatching ? config.boxPlotColor.value() : dataPoints[0].Color
       };
     })
     .classed("markable", true)
@@ -172,10 +169,11 @@ export function renderBoxplot(
     .attr("y2", function (d: any) {
       return yScale(d.stats.uav) as any;
     })
-    .attr("stroke", config.boxPlotColor.value())
+    .attr("stroke", (d:any) => d.color)
     .style("opacity", BOX_OPACITY)
     .style("stroke-width", height < 600 ? 3 : 5)
     .classed("not-marked", function (d: any) {
+      if (config.areColorAndXAxesMatching) return false;
       if (!plotData.isAnyMarkedRecords) {
         return false;
       }
@@ -197,7 +195,6 @@ export function renderBoxplot(
           "stroke",
           getMarkerHighlightColor(styling.generalStylingInfo.backgroundColor)
         )
-
         .attr(
           "x",
           (xScale(d.category) ? xScale(d.category) : 0) +
@@ -229,16 +226,18 @@ export function renderBoxplot(
   boxplot
     .append("line")
     .datum((d: any) => {
+      const dataPoints =  plotData.dataPoints.filter(
+        (r: any) =>
+          r.y >= d[1].lav &&
+          r.y < d[1].q1 &&
+          r.category === d[0] &&
+          r.trellis == d[1].trellis
+      );
       return {
         category: d[0],
-        dataPoints: plotData.dataPoints.filter(
-          (r: any) =>
-            r.y >= d[1].lav &&
-            r.y < d[1].q1 &&
-            r.category === d[0] &&
-            r.trellis == d[1].trellis
-        ),
+        dataPoints: dataPoints,
         stats: d[1],
+        color: !config.areColorAndXAxesMatching ? config.boxPlotColor.value() : dataPoints[0].Color
       };
     })
     .classed("markable", true)
@@ -251,10 +250,11 @@ export function renderBoxplot(
     .attr("y2", function (d: any) {
       return yScale(d.stats.q1) as number;
     })
-    .attr("stroke", config.boxPlotColor.value()) // (d:any) => {Log.green(LOG_CATEGORIES.Rendering)(d, plotData.dataPoints.filter((dx:any) => dx.x == d[0]).some((p: any) => p.y < d[1])); return config.boxPlotColor.value()})
+    .attr("stroke", (d:any) => d.color)
     .style("opacity", BOX_OPACITY)
     .style("stroke-width", height < 600 ? 3 : 5)
     .classed("not-marked", function (d: any) {
+      if (config.areColorAndXAxesMatching) return false;
       if (!plotData.isAnyMarkedRecords) {
         return false;
       }
@@ -315,13 +315,15 @@ export function renderBoxplot(
   boxplot
     .append("line")
     .datum((d: any) => {
+      const dataPoints = plotData.dataPoints.filter(
+        (r: any) =>
+          r.y == d[1].lav && r.category === d[0] && r.trellis == d[1].trellis
+      );
       return {
         category: d[0],
-        dataPoints: plotData.dataPoints.filter(
-          (r: any) =>
-            r.y == d[1].lav && r.category === d[0] && r.trellis == d[1].trellis
-        ),
+        dataPoints: dataPoints,
         stats: d[1],
+        color: !config.areColorAndXAxesMatching ? config.boxPlotColor.value() : dataPoints[0].Color
       };
     })
     .classed("markable", true)
@@ -333,10 +335,11 @@ export function renderBoxplot(
     .attr("y2", function (d: any) {
       return yScale(d.stats.lav) as any;
     })
-    .attr("stroke", config.boxPlotColor.value())
+    .attr("stroke", (d:any) => d.color)
     .style("opacity", BOX_OPACITY)
     .style("stroke-width", height < 600 ? 3 : 5)
     .classed("not-marked", function (d: any) {
+      if (config.areColorAndXAxesMatching) return false;
       if (!plotData.isAnyMarkedRecords) {
         return false;
       }
@@ -389,17 +392,18 @@ export function renderBoxplot(
   //top box
   boxplot
     .append("rect")
-    .datum((d: any) => {
-      Log.red(LOG_CATEGORIES.Marking)(d, plotData.dataPoints);
+    .datum((d: any) => {      
+      const dataPoints = plotData.dataPoints.filter(
+        (r: any) =>
+          r.y >= d[1].median &&
+          r.y <= d[1].q3 &&
+          r.category === d[0] &&
+          r.trellis == d[1].trellis
+      );
       return {
         category: d[0],
-        dataPoints: plotData.dataPoints.filter(
-          (r: any) =>
-            r.y >= d[1].median &&
-            r.y <= d[1].q3 &&
-            r.category === d[0] &&
-            r.trellis == d[1].trellis
-        ),
+        dataPoints,
+        color: !config.areColorAndXAxesMatching ? config.boxPlotColor.value() : dataPoints[0].Color,
         stats: d[1],
       };
     })
@@ -419,11 +423,12 @@ export function renderBoxplot(
       return Math.max(0, yScale(d.stats.median) - yScale(d.stats.q3)) as number;
     })
     .attr("width", 0)
-    .style("fill", () => {
-      return config.boxPlotColor.value();
-    })
+    .style("fill", ((d:any) => {
+      return d.color;
+    }))
     .style("opacity", BOX_OPACITY)
     .classed("not-marked", function (d: any) {
+      if (config.areColorAndXAxesMatching) return false;
       if (!plotData.isAnyMarkedRecords) {
         return false;
       }
@@ -484,16 +489,18 @@ export function renderBoxplot(
     .append("rect")
     .datum((d: any) => {
       Log.green(LOG_CATEGORIES.DebugMedian)(d);
+      const dataPoints = plotData.dataPoints.filter(
+        (r: any) =>
+          r.y >= d[1].q1 &&
+          r.row?.continuous("Y").value() < d[1].median &&
+          r.category === d[0] &&
+          r.trellis == d[1].trellis
+      );
       return {
         category: d[0],
-        dataPoints: plotData.dataPoints.filter(
-          (r: any) =>
-            r.y >= d[1].q1 &&
-            r.row?.continuous("Y").value() < d[1].median &&
-            r.category === d[0] &&
-            r.trellis == d[1].trellis
-        ),
+        dataPoints: dataPoints,
         stats: d[1],
+        color: !config.areColorAndXAxesMatching ? config.boxPlotColor.value() : dataPoints[0].Color
       };
     })
     .classed("markable", true)
@@ -505,11 +512,10 @@ export function renderBoxplot(
       return Math.max(0, yScale(d.stats.q1) - yScale(d.stats.median)) as number;
     })
     .attr("width", 0)
-    .style("fill", () => {
-      return config.boxPlotColor.value();
-    })
+    .style("fill", ((d:any) => d.color))    
     .style("opacity", BOX_OPACITY)
     .classed("not-marked", function (d: any) {
+      if (config.areColorAndXAxesMatching) return false;
       if (!plotData.isAnyMarkedRecords) {
         return false;
       }
@@ -650,10 +656,7 @@ export function renderBoxplot(
     .enter()
     .append("circle")
     .classed("markable-points", true)
-    .classed("not-marked", (d: any) => {
-      if (!plotData.isAnyMarkedRecords) return false;
-      return !d.Marked;
-    })
+    .classed("not-marked", false)
     .attr("cx", function () {
       return xScale.bandwidth() / 2;
     })
@@ -662,9 +665,7 @@ export function renderBoxplot(
       return yScale(d.y) as number;
     })
     .attr("r", pointRadius)
-    .style("fill", function () {
-      return config.boxPlotColor.value();
-    })
+    .style("fill", ((d:any) => d.Color))    
     .attr("stroke", (d: any) => "#060606")
     .attr("stroke-width", "0.5px")
     .on("mouseover", function (event: MouseEvent, d: any) {

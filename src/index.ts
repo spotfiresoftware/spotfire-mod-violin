@@ -39,6 +39,7 @@ export const MOD_CONTAINER: D3_SELECTION = d3.select("#mod-container");
 
 let previousYAxisExpression: string = "";
 let previousCountAxisExpression: string = "";
+let previousColorAxisExpression: string = "";
 
 let statisticsConfigCache: Map<string, StatisticsConfig>;
 
@@ -88,13 +89,16 @@ export enum LOG_CATEGORIES {
   DebugYNaN,
   DebugIndividualYScales,
   DebugResetGlobalZoom,
-  InnovativeLogTicks
+  InnovativeLogTicks,
+  BoxPlotColorBy,
 }
 
 /**
  * Set this array to any number of categories, or None to hide all logging
  */
-const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.None];
+const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [
+  LOG_CATEGORIES.None,
+];
 
 /**
  * Log helper - pass the log category as the first argument, then any number of args as you would with console.log
@@ -381,6 +385,7 @@ Spotfire.initialize(async (mod) => {
     mod.property<string>("statisticsConfig"),
     mod.property<boolean>("ignoreAggregatedYAxisWarning"),
     mod.property<boolean>("ignoreIncorrectCountExpression"),
+    mod.property<boolean>("ignoreColorXAxisMismatch"),
     mod.property<boolean>("reloadTrigger")
   );
 
@@ -426,6 +431,7 @@ Spotfire.initialize(async (mod) => {
    * @param {ModProperty<string>} statisticsConfig
    * @param {ModProperty<boolean>} ignoreAggregatedYAxisWarning
    * @param {ModProperty<boolean>} ignoreIncorrectCountExpression
+   * @param {ModProperty<boolean>} ignoreColorXAxisMismatch
    * @param {ModProperty<boolean>} reloadTrigger
    */
   async function onChange(
@@ -468,6 +474,7 @@ Spotfire.initialize(async (mod) => {
     statisticsConfig: ModProperty<string>,
     ignoreAggregatedYAxisWarning: ModProperty<boolean>,
     ignoreIncorrectCountExpression: ModProperty<boolean>,
+    ignoreColorXAxisMismatch: ModProperty<boolean>,
     reloadTrigger: ModProperty<number>
   ) {
     Log.red(LOG_CATEGORIES.DebugIndividualYScales)(
@@ -486,6 +493,12 @@ Spotfire.initialize(async (mod) => {
     mod.controls.progress.show();
     scrollY = window.scrollY;
     Log.green(LOG_CATEGORIES.General)("ui_y", window.scrollY);
+
+    const colorAxisExpression = (await mod.visualization.axis("Color"))
+      .expression;
+    const xAxisExpression = (await mod.visualization.axis("X")).expression;
+
+    Log.blue(LOG_CATEGORIES.BoxPlotColorBy)(colorAxisExpression);
 
     const config: Options = {
       xAxisFiltered: xAxisFiltered,
@@ -521,6 +534,7 @@ Spotfire.initialize(async (mod) => {
       comparisonCirclesEnabled: comparisonCirclesEnabled,
       comparisonCirclesAlpha: comparisonCirclesAlpha,
       statisticsConfig: statisticsConfig,
+      areColorAndXAxesMatching: colorAxisExpression == xAxisExpression || colorAxisExpression.trim() == "<>",
       //statisticsConfigCache: statisticsConfig.value() == "" ? new Map<string, StatisticsConfig>() : new Map(JSON.parse(statisticsConfig.value())),
       GetStatisticsConfigItems(): Map<string, StatisticsConfig> {
         if (
@@ -705,6 +719,7 @@ Spotfire.initialize(async (mod) => {
     const aggregatedExpressionMatch = yAxisExpression.match(
       "[a-zA-Z]+(\\(\\[.+\\]\\))"
     );
+
     if (previousYAxisExpression == "") {
       previousYAxisExpression = yAxisExpression;
     }
@@ -760,7 +775,7 @@ Spotfire.initialize(async (mod) => {
     if (
       countAxisExpression.toLowerCase() != "count()" &&
       (previousCountAxisExpression != countAxisExpression ||
-        ignoreIncorrectCountExpression.value() == false)
+        ignoreColorXAxisMismatch.value() == false)
     ) {
       createWarning(
         reloadTrigger,
@@ -786,6 +801,45 @@ Spotfire.initialize(async (mod) => {
     }
 
     previousCountAxisExpression = countAxisExpression;
+
+    if (previousColorAxisExpression == "") {
+      previousColorAxisExpression = colorAxisExpression;
+    }
+
+    // Check color axis - this should be set the same as the x-axis in order to color the box plot segments
+    // Check if count axis expression is correct, and give a warning if not
+    Log.green(LOG_CATEGORIES.BoxPlotColorBy) (config.areColorAndXAxesMatching, previousColorAxisExpression, colorAxisExpression, xAxisExpression, ignoreColorXAxisMismatch.value())
+    if (
+      !config.areColorAndXAxesMatching &&
+      (previousColorAxisExpression != colorAxisExpression ||
+        ignoreColorXAxisMismatch.value() == false)
+    ) {
+  
+      createWarning(
+        reloadTrigger,
+        context.styling.general.font,
+        context.styling.general.backgroundColor,
+        "The Color axis should match the X-axis in order for the box plot segments to be colored correctly.<br/>" +
+          "However, you may keep the current Color axis settings, but <i>only</i> outliers will be colored according to the Color axis.<br/>" +
+          "If you keep the current Color axis settings, you may set the overall box plot color in the visualization options.",
+        "Set Color Axis to Match X-Axis",
+        async () => {
+          (await mod.visualization.axis("Color")).setExpression(
+            xAxisExpression
+          );
+        },
+        ignoreColorXAxisMismatch
+      );
+      MOD_CONTAINER.selectAll("*").remove();
+      d3.select("#global-zoom-container").selectAll("*").remove();
+      mod.controls.progress.hide();
+      previousColorAxisExpression = colorAxisExpression;
+      return;
+    } else {
+      clearWarning(MOD_CONTAINER);
+    }
+
+    previousColorAxisExpression = colorAxisExpression;
 
     // Check DataView size and error if too large
     const xLimit = 100;
