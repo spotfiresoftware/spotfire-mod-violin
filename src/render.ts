@@ -616,17 +616,17 @@ export async function render(
   //const boundingBoxes = ticks.map((l:any) => testers.text(l).node().getBBox());
   Log.red(LOG_CATEGORIES.InnovativeLogTicks)("testers", labels);
 
-  labels.each((t: any, i: number, g: NodeList) => {
-    Log.red(LOG_CATEGORIES.InnovativeLogTicks)(
-      "t",
-      g.item(i).getBoundingClientRect()
-    );
-  });
-
   interface AxisLabelRect {
     SvgTextElement: Node;
     BoundingClientRect: DOMRect;
   }
+
+  labels.each((t: any, i: number, g: NodeList) => {
+    Log.red(LOG_CATEGORIES.InnovativeLogTicks)(
+      "t",
+      (g.item(i) as HTMLElement).getBoundingClientRect()
+    );
+  });
 
   /**
    * Remove clashing labels; Returns true if a label was removed; false if no label was removed
@@ -724,7 +724,7 @@ export async function render(
         //getAttribute("transform"));
         axisLabelRects.push({
           SvgTextElement: g.item(i),
-          BoundingClientRect: g.item(i).getBoundingClientRect(),
+          BoundingClientRect: (g.item(i) as HTMLElement).getBoundingClientRect(),
         });
       });
     if (iterations % 2 == 0) {
