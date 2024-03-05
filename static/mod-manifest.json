@@ -232,6 +232,7 @@
                     "icon": "YAxis3D",
                     "description": "Use {0} on the Y-axis"
                 },
+                "allowMultipleMeasures": true,
                 "allowNonAggregatingMeasures": true             
             },
             {

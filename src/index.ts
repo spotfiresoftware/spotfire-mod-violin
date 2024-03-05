@@ -13,6 +13,7 @@ import {
   DataViewHierarchy,
   PopoutComponentEvent,
   Mod,
+  AxisPart,
 } from "spotfire-api";
 
 // @ts-ignore
@@ -91,14 +92,13 @@ export enum LOG_CATEGORIES {
   DebugResetGlobalZoom,
   InnovativeLogTicks,
   BoxPlotColorBy,
+  MultipleYAxisExpressions
 }
 
 /**
  * Set this array to any number of categories, or None to hide all logging
  */
-const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [
-  LOG_CATEGORIES.None,
-];
+const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.None];
 
 /**
  * Log helper - pass the log category as the first argument, then any number of args as you would with console.log
@@ -534,7 +534,9 @@ Spotfire.initialize(async (mod) => {
       comparisonCirclesEnabled: comparisonCirclesEnabled,
       comparisonCirclesAlpha: comparisonCirclesAlpha,
       statisticsConfig: statisticsConfig,
-      areColorAndXAxesMatching: colorAxisExpression == xAxisExpression || colorAxisExpression.trim() == "<>",
+      areColorAndXAxesMatching:
+        colorAxisExpression == xAxisExpression ||
+        colorAxisExpression.trim() == "<>",
       //statisticsConfigCache: statisticsConfig.value() == "" ? new Map<string, StatisticsConfig>() : new Map(JSON.parse(statisticsConfig.value())),
       GetStatisticsConfigItems(): Map<string, StatisticsConfig> {
         if (
@@ -710,22 +712,21 @@ Spotfire.initialize(async (mod) => {
     }
 
     // Check if aggregation is being used on Y axis and warn against it
-    const yAxisExpression = (await mod.visualization.axis("Y")).expression;
-    Log.blue(LOG_CATEGORIES.AggregationWarning)(
-      (await mod.visualization.axis("Y")).expression,
-      yAxisExpression.match(`[a-zA-Z]+(\(\[.+\]\))`)
-    );
+    const yAxisExpression = (await mod.visualization.axis("Y")).expression; 
+    const yAxisExpressionParts = (await mod.visualization.axis("Y")).parts;
 
-    const aggregatedExpressionMatch = yAxisExpression.match(
+    const isYAxisExpressionAggregated = yAxisExpressionParts.some((p:AxisPart) => p.expression.match(
       "[a-zA-Z]+(\\(\\[.+\\]\\))"
-    );
+    ));
+
+    Log.blue(LOG_CATEGORIES.MultipleYAxisExpressions)(isYAxisExpressionAggregated); 
 
     if (previousYAxisExpression == "") {
       previousYAxisExpression = yAxisExpression;
     }
 
     if (
-      aggregatedExpressionMatch != null &&
+      isYAxisExpressionAggregated &&
       (previousYAxisExpression != yAxisExpression ||
         ignoreAggregatedYAxisWarning.value() == false)
     ) {
@@ -734,10 +735,15 @@ Spotfire.initialize(async (mod) => {
         context.styling.general.font,
         context.styling.general.backgroundColor,
         "The Y axis expression is aggregated, which may affect the accuracy of calculations.",
-        "Remove aggregation",
+        "Remove aggregation(s)",
         async () => {
+          
+          let newYAxisExpressions = yAxisExpressionParts.map((p:AxisPart) => 
+            p.expression.match(
+              "[a-zA-Z]+(\\(\\[.+\\]\\))")[1]
+          );
           (await mod.visualization.axis("Y")).setExpression(
-            aggregatedExpressionMatch[1]
+            newYAxisExpressions.join(",")
           );
         },
         ignoreAggregatedYAxisWarning
@@ -808,13 +814,18 @@ Spotfire.initialize(async (mod) => {
 
     // Check color axis - this should be set the same as the x-axis in order to color the box plot segments
     // Check if count axis expression is correct, and give a warning if not
-    Log.green(LOG_CATEGORIES.BoxPlotColorBy) (config.areColorAndXAxesMatching, previousColorAxisExpression, colorAxisExpression, xAxisExpression, ignoreColorXAxisMismatch.value())
+    Log.green(LOG_CATEGORIES.BoxPlotColorBy)(
+      config.areColorAndXAxesMatching,
+      previousColorAxisExpression,
+      colorAxisExpression,
+      xAxisExpression,
+      ignoreColorXAxisMismatch.value()
+    );
     if (
       !config.areColorAndXAxesMatching &&
       (previousColorAxisExpression != colorAxisExpression ||
         ignoreColorXAxisMismatch.value() == false)
     ) {
-  
       createWarning(
         reloadTrigger,
         context.styling.general.font,
