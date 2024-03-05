@@ -55,6 +55,7 @@ export interface SumStatsSettings {
     size(xBandwidth: number): number,
     path(xBandwidth: number): number,
     labelHorizOffset(xBandwidth: number): number,
+    labelVerticalOffset: number,
     verticalOffset(xBandwidth: number): number,
     dashArray: number,
     rotation: number
@@ -164,6 +165,8 @@ export interface Options {
     statisticsConfig: ModProperty<string>;
 
     areColorAndXAxesMatching : boolean;
+
+    summaryTableFontScalingFactor: ModProperty<number>;
 
     GetStatisticsConfigItems(): Map<string, StatisticsConfig>;
 

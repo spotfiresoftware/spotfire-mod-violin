@@ -1201,7 +1201,7 @@ export async function render(
             ((xScale(d[0]) ? xScale(d[0]) : 0) +
               sumStatsSetting.labelHorizOffset(xScale.bandwidth())) +
             "," +
-            yScale(d[1][sumStatsSetting.property]) +
+            (yScale(d[1][sumStatsSetting.property]) + sumStatsSetting.labelVerticalOffset) + 
             ")"
           );
         })

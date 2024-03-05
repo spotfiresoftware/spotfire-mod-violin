@@ -92,7 +92,7 @@ export enum LOG_CATEGORIES {
   DebugResetGlobalZoom,
   InnovativeLogTicks,
   BoxPlotColorBy,
-  MultipleYAxisExpressions
+  MultipleYAxisExpressions,
 }
 
 /**
@@ -386,7 +386,8 @@ Spotfire.initialize(async (mod) => {
     mod.property<boolean>("ignoreAggregatedYAxisWarning"),
     mod.property<boolean>("ignoreIncorrectCountExpression"),
     mod.property<boolean>("ignoreColorXAxisMismatch"),
-    mod.property<boolean>("reloadTrigger")
+    mod.property<boolean>("reloadTrigger"),
+    mod.property<number>("summaryTableFontScalingFactor")
   );
 
   /**
@@ -433,6 +434,7 @@ Spotfire.initialize(async (mod) => {
    * @param {ModProperty<boolean>} ignoreIncorrectCountExpression
    * @param {ModProperty<boolean>} ignoreColorXAxisMismatch
    * @param {ModProperty<boolean>} reloadTrigger
+   * @param {ModProperty<number>} summaryTableFontScalingFactor
    */
   async function onChange(
     dataView: DataView,
@@ -475,7 +477,8 @@ Spotfire.initialize(async (mod) => {
     ignoreAggregatedYAxisWarning: ModProperty<boolean>,
     ignoreIncorrectCountExpression: ModProperty<boolean>,
     ignoreColorXAxisMismatch: ModProperty<boolean>,
-    reloadTrigger: ModProperty<number>
+    reloadTrigger: ModProperty<number>,
+    summaryTableFontScalingFactor: ModProperty<number>
   ) {
     Log.red(LOG_CATEGORIES.DebugIndividualYScales)(
       "OnChange",
@@ -537,6 +540,7 @@ Spotfire.initialize(async (mod) => {
       areColorAndXAxesMatching:
         colorAxisExpression == xAxisExpression ||
         colorAxisExpression.trim() == "<>",
+      summaryTableFontScalingFactor: summaryTableFontScalingFactor,
       //statisticsConfigCache: statisticsConfig.value() == "" ? new Map<string, StatisticsConfig>() : new Map(JSON.parse(statisticsConfig.value())),
       GetStatisticsConfigItems(): Map<string, StatisticsConfig> {
         if (
@@ -712,14 +716,16 @@ Spotfire.initialize(async (mod) => {
     }
 
     // Check if aggregation is being used on Y axis and warn against it
-    const yAxisExpression = (await mod.visualization.axis("Y")).expression; 
+    const yAxisExpression = (await mod.visualization.axis("Y")).expression;
     const yAxisExpressionParts = (await mod.visualization.axis("Y")).parts;
 
-    const isYAxisExpressionAggregated = yAxisExpressionParts.some((p:AxisPart) => p.expression.match(
-      "[a-zA-Z]+(\\(\\[.+\\]\\))"
-    ));
+    const isYAxisExpressionAggregated = yAxisExpressionParts.some(
+      (p: AxisPart) => p.expression.match("[a-zA-Z]+(\\(\\[.+\\]\\))")
+    );
 
-    Log.blue(LOG_CATEGORIES.MultipleYAxisExpressions)(isYAxisExpressionAggregated); 
+    Log.blue(LOG_CATEGORIES.MultipleYAxisExpressions)(
+      isYAxisExpressionAggregated
+    );
 
     if (previousYAxisExpression == "") {
       previousYAxisExpression = yAxisExpression;
@@ -737,10 +743,8 @@ Spotfire.initialize(async (mod) => {
         "The Y axis expression is aggregated, which may affect the accuracy of calculations.",
         "Remove aggregation(s)",
         async () => {
-          
-          let newYAxisExpressions = yAxisExpressionParts.map((p:AxisPart) => 
-            p.expression.match(
-              "[a-zA-Z]+(\\(\\[.+\\]\\))")[1]
+          let newYAxisExpressions = yAxisExpressionParts.map(
+            (p: AxisPart) => p.expression.match("[a-zA-Z]+(\\(\\[.+\\]\\))")[1]
           );
           (await mod.visualization.axis("Y")).setExpression(
             newYAxisExpressions.join(",")

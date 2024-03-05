@@ -831,6 +831,7 @@ export function createSettingsPopout(
       }
     }
   );
+
   AddDivider(dropDownContainer);
   section = AddSection("Appearance - Box", dropDownContainer);
   placeholder = AddPlaceholder(section);
@@ -875,6 +876,12 @@ export function createSettingsPopout(
       }
     }
   );
+
+  AddDivider(dropDownContainer);
+
+  section = AddSection("Appearance - Summary Table", dropDownContainer);
+  placeholder = AddPlaceholder(section);
+  AddSlider("Font Scaling Factor", config.summaryTableFontScalingFactor, placeholder, 0.5, 2, 0.1, [0.5, 2]);
 
   AddDivider(dropDownContainer);
   section = AddSection("Comparison Circles", dropDownContainer);

@@ -82,13 +82,14 @@
 }
 
 .summary-header {
-  overflow: hidden;
+  overflow: clip;
   text-align: left;
   padding: 0px;
 }
 
 .summary-header,
 .summary-value {
+  text-overflow:clip;
   border: 1px solid;
   text-align: center;
   margin: 0px;
@@ -96,7 +97,9 @@
 }
 
 .summary-div {
+  text-overflow: clip;
   overflow: hidden;
+  padding: 1px;
 }
 
 .summary-value-comparison-circles {

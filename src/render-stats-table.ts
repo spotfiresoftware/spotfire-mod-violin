@@ -89,6 +89,21 @@ export function renderStatisticsTable(
 
     Log.green(LOG_CATEGORIES.DebugComparisonCirclesInTable)("tableData", tableData);
 
+    let fontSizePx = 10;
+    switch(fontClass) {
+        case "smaller-font":
+            fontSizePx = 9;
+            break;
+        case "small-font":
+            fontSizePx = 12;
+            break;
+        case "medium-font":
+            fontSizePx = styling.generalStylingInfo.font.fontSize;
+            break;
+    }
+
+    fontSizePx *= config.summaryTableFontScalingFactor.value();
+
     // create table header
     table
         .append("thead")
@@ -106,6 +121,7 @@ export function renderStatisticsTable(
             "width:" + (i == 0 ? leftMostColumnWidth : cellWidth) + "px"
         )
         .style("text-align", "center")
+        .style("font-size", fontSizePx + "px")
         .style("font-family", styling.generalStylingInfo.font.fontFamily)
         .style("font-weight", styling.generalStylingInfo.font.fontWeight)
         .style("color", styling.generalStylingInfo.font.color)
@@ -147,9 +163,9 @@ export function renderStatisticsTable(
         })
         .style("border-color", getBorderColor(styling.generalStylingInfo.backgroundColor))
         .style("background-color", ((d: any, i: number) => i == 0 ? getComplementaryColor(styling.generalStylingInfo.backgroundColor) : ""))
-        .append("div")
+        .append("div")        
         .classed("summary-div", true)
-        .classed("summary-div-sortable", (d: any, i: number) => i == 0)
+        .classed("summary-div-sortable", (d: any, i: number) => i == 0)        
         .attr("class", (d: any, i: number) => {
             Log.green(LOG_CATEGORIES.Rendering)(d);
             if (i == 0) {
@@ -162,7 +178,13 @@ export function renderStatisticsTable(
                 return "sortable " + orderBy + "";
             }
         })
+        .classed("summary-div", true)        
         .attr("style", (d: any, i: number) => "width:" + (i == 0 ? leftMostColumnWidth : cellWidth) + "px")
+        // Font class is inherited from the table element
+        .style("font-size", fontSizePx + "px")
+        .style("font-family", styling.generalStylingInfo.font.fontFamily)
+        .style("font-weight", styling.generalStylingInfo.font.fontWeight)
+        .style("color", styling.generalStylingInfo.font.color)
         .html(function (c: any, i: number) {
             Log.green(LOG_CATEGORIES.Rendering)("rowColumn", i, c[0], c[1]);
             if (i == 0) {
@@ -191,9 +213,6 @@ export function renderStatisticsTable(
             tooltip.show(d3.select(event.currentTarget).node().outerText);
         }))
         .on("mouseout", () => tooltip.hide())
-        .style("font-family", styling.generalStylingInfo.font.fontFamily)
-        .style("font-weight", styling.generalStylingInfo.font.fontWeight)
-        .style("color", styling.generalStylingInfo.font.color)
         .on("click", (event: d3.Event) => {
 
             Log.green(LOG_CATEGORIES.Rendering)(event.target.classList, config.orderBy.value());

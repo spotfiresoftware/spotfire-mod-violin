@@ -199,6 +199,11 @@
             "name": "reloadTrigger",
             "type": "double",
             "defaultValue": "0.0"
+        },
+        {
+            "name": "summaryTableFontScalingFactor",
+            "type": "double",
+            "defaultValue": "1.0"
         }
     ],
     "dataViewDefinition": {
