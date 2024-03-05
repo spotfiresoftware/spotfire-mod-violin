@@ -1158,10 +1158,20 @@ export function createSettingsPopout(
         AddLineConfig(statisticsConfigItem, lineConfigTableRow);
       }
     }
-
+    
     tableRow.append(td);
     statisticsConfigTable.append(tableRow);
     statisticsConfigTable.append(lineConfigTableRow);
+
+    // Add a separator at the end of every group of statistics config items
+    tableRow = document.createElement("TR");
+    td = document.createElement("TD");
+    td.setAttribute("colspan", "2");
+    AddDivider(td);
+    tableRow.append(td);
+    statisticsConfigTable.append(tableRow);
+
+
   });
 
   section.append(statisticsConfigTable);
