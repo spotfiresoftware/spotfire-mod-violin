@@ -168,6 +168,8 @@ export interface Options {
 
     summaryTableFontScalingFactor: ModProperty<number>;
 
+    violinLimitToExtents: ModProperty<boolean>;
+
     GetStatisticsConfigItems(): Map<string, StatisticsConfig>;
 
     SetStatisticsConfigItem(statisticsConfigItem: StatisticsConfig) : void;

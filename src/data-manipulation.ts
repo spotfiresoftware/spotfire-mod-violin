@@ -273,7 +273,7 @@ export async function buildData(
             {
               size: config.violinSmoothness.value(),
               bandwidth: bandwidth,
-              extent: [categorySumStats.min, categorySumStats.max]
+              extent: config.violinLimitToExtents.value() ? [categorySumStats.min, categorySumStats.max] : null
             }
           )
           .points()

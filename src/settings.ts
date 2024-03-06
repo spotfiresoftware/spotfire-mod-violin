@@ -811,10 +811,17 @@ export function createSettingsPopout(
         AddRadioButton(
           config.violinSmoothness,
           [
-            { text: "Histogram", value: 10 },
-            { text: "Stepped", value: 256 },
+            { text: "Coarse", value: 10 },
+            { text: "Medium", value: 256 },
             { text: "Smooth", value: 512 },
           ],
+          violinOptionsPlaceholder,
+          () => {}
+        );
+
+        AddCheckbox(
+          "Limit Violin to Data Extents",
+          config.violinLimitToExtents,
           violinOptionsPlaceholder,
           () => {}
         );
@@ -881,7 +888,15 @@ export function createSettingsPopout(
 
   section = AddSection("Appearance - Summary Table", dropDownContainer);
   placeholder = AddPlaceholder(section);
-  AddSlider("Font Scaling Factor", config.summaryTableFontScalingFactor, placeholder, 0.5, 2, 0.1, [0.5, 2]);
+  AddSlider(
+    "Font Scaling Factor",
+    config.summaryTableFontScalingFactor,
+    placeholder,
+    0.5,
+    2,
+    0.1,
+    [0.5, 2]
+  );
 
   AddDivider(dropDownContainer);
   section = AddSection("Comparison Circles", dropDownContainer);
@@ -1165,7 +1180,7 @@ export function createSettingsPopout(
         AddLineConfig(statisticsConfigItem, lineConfigTableRow);
       }
     }
-    
+
     tableRow.append(td);
     statisticsConfigTable.append(tableRow);
     statisticsConfigTable.append(lineConfigTableRow);
@@ -1177,8 +1192,6 @@ export function createSettingsPopout(
     AddDivider(td);
     tableRow.append(td);
     statisticsConfigTable.append(tableRow);
-
-
   });
 
   section.append(statisticsConfigTable);

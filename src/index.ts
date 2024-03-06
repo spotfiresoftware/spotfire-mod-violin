@@ -387,7 +387,8 @@ Spotfire.initialize(async (mod) => {
     mod.property<boolean>("ignoreIncorrectCountExpression"),
     mod.property<boolean>("ignoreColorXAxisMismatch"),
     mod.property<boolean>("reloadTrigger"),
-    mod.property<number>("summaryTableFontScalingFactor")
+    mod.property<number>("summaryTableFontScalingFactor"),
+    mod.property<boolean>("violinLimitToExtents")
   );
 
   /**
@@ -435,6 +436,7 @@ Spotfire.initialize(async (mod) => {
    * @param {ModProperty<boolean>} ignoreColorXAxisMismatch
    * @param {ModProperty<boolean>} reloadTrigger
    * @param {ModProperty<number>} summaryTableFontScalingFactor
+   * @param {ModProperty<boolean>} violinLimitToExtents
    */
   async function onChange(
     dataView: DataView,
@@ -478,7 +480,8 @@ Spotfire.initialize(async (mod) => {
     ignoreIncorrectCountExpression: ModProperty<boolean>,
     ignoreColorXAxisMismatch: ModProperty<boolean>,
     reloadTrigger: ModProperty<number>,
-    summaryTableFontScalingFactor: ModProperty<number>
+    summaryTableFontScalingFactor: ModProperty<number>,
+    violinLimitToExtents:ModProperty<boolean>
   ) {
     Log.red(LOG_CATEGORIES.DebugIndividualYScales)(
       "OnChange",
@@ -541,6 +544,7 @@ Spotfire.initialize(async (mod) => {
         colorAxisExpression == xAxisExpression ||
         colorAxisExpression.trim() == "<>",
       summaryTableFontScalingFactor: summaryTableFontScalingFactor,
+      violinLimitToExtents: violinLimitToExtents,
       //statisticsConfigCache: statisticsConfig.value() == "" ? new Map<string, StatisticsConfig>() : new Map(JSON.parse(statisticsConfig.value())),
       GetStatisticsConfigItems(): Map<string, StatisticsConfig> {
         if (

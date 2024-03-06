@@ -66,7 +66,7 @@ export function renderViolin(
     .style("fill", function (d: any) {
       return d.IsGap
         ? "darkgray"
-        : config.violinColor.value(); /*ColorsDict[d.key]*/
+        : config.violinColor.value();
     })
     // .style("fill", "none")
     .classed("not-marked", (d: any) => {

@@ -204,6 +204,11 @@
             "name": "summaryTableFontScalingFactor",
             "type": "double",
             "defaultValue": "1.0"
+        },
+        {
+            "name": "violinLimitToExtents",
+            "type": "boolean",
+            "defaultValue": false
         }
     ],
     "dataViewDefinition": {

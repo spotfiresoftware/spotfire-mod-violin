@@ -74,7 +74,7 @@ export function renderBoxplot(
         category: d[0],
         dataPoints: dataPoints,
         stats: d[1],
-        color: !config.areColorAndXAxesMatching ? config.boxPlotColor.value() : dataPoints[0].Color
+        color: !config.areColorAndXAxesMatching ? config.boxPlotColor.value() : dataPoints[0]?.Color
       };
     })
     .classed("markable", true)
@@ -157,7 +157,7 @@ export function renderBoxplot(
         category: d[0],
         dataPoints: dataPoints,
         stats: d[1],
-        color: !config.areColorAndXAxesMatching ? config.boxPlotColor.value() : dataPoints[0].Color
+        color: !config.areColorAndXAxesMatching ? config.boxPlotColor.value() : dataPoints[0]?.Color
       };
     })
     .classed("markable", true)
@@ -237,7 +237,7 @@ export function renderBoxplot(
         category: d[0],
         dataPoints: dataPoints,
         stats: d[1],
-        color: !config.areColorAndXAxesMatching ? config.boxPlotColor.value() : dataPoints[0].Color
+        color: !config.areColorAndXAxesMatching ? config.boxPlotColor.value() : dataPoints[0]?.Color
       };
     })
     .classed("markable", true)
@@ -323,7 +323,7 @@ export function renderBoxplot(
         category: d[0],
         dataPoints: dataPoints,
         stats: d[1],
-        color: !config.areColorAndXAxesMatching ? config.boxPlotColor.value() : dataPoints[0].Color
+        color: !config.areColorAndXAxesMatching ? config.boxPlotColor.value() : dataPoints[0]?.Color
       };
     })
     .classed("markable", true)
@@ -403,7 +403,7 @@ export function renderBoxplot(
       return {
         category: d[0],
         dataPoints,
-        color: !config.areColorAndXAxesMatching ? config.boxPlotColor.value() : dataPoints[0].Color,
+        color: !config.areColorAndXAxesMatching ? config.boxPlotColor.value() : dataPoints[0]?.Color,
         stats: d[1],
       };
     })
@@ -500,7 +500,7 @@ export function renderBoxplot(
         category: d[0],
         dataPoints: dataPoints,
         stats: d[1],
-        color: !config.areColorAndXAxesMatching ? config.boxPlotColor.value() : dataPoints[0].Color
+        color: !config.areColorAndXAxesMatching ? config.boxPlotColor.value() : dataPoints[0]?.Color
       };
     })
     .classed("markable", true)
