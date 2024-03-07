@@ -89,6 +89,7 @@ export async function buildData(
             y: val,
             trellis: trellisNode.formattedPath(),
             Color: row.color().hexCode,
+            ColorValue: row.categorical("Color").formattedValue(),
             Marked: row.isMarked(),
             id: row.elementId(true),
             markingGroupId: 0,
@@ -141,6 +142,7 @@ export async function buildData(
               y: val,
               trellis: trellisNode.formattedPath(),
               Color: row.color().hexCode,
+              ColorValue: colorAxis != undefined ? row.categorical("Color").formattedValue() : "(None)",
               Marked: row.isMarked(),
               id: row.elementId(true),
               markingGroupId: 0,
@@ -193,8 +195,8 @@ export async function buildData(
 
   const densitiesAll = [];
 
-  // Are there any marked rows (in all the data?)
-  const isAnyMarkedRecords = rowData.some((r: any) => r.Marked);
+    // Are there any marked rows (in all the data?)
+    const isAnyMarkedRecords = rowData.some((r: any) => r.Marked);
 
   // Determine min, max for axis values, combining reference line data and actual data
   const minRefTrendLines = d3.min(
@@ -239,6 +241,9 @@ export async function buildData(
     // Group the data manually into bins of marked/not marked
     for (const [category, categoryRowData] of rowDataGroupedByCat) {
       let filteredCategoryRowData = categoryRowData;
+
+        // Are there any marked rows (in this category?)
+      const isAnyMarkedRecordsInThisCategory = filteredCategoryRowData.some((r: any) => r.Marked);
 
       if (config.yAxisScaleType.value() == "log") {
         filteredCategoryRowData = categoryRowData.filter(
@@ -289,7 +294,7 @@ export async function buildData(
         (d: any) => d,
         (d: any) => d.markingGroupId
       );
-      Log.blue(LOG_CATEGORIES.DebugLogYAxis)(
+      Log.blue(LOG_CATEGORIES.ColorViolin)(
         "dataPointsGroupedByMarking",
         pointsGroupedByMarking
       );
@@ -321,7 +326,7 @@ export async function buildData(
         densityPoints: densityPointsSorted,
       });
 
-      Log.green(LOG_CATEGORIES.DebugLogYAxis)(
+      Log.green(LOG_CATEGORIES.ColorViolin)(
         "thresholds",
         category,
         thresholds,
@@ -344,7 +349,7 @@ export async function buildData(
           max = max + adjustmentFactor;
         }
 
-        const filteredPoints = isAnyMarkedRecords
+        const filteredPoints = isAnyMarkedRecordsInThisCategory
           ? densityPointsSorted.filter((p: any) => p.x >= min && p.x <= max)
           : densityPointsSorted;
 
@@ -380,6 +385,7 @@ export async function buildData(
 
           densitiesSplitByMarking.push({
             category: category,
+            color: config.useFixedViolinColor.value() ? config.violinColor.value() : rowDataGroupedByCat.get(category).find((r:RowData) => r.y > min)?.Color,
             trellis: trellisNode.formattedPath(),
             densityPoints: filteredPoints,
             Marked: threshold.marked,
@@ -396,7 +402,7 @@ export async function buildData(
       });
 
       // Now fill in the "gaps", where there are no data points for parts of the violin
-      if (isAnyMarkedRecords) {
+      if (isAnyMarkedRecordsInThisCategory) {
         // bottom (min):
         // Find the first point that's just greater than thresholds[0].min
         const maxIndex =
@@ -408,20 +414,18 @@ export async function buildData(
         const gapPoints = densityPointsSorted.filter(
           (p: any, i: number) => i < maxIndex
         );
-
-        Log.green(LOG_CATEGORIES.DebugLogYAxis)(
-          "Bottom gap points",
-          gapPoints,
-          maxIndex
-        );
+        
         if (gapPoints.length > 0) {
           densitiesSplitByMarking.push({
             category: category,
             trellis: trellisNode.formattedPath(),
-            densityPoints: gapPoints,
+            densityPoints: gapPoints,          
             Marked: false,
             IsGap: true,
           });
+          Log.red(LOG_CATEGORIES.ColorViolin)("last",
+            densitiesSplitByMarking[densitiesSplitByMarking.length - 1]                    
+          );
         }
 
         thresholds.forEach((threshold: any, i: number) => {

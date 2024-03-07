@@ -36,6 +36,7 @@ export interface RowData {
     y: number;
     trellis: string;
     Color: string;
+    ColorValue: string;
     Marked: boolean;
     id: string;
     markingGroupId: number;
@@ -169,6 +170,15 @@ export interface Options {
     summaryTableFontScalingFactor: ModProperty<number>;
 
     violinLimitToExtents: ModProperty<boolean>;
+
+    useFixedViolinColor: ModProperty<boolean>;
+
+    useFixedBoxColor: ModProperty<boolean>;
+
+    drawViolinUnderBox: ModProperty<boolean>;
+
+    violinOpacity: number;
+    boxOpacity: number;
 
     GetStatisticsConfigItems(): Map<string, StatisticsConfig>;
 

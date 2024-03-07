@@ -1,7 +1,7 @@
 // @ts-ignore
 import * as d3 from "d3";
 import { Data, Options, RenderState } from "./definitions";
-import { LOG_CATEGORIES, Log } from "./index";
+import { LOG_CATEGORIES, Log, getBoxBorderColor } from "./index";
 import { Tooltip, DataViewRow, GeneralStylingInfo } from "spotfire-api";
 import {
   highlightComparisonCircles,
@@ -56,24 +56,26 @@ export function renderViolin(
     .enter()
     .append("g")
     .attr("transform", function (d: any) {
+      Log.green(LOG_CATEGORIES.ColorViolin)(d);
       return (
         "translate(" +
         ((xScale(d.category) ? xScale(d.category) : 0) + padding.violinX / 2) +
         " ,0)"
       );
     })
-    .style("stroke", config.violinColor.value())
+    .style("stroke", (d:any) => d.IsGap ? "darkgray" : getBoxBorderColor(d.color))
+    .style("opacity", config.violinOpacity)
     .style("fill", function (d: any) {
+      Log.blue(LOG_CATEGORIES.ColorViolin)("isGap", d, d.IsGap);
       return d.IsGap
         ? "darkgray"
-        : config.violinColor.value();
+        : d.color; // config.violinColor.value();
     })
-    // .style("fill", "none")
     .classed("not-marked", (d: any) => {
       if (!plotData.isAnyMarkedRecords) {
         return false;
       }
-      return !d.Marked;
+      return config.useFixedViolinColor.value() && !d.Marked;
     })
     .append("path")
     .classed("violin-path", true)

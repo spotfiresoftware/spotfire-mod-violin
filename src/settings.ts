@@ -465,15 +465,16 @@ function AddColorfield(
   property: ModProperty,
   container: HTMLElement,
   colorPickerContainer: HTMLElement,
-  isForStatisticsConfig = false
+  isForStatisticsConfig = false,
+  configIndex = 0
 ): HTMLElement {
-  Log.green(LOG_CATEGORIES.Settings)(configName, property);
+  Log.green(LOG_CATEGORIES.ColorViolin)(configName, property);
 
   const colorPickerId =
-    (configName + property.name).replace(" ", "_") + "_colorpicker";
+    property.name + "_colorpicker" + configIndex;
   const colorPickerBodyId =
-    (configName + property.name).replace(" ", "_") + "_colorpickerBody";
-  Log.green(LOG_CATEGORIES.Settings)(colorPickerId, colorPickerBodyId);
+    property.name + "_colorpickerBody" + configIndex;
+  Log.red(LOG_CATEGORIES.ColorViolin)("selectors", colorPickerId, colorPickerBodyId);
 
   const dropdownElementDiv = document.createElement("div");
   dropdownElementDiv.classList.add("dropdown-item");
@@ -799,6 +800,16 @@ export function createSettingsPopout(
     placeholder,
     (checked: boolean) => {
       if (checked) {
+        AddRadioButton(
+          config.drawViolinUnderBox,
+          [
+            { text: "Draw Violin Under Box", value: true },
+            { text: "Draw Violin Over Box", value: false },
+          ],
+          violinOptionsPlaceholder,
+          () => {}
+        );
+
         AddSlider(
           "Bandwidth",
           config.violinBandwidth,
@@ -826,12 +837,21 @@ export function createSettingsPopout(
           () => {}
         );
 
-        AddColorfield(
-          config,
-          "Violin Color",
-          config.violinColor,
+        AddCheckbox(
+          "Used Fixed Color",
+          config.useFixedViolinColor,
           violinOptionsPlaceholder,
-          document.getElementById("modalscontainer")
+          (checked: boolean) => {
+            if (checked) {
+              AddColorfield(
+                config,
+                "Violin Color",
+                config.violinColor,
+                violinOptionsPlaceholder,
+                document.getElementById("modalscontainer")
+              );
+            }
+          }
         );
       } else {
         d3.select(violinOptionsPlaceholder).selectAll("*").remove();
@@ -869,17 +889,33 @@ export function createSettingsPopout(
           [],
           false
         );
-        if (!config.areColorAndXAxesMatching) {
-          AddColorfield(
-            config,
-            "Box Color",
-            config.boxPlotColor,
-            boxOptionsPlaceholder,
-            document.getElementById("modalscontainer")
-          );
-        }
+      }
+
+      if (!config.areColorAndXAxesMatching) {
+        AddColorfield(
+          config,
+          "Box Color<br/>(except outliers)",
+          config.boxPlotColor,
+          boxOptionsPlaceholder,
+          document.getElementById("modalscontainer")
+        );
       } else {
-        d3.select(boxOptionsPlaceholder).selectAll("*").remove();
+        AddCheckbox(
+          "Use Fixed Color",
+          config.useFixedBoxColor,
+          boxOptionsPlaceholder,
+          (checked: boolean) => {
+            if (checked && config.areColorAndXAxesMatching) {
+              AddColorfield(
+                config,
+                "Box Color",
+                config.boxPlotColor,
+                boxOptionsPlaceholder,
+                document.getElementById("modalscontainer")
+              );
+            }
+          }
+        );
       }
     }
   );
@@ -1087,7 +1123,7 @@ export function createSettingsPopout(
   statisticsConfigTable.style.border = "none";
 
   //statisticsConfig = [];
-  SumStatsConfig.forEach((entry: SumStatsSettings) => {
+  SumStatsConfig.forEach((entry: SumStatsSettings, index: number) => {
     // Does a setting value exist for this key? If so, use it. If not, create it
     let statisticsConfigItem = config.GetStatisticsConfigItem(entry.name);
 
@@ -1140,7 +1176,7 @@ export function createSettingsPopout(
         td,
         (checked: boolean) => {
           if (checked && !statisticsConfigItem.trendEnabled) {
-            AddLineConfig(statisticsConfigItem, lineConfigTableRow);
+            AddLineConfig(statisticsConfigItem, lineConfigTableRow, index);
           } else if (!checked && !statisticsConfigItem.trendEnabled) {
             d3.select(lineConfigTableRow).selectAll("*").remove();
           }
@@ -1166,7 +1202,7 @@ export function createSettingsPopout(
             configItem
           );
           if (checked && !configItem.refEnabled) {
-            AddLineConfig(statisticsConfigItem, lineConfigTableRow);
+            AddLineConfig(statisticsConfigItem, lineConfigTableRow, index);
           } else if (!checked && !configItem.refEnabled) {
             d3.select(lineConfigTableRow).selectAll("*").remove();
           }
@@ -1177,7 +1213,7 @@ export function createSettingsPopout(
         statisticsConfigItem.refEnabled ||
         statisticsConfigItem.trendEnabled
       ) {
-        AddLineConfig(statisticsConfigItem, lineConfigTableRow);
+        AddLineConfig(statisticsConfigItem, lineConfigTableRow, index);
       }
     }
 
@@ -1202,7 +1238,8 @@ export function createSettingsPopout(
 
   function AddLineConfig(
     statisticsConfigItem: StatisticsConfig,
-    optionsTableRow: HTMLElement
+    optionsTableRow: HTMLElement,
+    index: number
   ) {
     Log.green(LOG_CATEGORIES.Settings)("Adding options");
     let td = document.createElement("TD");
@@ -1225,7 +1262,8 @@ export function createSettingsPopout(
       config.statisticsConfig,
       td,
       document.getElementById("modalscontainer"),
-      true
+      true,
+      index
     );
     optionsTableRow.append(td);
   }

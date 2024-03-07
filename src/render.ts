@@ -1062,7 +1062,7 @@ export async function render(
   /**
    * Render violin
    */
-  if (config.includeViolin.value()) {
+  if (config.includeViolin.value() && config.drawViolinUnderBox.value()) {
     renderViolin(
       plotData,
       xScale,
@@ -1116,6 +1116,27 @@ export async function render(
       config
     );
   }
+
+  /**
+   * Render violin, if it's enabled, and should be drawn over the box
+   */
+    if (config.includeViolin.value() && !config.drawViolinUnderBox.value()) {
+      renderViolin(
+        plotData,
+        xScale,
+        yScale,
+        height,
+        g,
+        tooltip,
+        xAxisSpotfire,
+        state,
+        animationSpeed,
+        heightAvailable,
+        config,
+        styling.generalStylingInfo
+      );
+    }
+  
 
   /**
    * Add reference lines/points if any are enabled

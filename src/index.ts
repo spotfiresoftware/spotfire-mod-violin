@@ -46,6 +46,9 @@ let statisticsConfigCache: Map<string, StatisticsConfig>;
 
 let trellisZoomConfigsCache: TrellisZoomConfig[] = [];
 
+// Transparency for violin or box, whichever is rendered on top
+const OPACITY = 0.7;
+
 /**
  * Use any of these categories to differentiate between sets of log messages. Add a new one
  * at any time to debug a particular piece of functionality.
@@ -93,12 +96,13 @@ export enum LOG_CATEGORIES {
   InnovativeLogTicks,
   BoxPlotColorBy,
   MultipleYAxisExpressions,
+  ColorViolin,
 }
 
 /**
  * Set this array to any number of categories, or None to hide all logging
  */
-const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.None];
+const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.ColorViolin];
 
 /**
  * Log helper - pass the log category as the first argument, then any number of args as you would with console.log
@@ -176,7 +180,7 @@ export function setTrellisPanelZoomedTitle(title: string) {
  * @returns
  */
 export function adjustColor(hexCode: String, amount: number): string {
-  const color = parseInt(hexCode.replace("#", ""), 16);
+  const color = parseInt(hexCode?.replace("#", ""), 16);
   const r = (color & 0xff0000) / 0x10 ** 4;
   const g = (color & 0x00ff00) / 0x10 ** 2;
   const b = color & 0x0000ff;
@@ -334,6 +338,15 @@ export function getContrastingColor(backgroundColor: String): string {
   }
 }
 
+export function getBoxBorderColor(boxColor: String): string {
+  if (boxColor == undefined) {
+    Log.red(LOG_CATEGORIES.ColorViolin)("uh oh", boxColor);
+    return "darkgray";
+  }
+  const color = parseInt(boxColor.replace("#", ""));
+  return adjustColor(boxColor, -0x50);
+}
+
 Spotfire.initialize(async (mod) => {
   const context = mod.getRenderContext();
   Log.green(LOG_CATEGORIES.ShowHideZoomSliders)(
@@ -388,7 +401,10 @@ Spotfire.initialize(async (mod) => {
     mod.property<boolean>("ignoreColorXAxisMismatch"),
     mod.property<boolean>("reloadTrigger"),
     mod.property<number>("summaryTableFontScalingFactor"),
-    mod.property<boolean>("violinLimitToExtents")
+    mod.property<boolean>("violinLimitToExtents"),
+    mod.property<boolean>("useFixedViolinColor"),
+    mod.property<boolean>("useFixedBoxColor"),
+    mod.property<boolean>("drawViolinUnderBox")
   );
 
   /**
@@ -437,6 +453,9 @@ Spotfire.initialize(async (mod) => {
    * @param {ModProperty<boolean>} reloadTrigger
    * @param {ModProperty<number>} summaryTableFontScalingFactor
    * @param {ModProperty<boolean>} violinLimitToExtents
+   * @param {ModProperty<boolean>} useFixedViolinColor
+   * @param {ModProperty<boolean>} useFixedBoxColor
+   * @param {ModProperty<boolean>} drawViolinUnderBox
    */
   async function onChange(
     dataView: DataView,
@@ -481,7 +500,10 @@ Spotfire.initialize(async (mod) => {
     ignoreColorXAxisMismatch: ModProperty<boolean>,
     reloadTrigger: ModProperty<number>,
     summaryTableFontScalingFactor: ModProperty<number>,
-    violinLimitToExtents:ModProperty<boolean>
+    violinLimitToExtents: ModProperty<boolean>,
+    useFixedViolinColor: ModProperty<boolean>,
+    useFixedBoxColor: ModProperty<boolean>,
+    drawViolinUnderBox: ModProperty<boolean>
   ) {
     Log.red(LOG_CATEGORIES.DebugIndividualYScales)(
       "OnChange",
@@ -501,6 +523,8 @@ Spotfire.initialize(async (mod) => {
     Log.green(LOG_CATEGORIES.General)("ui_y", window.scrollY);
 
     const colorAxisExpression = (await mod.visualization.axis("Color"))
+      .expression;
+    const trellisAxisExpression = (await mod.visualization.axis("Trellis"))
       .expression;
     const xAxisExpression = (await mod.visualization.axis("X")).expression;
 
@@ -542,9 +566,18 @@ Spotfire.initialize(async (mod) => {
       statisticsConfig: statisticsConfig,
       areColorAndXAxesMatching:
         colorAxisExpression == xAxisExpression ||
-        colorAxisExpression.trim() == "<>",
+        trellisAxisExpression == colorAxisExpression ||
+        (colorAxisExpression.trim() == "<>" &&
+          trellisAxisExpression.trim() == "<>"),
       summaryTableFontScalingFactor: summaryTableFontScalingFactor,
       violinLimitToExtents: violinLimitToExtents,
+      useFixedViolinColor: useFixedViolinColor,
+      useFixedBoxColor: useFixedBoxColor,
+      drawViolinUnderBox: drawViolinUnderBox,
+      violinOpacity:
+        includeBoxplot.value() && drawViolinUnderBox.value() ? 1 : OPACITY,
+      boxOpacity:
+        includeViolin.value() && !drawViolinUnderBox.value() ? 1: OPACITY,
       //statisticsConfigCache: statisticsConfig.value() == "" ? new Map<string, StatisticsConfig>() : new Map(JSON.parse(statisticsConfig.value())),
       GetStatisticsConfigItems(): Map<string, StatisticsConfig> {
         if (
@@ -820,7 +853,8 @@ Spotfire.initialize(async (mod) => {
       previousColorAxisExpression = colorAxisExpression;
     }
 
-    // Check color axis - this should be set the same as the x-axis in order to color the box plot segments
+    // Check color axis - this should be set the same as the x-axis, or used to trellis by
+    // in order to color the box plot segments.
     // Check if count axis expression is correct, and give a warning if not
     Log.green(LOG_CATEGORIES.BoxPlotColorBy)(
       config.areColorAndXAxesMatching,
@@ -838,7 +872,7 @@ Spotfire.initialize(async (mod) => {
         reloadTrigger,
         context.styling.general.font,
         context.styling.general.backgroundColor,
-        "The Color axis should match the X-axis in order for the box plot segments to be colored correctly.<br/>" +
+        "The Color axis should match the X-axis or Trellis axis in order for the box plot segments to be colored correctly.<br/>" +
           "However, you may keep the current Color axis settings, but <i>only</i> outliers will be colored according to the Color axis.<br/>" +
           "If you keep the current Color axis settings, you may set the overall box plot color in the visualization options.",
         "Set Color Axis to Match X-Axis",
