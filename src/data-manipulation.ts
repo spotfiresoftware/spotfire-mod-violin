@@ -89,7 +89,7 @@ export async function buildData(
             y: val,
             trellis: trellisNode.formattedPath(),
             Color: row.color().hexCode,
-            ColorValue: row.categorical("Color").formattedValue(),
+            ColorValue: colorAxis != undefined ? row.categorical("Color").formattedValue() : "(None)",
             Marked: row.isMarked(),
             id: row.elementId(true),
             markingGroupId: 0,
