@@ -470,11 +470,13 @@ function AddColorfield(
 ): HTMLElement {
   Log.green(LOG_CATEGORIES.ColorViolin)(configName, property);
 
-  const colorPickerId =
-    property.name + "_colorpicker" + configIndex;
-  const colorPickerBodyId =
-    property.name + "_colorpickerBody" + configIndex;
-  Log.red(LOG_CATEGORIES.ColorViolin)("selectors", colorPickerId, colorPickerBodyId);
+  const colorPickerId = property.name + "_colorpicker" + configIndex;
+  const colorPickerBodyId = property.name + "_colorpickerBody" + configIndex;
+  Log.red(LOG_CATEGORIES.ColorViolin)(
+    "selectors",
+    colorPickerId,
+    colorPickerBodyId
+  );
 
   const dropdownElementDiv = document.createElement("div");
   dropdownElementDiv.classList.add("dropdown-item");
@@ -837,22 +839,32 @@ export function createSettingsPopout(
           () => {}
         );
 
-        AddCheckbox(
-          "Used Fixed Color",
-          config.useFixedViolinColor,
-          violinOptionsPlaceholder,
-          (checked: boolean) => {
-            if (checked) {
-              AddColorfield(
-                config,
-                "Violin Color",
-                config.violinColor,
-                violinOptionsPlaceholder,
-                document.getElementById("modalscontainer")
-              );
+        if (config.areColorAndXAxesMatching) {
+          AddCheckbox(
+            "Used Fixed Color",
+            config.useFixedViolinColor,
+            violinOptionsPlaceholder,
+            (checked: boolean) => {
+              if (checked) {
+                AddColorfield(
+                  config,
+                  "Violin Color",
+                  config.violinColor,
+                  violinOptionsPlaceholder,
+                  document.getElementById("modalscontainer")
+                );
+              }
             }
-          }
-        );
+          );
+        } else {
+          AddColorfield(
+            config,
+            "Violin Color",
+            config.violinColor,
+            violinOptionsPlaceholder,
+            document.getElementById("modalscontainer")
+          );
+        }
       } else {
         d3.select(violinOptionsPlaceholder).selectAll("*").remove();
       }

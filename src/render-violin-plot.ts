@@ -68,8 +68,8 @@ export function renderViolin(
     .style("fill", function (d: any) {
       Log.blue(LOG_CATEGORIES.ColorViolin)("isGap", d, d.IsGap);
       return d.IsGap
-        ? "darkgray"
-        : d.color; // config.violinColor.value();
+        ? "url(#no-data)"
+        : config.areColorAndXAxesMatching? d.color : config.violinColor.value(); // config.violinColor.value();
     })
     .classed("not-marked", (d: any) => {
       if (!plotData.isAnyMarkedRecords) {

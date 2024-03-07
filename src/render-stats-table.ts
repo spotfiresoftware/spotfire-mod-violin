@@ -262,6 +262,7 @@ export function renderStatisticsTable(
                         tooltip.show(d3.select(event.currentTarget).node().outerText);
                     }))
                     .on("mouseout", () => tooltip.hide())
+                    .style("font-size", fontSizePx + "px")
                     .style("font-family", styling.generalStylingInfo.font.fontFamily)
                     .style("font-weight", styling.generalStylingInfo.font.fontWeight)
                     .style("color", styling.generalStylingInfo.font.color);

@@ -149,6 +149,31 @@ export async function render(
     .attr("xmlns", "http://www.w3.org/2000/svg")
     .attr("classed", "main-svg-container");
 
+  const patternSize = 2;
+
+  const pattern = svg
+    .append("pattern")
+    .attr("id", "no-data")
+    .attr("x", 1)
+    .attr("y", 1)
+    .attr("width", patternSize * 2)
+    .attr("height", patternSize * 2)
+    .attr("patternUnits", "userSpaceOnUse");
+  pattern
+    .append("rect")
+    .attr("x", 0)
+    .attr("y", 0)
+    .attr("width", patternSize)
+    .attr("height", patternSize)
+    .style("fill", "darkgray")
+  pattern
+    .append("rect")
+    .attr("x", patternSize)
+    .attr("y", patternSize)
+    .attr("width", patternSize)
+    .attr("height", patternSize)
+    .style("fill", "darkgray");
+
   // const animationSpeed = state.disableAnimation ? 0 : 500;
   const animationSpeed = 0; // consider doing something more clever with animation in v2.0?
 
@@ -468,12 +493,6 @@ export async function render(
     svg.append;
   }
 
-  const testLog = d3.scaleLog(
-    [minZoom, maxZoom],
-    [heightAvailable - padding.betweenPlotAndTable, 0]
-  );
-  Log.green(LOG_CATEGORIES.InnovativeLogTicks)("log ticks", testLog.ticks());
-
   // Keep track of the power labels so we can avoid hiding them later (for symlog scale)
   const powerLabels: string[] = [];
   // Settings common to both symmetrical log and log
@@ -490,8 +509,6 @@ export async function render(
     );
 
     allTicks = yScale.ticks();
-
-    //allTicks = allTicks.concat([100000000, 300000000, 500000000, 700000000, 900000000, 1100000000, 1300000000, 1500000000, 1700000000, 1900000000, 2100000000, 2300000000, 2500000000, 2600000000, 2700000000])
 
     allTicks = allTicks.concat(minZoom);
 
@@ -662,7 +679,11 @@ export async function render(
           "Next Label Text",
           nextLabelText
         );
-        if (nextLabelText != undefined && nextRectTop <= thisRectBottom && !powers.includes(nextLabelText)) {
+        if (
+          nextLabelText != undefined &&
+          nextRectTop <= thisRectBottom &&
+          !powers.includes(nextLabelText)
+        ) {
           Log.red(LOG_CATEGORIES.InnovativeLogTicks)("Removing", nextLabelText);
           d3.select(axisLabelRects[i + 1]?.SvgTextElement).remove();
           didRemoveLabel = true;
@@ -687,7 +708,11 @@ export async function render(
           "Next Label Text",
           nextLabelText
         );
-        if (nextLabelText != undefined && nextRectBottom >= thisRectTop && !powers.includes(nextLabelText)) {
+        if (
+          nextLabelText != undefined &&
+          nextRectBottom >= thisRectTop &&
+          !powers.includes(nextLabelText)
+        ) {
           Log.red(LOG_CATEGORIES.InnovativeLogTicks)("Removing", nextLabelText);
           d3.select(axisLabelRects[i + 1]?.SvgTextElement).remove();
           didRemoveLabel = true;
@@ -707,13 +732,15 @@ export async function render(
   let iterations = 0;
 
   while (
-    (!areBottomUpClashingLabelsRemoved ||
-    !areTopDownClashingLabelsRemoved) &&
+    (!areBottomUpClashingLabelsRemoved || !areTopDownClashingLabelsRemoved) &&
     iterations < allTicks.length * 2
   ) {
     Log.red(LOG_CATEGORIES.InnovativeLogTicks)(
       "Iterating",
-      iterations % 2 == 0 ? "TopDown" : "BottomUp", areBottomUpClashingLabelsRemoved, areTopDownClashingLabelsRemoved, iterations
+      iterations % 2 == 0 ? "TopDown" : "BottomUp",
+      areBottomUpClashingLabelsRemoved,
+      areTopDownClashingLabelsRemoved,
+      iterations
     );
     const axisLabelRects: AxisLabelRect[] = [];
 
@@ -724,7 +751,9 @@ export async function render(
         //getAttribute("transform"));
         axisLabelRects.push({
           SvgTextElement: g.item(i),
-          BoundingClientRect: (g.item(i) as HTMLElement).getBoundingClientRect(),
+          BoundingClientRect: (
+            g.item(i) as HTMLElement
+          ).getBoundingClientRect(),
         });
       });
     if (iterations % 2 == 0) {
@@ -764,7 +793,10 @@ export async function render(
     iterations++;
     Log.red(LOG_CATEGORIES.InnovativeLogTicks)(
       "Done iteration",
-      iterations % 2 == 0 ? "TopDown" : "BottomUp", areBottomUpClashingLabelsRemoved, areTopDownClashingLabelsRemoved, iterations
+      iterations % 2 == 0 ? "TopDown" : "BottomUp",
+      areBottomUpClashingLabelsRemoved,
+      areTopDownClashingLabelsRemoved,
+      iterations
     );
   }
 
@@ -1120,23 +1152,22 @@ export async function render(
   /**
    * Render violin, if it's enabled, and should be drawn over the box
    */
-    if (config.includeViolin.value() && !config.drawViolinUnderBox.value()) {
-      renderViolin(
-        plotData,
-        xScale,
-        yScale,
-        height,
-        g,
-        tooltip,
-        xAxisSpotfire,
-        state,
-        animationSpeed,
-        heightAvailable,
-        config,
-        styling.generalStylingInfo
-      );
-    }
-  
+  if (config.includeViolin.value() && !config.drawViolinUnderBox.value()) {
+    renderViolin(
+      plotData,
+      xScale,
+      yScale,
+      height,
+      g,
+      tooltip,
+      xAxisSpotfire,
+      state,
+      animationSpeed,
+      heightAvailable,
+      config,
+      styling.generalStylingInfo
+    );
+  }
 
   /**
    * Add reference lines/points if any are enabled
@@ -1222,7 +1253,8 @@ export async function render(
             ((xScale(d[0]) ? xScale(d[0]) : 0) +
               sumStatsSetting.labelHorizOffset(xScale.bandwidth())) +
             "," +
-            (yScale(d[1][sumStatsSetting.property]) + sumStatsSetting.labelVerticalOffset) + 
+            (yScale(d[1][sumStatsSetting.property]) +
+              sumStatsSetting.labelVerticalOffset) +
             ")"
           );
         })

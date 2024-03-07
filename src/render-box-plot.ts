@@ -60,10 +60,15 @@ export function renderBoxplot(
 
   function notMarked(d: any, isOutlier: boolean = false): boolean {
     // Straightforward cases
-    if (!plotData.isAnyMarkedRecords) return false;        
+    if (!plotData.isAnyMarkedRecords) return false;
     if (!config.areColorAndXAxesMatching && isOutlier) return false;
-    if (!config.areColorAndXAxesMatching) return plotData.isAnyMarkedRecords && !d.dataPoints.some((p: RowData) => p.Marked);
-    if (config.areColorAndXAxesMatching && !config.useFixedBoxColor.value()) return false;
+    if (!config.areColorAndXAxesMatching)
+      return (
+        plotData.isAnyMarkedRecords &&
+        !d.dataPoints.some((p: RowData) => p.Marked)
+      );
+    if (config.areColorAndXAxesMatching && !config.useFixedBoxColor.value())
+      return false;
     return !d.dataPoints?.some((p: RowData) => p.Marked);
   }
 
@@ -78,8 +83,8 @@ export function renderBoxplot(
           r.category === d[0] &&
           r.trellis == d[1].trellis
       );
-      
-      let colorDataPoint = dataPoints.find((d:RowData) => d.Marked);
+
+      let colorDataPoint = dataPoints.find((d: RowData) => d.Marked);
       if (colorDataPoint == undefined) {
         colorDataPoint = dataPoints[0];
       }
@@ -93,7 +98,7 @@ export function renderBoxplot(
             ? config.boxPlotColor.value()
             : colorDataPoint
             ? colorDataPoint.Color
-            : "darkgray",
+            : "url(#no_data)",
       };
     })
     .classed("markable", true)
@@ -110,6 +115,7 @@ export function renderBoxplot(
     .on("mouseover", function (event: d3.event, d: any) {
       tooltip.show(
         d.category +
+          (d.dataPoints.length == 0 ? "\nNo Data" : "") +
           "\nQ3 to UAV" +
           "\nQ3: " +
           config.FormatNumber(d.stats.q3) +
@@ -154,7 +160,7 @@ export function renderBoxplot(
           r.y == d[1].uav && r.category === d[0] && r.trellis == d[1].trellis
       );
 
-      let colorDataPoint = dataPoints.find((d:RowData) => d.Marked);
+      let colorDataPoint = dataPoints.find((d: RowData) => d.Marked);
       if (colorDataPoint == undefined) {
         colorDataPoint = dataPoints[0];
       }
@@ -168,7 +174,7 @@ export function renderBoxplot(
             ? config.boxPlotColor.value()
             : colorDataPoint
             ? colorDataPoint.Color
-            : "darkgray",
+            : "url(#no-data)",
       };
     })
     .classed("markable", true)
@@ -236,12 +242,12 @@ export function renderBoxplot(
           r.category === d[0] &&
           r.trellis == d[1].trellis
       );
-      
-      let colorDataPoint = dataPoints.find((d:RowData) => d.Marked);
+
+      let colorDataPoint = dataPoints.find((d: RowData) => d.Marked);
       if (colorDataPoint == undefined) {
         colorDataPoint = dataPoints[0];
       }
-      
+
       return {
         category: d[0],
         dataPoints: dataPoints,
@@ -251,7 +257,7 @@ export function renderBoxplot(
             ? config.boxPlotColor.value()
             : colorDataPoint
             ? colorDataPoint.Color
-            : "darkgray",
+            : "url(#no-data)",
       };
     })
     .classed("markable", true)
@@ -266,6 +272,7 @@ export function renderBoxplot(
     .on("mouseover", function (event: d3.event, d: any) {
       tooltip.show(
         d.category +
+          (d.dataPoints.length == 0 ? "\nNo Data" : "") +
           "\nLAV to Q1" +
           "\nLAV: " +
           config.FormatNumber(d.stats.lav) +
@@ -320,11 +327,11 @@ export function renderBoxplot(
           r.y == d[1].lav && r.category === d[0] && r.trellis == d[1].trellis
       );
 
-      let colorDataPoint = dataPoints.find((d:RowData) => d.Marked);
+      let colorDataPoint = dataPoints.find((d: RowData) => d.Marked);
       if (colorDataPoint == undefined) {
         colorDataPoint = dataPoints[0];
       }
-      
+
       return {
         category: d[0],
         dataPoints: dataPoints,
@@ -334,7 +341,7 @@ export function renderBoxplot(
             ? config.boxPlotColor.value()
             : colorDataPoint
             ? colorDataPoint.Color
-            : "darkgray",
+            : "url(#no-data)",
       };
     })
     .classed("markable", true)
@@ -404,11 +411,11 @@ export function renderBoxplot(
           r.category === d[0] &&
           r.trellis == d[1].trellis
       );
-      
-      let colorDataPoint = dataPoints.find((d:RowData) => d.Marked);
+
+      let colorDataPoint = dataPoints.find((d: RowData) => d.Marked);
       if (colorDataPoint == undefined) {
         colorDataPoint = dataPoints[0];
-      }    
+      }
 
       return {
         category: d[0],
@@ -418,7 +425,7 @@ export function renderBoxplot(
             ? config.boxPlotColor.value()
             : colorDataPoint
             ? colorDataPoint.Color
-            : "darkgray",
+            : "url(#no-data)",
         stats: d[1],
       };
     })
@@ -447,6 +454,7 @@ export function renderBoxplot(
     .on("mouseover", function (event: d3.event, d: any) {
       tooltip.show(
         d.category +
+          (d.dataPoints.length == 0 ? "\nNo Data" : "") +
           "\nQ3: " +
           config.FormatNumber(d.stats.q3) +
           "\nMedian: " +
@@ -503,8 +511,8 @@ export function renderBoxplot(
           r.category === d[0] &&
           r.trellis == d[1].trellis
       );
-      
-      let colorDataPoint = dataPoints.find((d:RowData) => d.Marked);
+
+      let colorDataPoint = dataPoints.find((d: RowData) => d.Marked);
       if (colorDataPoint == undefined) {
         colorDataPoint = dataPoints[0];
       }
@@ -518,7 +526,7 @@ export function renderBoxplot(
             ? config.boxPlotColor.value()
             : colorDataPoint
             ? colorDataPoint.Color
-            : "darkgray",
+            : "url(#no-data)",
       };
     })
     .classed("markable", true)
@@ -537,6 +545,7 @@ export function renderBoxplot(
     .on("mouseover", function (event: d3.event, d: any) {
       tooltip.show(
         d.category +
+          (d.dataPoints.length == 0 ? "\nNo Data" : "") +
           "\nQ1: " +
           config.FormatNumber(d.stats.q1) +
           "\nMedian: " +
