@@ -252,9 +252,9 @@ export async function render(
    * Order categories, build plotData.sumStats (summary statistics)
    */
   let orderedCategories = plotData.categories;
-  Log.red(LOG_CATEGORIES.DebugShowAllXValues)(
+  Log.red(LOG_CATEGORIES.DebugXaxisFiltering)(
     "orderedCategories before sort:",
-    orderedCategories
+    orderedCategories, "trellis", trellisName
   );
 
   let tempOrderedCategories: any = [];
@@ -279,11 +279,11 @@ export async function render(
       orderBySettings[1] = "unordered";
     }
 
-    Log.green(LOG_CATEGORIES.Rendering)("orderBySettings", orderBySettings);
-    orderedCategories = [];
-    plotData.sumStats.forEach((el: any, i: any) => {
+    plotData.sumStats.forEach((el: any, i: number) => {
       tempOrderedCategories.push({ key: i, value: el });
     });
+
+    Log.green(LOG_CATEGORIES.DebugXaxisFiltering)("tempOrderedCategories", tempOrderedCategories);
 
     if (orderBySettings[1] == "ordered-right") {
       tempOrderedCategories = tempOrderedCategories.sort((a: any, b: any) =>
@@ -319,8 +319,17 @@ export async function render(
       );
     }
 
+    const allCategoriesCopy = [...orderedCategories];
+    orderedCategories = []; 
     tempOrderedCategories.forEach((el: any) => {
       orderedCategories.push(el.key);
+    });
+    
+    // Now copy across any categories missing from tempOrderedCategories
+    allCategoriesCopy.forEach(category => {
+      if (!orderedCategories.find((c:any) => c == category)) {
+        orderedCategories.push(category);
+      }
     });
   }
 
@@ -330,7 +339,10 @@ export async function render(
   }
 
   // Draw x axis
-
+  Log.red(LOG_CATEGORIES.DebugXaxisFiltering)(
+    "orderedCategories before xScale:",
+    orderedCategories, "trellis", trellisName
+  );
   const xScale = d3
     .scaleBand()
     .range([0, width])

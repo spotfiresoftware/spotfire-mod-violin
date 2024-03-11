@@ -112,9 +112,9 @@ export async function buildDataForTrellisPanel(
     });
   } else {
     xHierarchyLeaves?.forEach((xLeaf: DataViewHierarchyNode) => {
-      Log.red(LOG_CATEGORIES.DebugDataBailout)("category");
-
+      
       const category = xLeaf.formattedPath();
+      Log.red(LOG_CATEGORIES.DebugXaxisFiltering)("trellis", trellisNode.formattedValue(), "category", category);
 
       const categoryRows = trellisNode
         .rows()

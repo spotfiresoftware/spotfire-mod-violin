@@ -97,7 +97,8 @@ export enum LOG_CATEGORIES {
   BoxPlotColorBy,
   MultipleYAxisExpressions,
   ColorViolin,
-  DebugBigData
+  DebugBigData,
+  DebugXaxisFiltering
 }
 
 /**
