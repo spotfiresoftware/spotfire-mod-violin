@@ -1115,6 +1115,7 @@ export async function render(
   if (config.comparisonCirclesEnabled.value()) {
     renderComparisonCircles(
       config,
+      trellisIndex,
       g,
       xScale,
       yScale,

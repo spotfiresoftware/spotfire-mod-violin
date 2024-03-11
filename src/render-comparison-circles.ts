@@ -6,6 +6,7 @@ import { Tooltip } from "spotfire-api";
 
 export function renderComparisonCircles(
     config: Partial<Options>,
+    trellisIndex: number,
     g: D3_SELECTION,
     xScale: d3.scaleBand,
     yScale: d3.scale,
@@ -16,7 +17,7 @@ export function renderComparisonCircles(
     state: any
 ) {
     g.append("clipPath")
-        .attr("id", "comparisonClip")
+        .attr("id", "comparison-clip-" + trellisIndex)
         .append("rect")
         .attr("x", xScale("Comparison"))
         .attr("width", xScale.bandwidth)
@@ -31,7 +32,7 @@ export function renderComparisonCircles(
         .enter()
         .append("g")
         .append("circle")
-        .attr("clip-path", "url(#comparisonClip)")
+        .attr("clip-path", "url(#comparison-clip-" + trellisIndex +")")
         .attr("cx", xScale("Comparison") + xScale.bandwidth() / 2)
         .attr("cy", (d: any) => yScale(d[1].y0))
         .attr("r", (d: any) => Math.abs(yScale(d[1].y0) - yScale(d[1].y0 - d[1].radius)))

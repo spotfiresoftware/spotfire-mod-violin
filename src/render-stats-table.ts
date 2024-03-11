@@ -250,13 +250,13 @@ export function renderStatisticsTable(
                     .classed("summary-div", true)
                     .attr("style", () => "width:" + cellWidth + "px")
                     .html(
-                        "Alpha level: " +
+                        "α: " +
                         config.FormatNumber(plotData.comparisonCirclesStats.alpha) +
                         "<br/>" +
-                        "Root MSE: " +
+                        "RMSE: " +
                         config.FormatNumber(plotData.comparisonCirclesStats.rootMse) +
                         "<br/>" +
-                        "sqrt(2)q*: " +
+                        "√2q*: " +
                         config.FormatNumber(plotData.comparisonCirclesStats.q))
                     .on("mouseover", ((event: Event) => {
                         tooltip.show(d3.select(event.currentTarget).node().outerText);
