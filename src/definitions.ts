@@ -75,8 +75,8 @@ export interface Data {
     yDataDomain: { min: number; max: number };
     xScale: string[];
     clearMarking(): void;
-    dataPoints: RowData[];
-    dataPointsGroupedByCat: Map<any, any>;
+    rowData: RowData[];
+    rowDataGroupedByCat: Map<any, any>;
     densitiesSplitByMarking: any[];
     densitiesAll: any[];
     sumStats: Map<any, any>;

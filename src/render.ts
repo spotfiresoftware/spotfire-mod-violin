@@ -177,8 +177,6 @@ export async function render(
   // const animationSpeed = state.disableAnimation ? 0 : 500;
   const animationSpeed = 0; // consider doing something more clever with animation in v2.0?
 
-  const rowsToBeMarked: DataViewRow[] = Array();
-
   Log.green(LOG_CATEGORIES.DebugAnimation)(animationSpeed);
 
   Log.green(LOG_CATEGORIES.Rendering)(plotData);
@@ -1132,10 +1130,9 @@ export async function render(
    * Render box plot if option is selected
    */
   if (config.includeBoxplot.value()) {
+    const start = performance.now();
     renderBoxplot(
       styling,
-      trellisName,
-      rowsToBeMarked,
       plotData,
       xScale,
       yScale,
@@ -1147,6 +1144,7 @@ export async function render(
       animationSpeed,
       config
     );
+    Log.green(LOG_CATEGORIES.DebugBigData)("Box plot rendering took: " + (performance.now() - start) + " ms");
   }
 
   /**
@@ -1717,7 +1715,7 @@ export async function render(
       violinMarkables.forEach((element: any) => {
         const minY = Math.min(element.y1, element.y2);
         const maxY = Math.max(element.y1, element.y2);
-        const rowsToMark: DataViewRow[] = plotData.dataPoints
+        const rowsToMark: DataViewRow[] = plotData.rowData
           .filter(
             (p) => p.y >= minY && p.y <= maxY && p.category == element.category
           )
@@ -1729,7 +1727,7 @@ export async function render(
           rowsToMark,
           minY,
           maxY,
-          plotData.dataPoints.filter((p) => p.category == element.category)
+          plotData.rowData.filter((p) => p.category == element.category)
         );
         plotData.mark(rowsToMark, ctrlKey ? "ToggleOrAdd" : "Replace");
       });

@@ -20,8 +20,6 @@ export function renderBoxplot(
     generalStylingInfo: GeneralStylingInfo;
     scales: ScaleStylingInfo;
   },
-  trellisName: string,
-  rowsToBeMarked: DataViewRow[],
   plotData: Data,
   xScale: any,
   yScale: any,
@@ -33,12 +31,10 @@ export function renderBoxplot(
   animationSpeed: number,
   config: Partial<Options>
 ) {
-  const isScaleLog = config.yAxisLog.value();
-
   /**
    * Add box plot if option is selected
    */
-  Log.green(LOG_CATEGORIES.Data)(plotData.dataPoints, xScale);
+  Log.green(LOG_CATEGORIES.Data)(plotData.rowData, xScale);
   const boxWidth = xScale.bandwidth() / (10 - config.boxWidth.value() + 1);
   const verticalLinesX = xScale.bandwidth() / 2 - boxWidth / 5 / 2 + 0.5;
   const linesWidth = boxWidth / 5;
@@ -46,11 +42,12 @@ export function renderBoxplot(
   const boxplot = g
     .selectAll("boxplot")
     // "Filter" the sumStats maps to exclude empty values
-    .data(
-      [...plotData.sumStats].filter((s: any) => {
+    .data(plotData.rowDataGroupedByCat)
+    // todo - IMPORTANT - filter for q1 != undefined.
+    /*  [...plotData.sumStats].filter((s: any) => {
         return s[1].q1 != undefined;
       })
-    )
+    )*/
     .enter() // So now we are working group per group
     .append("g")
     .attr("transform", function (d: any) {
@@ -65,26 +62,30 @@ export function renderBoxplot(
     if (!config.areColorAndXAxesMatching)
       return (
         plotData.isAnyMarkedRecords &&
-        !d.dataPoints.some((p: RowData) => p.Marked)
+        !d.dataPoints.some((p: RowData) => p?.Marked)
       );
     if (config.areColorAndXAxesMatching && !config.useFixedBoxColor.value())
       return false;
-    return !d.dataPoints?.some((p: RowData) => p.Marked);
+    return !d.dataPoints?.some((p: RowData) => p?.Marked);
   }
 
   // Q3 to UAV (Upper Adjacent Value) - top vertical line
   boxplot
     .append("rect")
     .datum((d: any) => {
-      const dataPoints = plotData.dataPoints.filter(
+      Log.green(LOG_CATEGORIES.DebugBigData)("datum, plotData", d, plotData);
+      const now = performance.now();
+      const dataPoints = d[1].filter(
         (r: RowData) =>
-          r.y <= d[1].uav &&
-          r.y > d[1].q3 &&
-          r.category === d[0] &&
-          r.trellis == d[1].trellis
+          r.y <= plotData.sumStats.get(d[0]).uav &&
+          r.y > plotData.sumStats.get(d[0]).q3
+      );
+      Log.green(LOG_CATEGORIES.DebugBigData)(
+        "top vertical line filtering",
+        performance.now() - now
       );
 
-      let colorDataPoint = dataPoints.find((d: RowData) => d.Marked);
+      let colorDataPoint = dataPoints.find((d: RowData) => d?.Marked);
       if (colorDataPoint == undefined) {
         colorDataPoint = dataPoints[0];
       }
@@ -92,21 +93,24 @@ export function renderBoxplot(
       return {
         category: d[0],
         dataPoints: dataPoints,
-        stats: d[1],
         color:
           !config.areColorAndXAxesMatching || config.useFixedBoxColor.value()
             ? config.boxPlotColor.value()
             : colorDataPoint
             ? colorDataPoint.Color
             : "url(#no_data)",
+        uav: plotData.sumStats.get(d[0])?.uav,
+        q3: plotData.sumStats.get(d[0])?.q3,
+        count: dataPoints.length,
       };
     })
     .classed("markable", true)
     .attr("x", verticalLinesX)
     .attr("y", function (d: any) {
-      return yScale(d.stats?.uav) as number;
+      Log.green(LOG_CATEGORIES.DebugBigData)("d for Q3 to UAV", d);
+      return yScale(d.uav) as number;
     })
-    .attr("height", (d: any) => yScale(d.stats?.q3) - yScale(d.stats?.uav))
+    .attr("height", (d: any) => yScale(d.q3) - yScale(d.uav))
     .attr("width", linesWidth)
     .attr("stroke", (d: any) => getBoxBorderColor(d.color))
     .attr("fill", (d: any) => d.color)
@@ -115,14 +119,14 @@ export function renderBoxplot(
     .on("mouseover", function (event: d3.event, d: any) {
       tooltip.show(
         d.category +
-          (d.dataPoints.length == 0 ? "\nNo Data" : "") +
+          (d.count == 0 ? "\nNo Data" : "") +
           "\nQ3 to UAV" +
           "\nQ3: " +
-          config.FormatNumber(d.stats.q3) +
+          config.FormatNumber(d.q3) +
           "\nUAV: " +
-          config.FormatNumber(d.stats.uav) +
+          config.FormatNumber(d.uav) +
           "\nCount: " +
-          d.dataPoints.length
+          d.count
       );
       // draw a rect around the box area
       g.append("rect")
@@ -135,8 +139,8 @@ export function renderBoxplot(
           "x",
           (xScale(d.category) ? xScale(d.category) : 0) + verticalLinesX
         )
-        .attr("y", yScale(d.stats.uav))
-        .attr("height", Math.max(0, yScale(d.stats.q3) - yScale(d.stats.uav)))
+        .attr("y", yScale(d.uav))
+        .attr("height", Math.max(0, yScale(d.q3) - yScale(d.uav)))
         .attr("width", linesWidth);
     })
     .on("mouseout", () => {
@@ -146,7 +150,7 @@ export function renderBoxplot(
     .on("click", (event: MouseEvent, d: any) => {
       state.disableAnimation = true;
       plotData.mark(
-        d.dataPoints.map((r: any) => r.row) as DataViewRow[],
+        d.dataPoints.map((r: RowData) => r.row) as DataViewRow[],
         event.ctrlKey ? "ToggleOrAdd" : "Replace"
       );
     });
@@ -155,12 +159,11 @@ export function renderBoxplot(
   boxplot
     .append("rect")
     .datum((d: any) => {
-      const dataPoints = plotData.dataPoints.filter(
-        (r: any) =>
-          r.y == d[1].uav && r.category === d[0] && r.trellis == d[1].trellis
-      );
+      const dataPoints = [
+        d[1].find((r: any) => r.y == plotData.sumStats.get(d[0]).uav),
+      ];
 
-      let colorDataPoint = dataPoints.find((d: RowData) => d.Marked);
+      let colorDataPoint = dataPoints.find((d: RowData) => d?.Marked);
       if (colorDataPoint == undefined) {
         colorDataPoint = dataPoints[0];
       }
@@ -168,19 +171,19 @@ export function renderBoxplot(
       return {
         category: d[0],
         dataPoints: dataPoints,
-        stats: d[1],
         color:
           !config.areColorAndXAxesMatching || config.useFixedBoxColor.value()
             ? config.boxPlotColor.value()
             : colorDataPoint
             ? colorDataPoint.Color
             : "url(#no-data)",
+        uav: plotData.sumStats.get(d[0]).uav,
       };
     })
     .classed("markable", true)
     .attr("x", xScale.bandwidth() / 2 - boxWidth / 2)
     .attr("y", function (d: any) {
-      return (yScale(d.stats.uav) - 2) as number;
+      return (yScale(d.uav) - 2) as number;
     })
     .attr("height", 4)
     .attr("width", boxWidth)
@@ -191,12 +194,7 @@ export function renderBoxplot(
     .classed("not-marked", (d: any) => notMarked(d))
     .on("mouseover", function (event: d3.event, d: any) {
       tooltip.show(
-        d.category +
-          "\nUAV" +
-          "\nUAV: " +
-          config.FormatNumber(d.stats.uav) +
-          "\nCount: " +
-          d.dataPoints.length
+        d.category + "\nUAV" + "\nUAV: " + config.FormatNumber(d.uav)
       );
       // draw a rect around the box area
       g.append("rect")
@@ -211,7 +209,7 @@ export function renderBoxplot(
             xScale.bandwidth() / 2 -
             boxWidth / 2
         )
-        .attr("y", yScale(d.stats.uav) - 2)
+        .attr("y", yScale(d.uav) - 2)
         .attr("height", 4)
         .attr("width", boxWidth);
     })
@@ -235,35 +233,42 @@ export function renderBoxplot(
   boxplot
     .append("rect")
     .datum((d: any) => {
-      const dataPoints = plotData.dataPoints.filter(
+      const now = performance.now();
+
+      const dataPoints = d[1].filter(
         (r: any) =>
-          r.y >= d[1].lav &&
-          r.y < d[1].q1 &&
-          r.category === d[0] &&
-          r.trellis == d[1].trellis
+          r.y >= plotData.sumStats.get(d[0]).lav &&
+          r.y < plotData.sumStats.get(d[0]).q1
       );
 
-      let colorDataPoint = dataPoints.find((d: RowData) => d.Marked);
+      let colorDataPoint = dataPoints.find((d: RowData) => d?.Marked);
       if (colorDataPoint == undefined) {
         colorDataPoint = dataPoints[0];
       }
 
+      Log.green(LOG_CATEGORIES.DebugBigData)(
+        "bottom vertical line filtering",
+        performance.now() - now
+      );
+
       return {
         category: d[0],
         dataPoints: dataPoints,
-        stats: d[1],
         color:
           !config.areColorAndXAxesMatching || config.useFixedBoxColor.value()
             ? config.boxPlotColor.value()
             : colorDataPoint
             ? colorDataPoint.Color
             : "url(#no-data)",
+        q1: plotData.sumStats.get(d[0]).q1,
+        lav: plotData.sumStats.get(d[0]).lav,
+        count: dataPoints.length,
       };
     })
     .classed("markable", true)
     .attr("x", verticalLinesX)
-    .attr("y", (d: any) => yScale(d.stats?.q1))
-    .attr("height", (d: any) => yScale(d.stats?.lav) - yScale(d.stats?.q1))
+    .attr("y", (d: any) => yScale(d.q1))
+    .attr("height", (d: any) => yScale(d.lav) - yScale(d.q1))
     .attr("width", linesWidth)
     .attr("stroke", (d: any) => getBoxBorderColor(d.color))
     .attr("fill", (d: any) => d.color)
@@ -275,11 +280,11 @@ export function renderBoxplot(
           (d.dataPoints.length == 0 ? "\nNo Data" : "") +
           "\nLAV to Q1" +
           "\nLAV: " +
-          config.FormatNumber(d.stats.lav) +
+          config.FormatNumber(d.lav) +
           "\nQ1: " +
-          config.FormatNumber(d.stats.q1) +
+          config.FormatNumber(d.q1) +
           "\nCount: " +
-          d.dataPoints.length
+          d.count
       );
       //d3.select(event.currentTarget).classed("boxplot-highlighted", true);
       // draw a rect around the box area
@@ -294,8 +299,8 @@ export function renderBoxplot(
           "x",
           (xScale(d.category) ? xScale(d.category) : 0) + verticalLinesX
         )
-        .attr("y", yScale(d.stats.q1))
-        .attr("height", Math.max(0, yScale(d.stats.lav) - yScale(d.stats.q1)))
+        .attr("y", yScale(d.q1))
+        .attr("height", Math.max(0, yScale(d.lav) - yScale(d.q1)))
         .attr("width", linesWidth);
     })
     .on("mouseout", () => {
@@ -312,22 +317,21 @@ export function renderBoxplot(
     .transition()
     .duration(animationSpeed)
     .attr("y1", function (d: any) {
-      return yScale(d.stats.q1) as number;
+      return yScale(d.q1) as number;
     })
     .attr("y2", function (d: any) {
-      return yScale(d.stats.lav) as number;
+      return yScale(d.lav) as number;
     });
 
   //bottom horizontal line
   boxplot
     .append("rect")
     .datum((d: any) => {
-      const dataPoints = plotData.dataPoints.filter(
-        (r: any) =>
-          r.y == d[1].lav && r.category === d[0] && r.trellis == d[1].trellis
-      );
+      const dataPoints = [
+        d[1].find((r: any) => r.y == plotData.sumStats.get(d[0]).lav),
+      ];
 
-      let colorDataPoint = dataPoints.find((d: RowData) => d.Marked);
+      let colorDataPoint = dataPoints.find((d: RowData) => d?.Marked);
       if (colorDataPoint == undefined) {
         colorDataPoint = dataPoints[0];
       }
@@ -335,20 +339,20 @@ export function renderBoxplot(
       return {
         category: d[0],
         dataPoints: dataPoints,
-        stats: d[1],
         color:
           !config.areColorAndXAxesMatching || config.useFixedBoxColor.value()
             ? config.boxPlotColor.value()
             : colorDataPoint
             ? colorDataPoint.Color
             : "url(#no-data)",
+        lav: plotData.sumStats.get(d[0]).lav,
       };
     })
     .classed("markable", true)
     .attr("x", xScale.bandwidth() / 2 - boxWidth / 2)
 
     .attr("y", function (d: any) {
-      return (yScale(d.stats.lav) - 2) as number;
+      return (yScale(d.lav) - 2) as number;
     })
 
     .attr("height", 4)
@@ -359,12 +363,7 @@ export function renderBoxplot(
     .classed("not-marked", (d: any) => notMarked(d))
     .on("mouseover", function (event: d3.event, d: any) {
       tooltip.show(
-        d.category +
-          "\nLAV" +
-          "\nLAV: " +
-          config.FormatNumber(d.stats.lav) +
-          "\nCount: " +
-          d.dataPoints.length
+        d.category + "\nLAV" + "\nLAV: " + config.FormatNumber(d.lav)
       );
       // draw a rect around the box area
       g.append("rect")
@@ -380,7 +379,7 @@ export function renderBoxplot(
             xScale.bandwidth() / 2 -
             boxWidth / 2
         )
-        .attr("y", yScale(d.stats.lav) - 2)
+        .attr("y", yScale(d.lav) - 2)
         .attr("height", 4)
         .attr("width", boxWidth);
     })
@@ -404,15 +403,13 @@ export function renderBoxplot(
   boxplot
     .append("rect")
     .datum((d: any) => {
-      const dataPoints = plotData.dataPoints.filter(
+      const dataPoints = d[1].filter(
         (r: any) =>
-          r.y >= d[1].median &&
-          r.y <= d[1].q3 &&
-          r.category === d[0] &&
-          r.trellis == d[1].trellis
+          r.y >= plotData.sumStats.get(d[0]).median &&
+          r.y <= plotData.sumStats.get(d[0]).q3
       );
 
-      let colorDataPoint = dataPoints.find((d: RowData) => d.Marked);
+      let colorDataPoint = dataPoints.find((d: RowData) => d?.Marked);
       if (colorDataPoint == undefined) {
         colorDataPoint = dataPoints[0];
       }
@@ -426,7 +423,9 @@ export function renderBoxplot(
             : colorDataPoint
             ? colorDataPoint.Color
             : "url(#no-data)",
-        stats: d[1],
+        median: plotData.sumStats.get(d[0]).median,
+        q3: plotData.sumStats.get(d[0]).q3,
+        count: dataPoints.length,
       };
     })
     .classed("markable", true)
@@ -435,14 +434,14 @@ export function renderBoxplot(
       Log.blue(LOG_CATEGORIES.DebugSingleRowMarking)(
         "d",
         d,
-        d.stats.q3,
+        d.q3,
         "yScale",
-        yScale(d.stats.q3)
+        yScale(d.q3)
       );
-      return yScale(d.stats.q3) as number;
+      return yScale(d.q3) as number;
     })
     .attr("height", function (d: any) {
-      return Math.max(0, yScale(d.stats.median) - yScale(d.stats.q3)) as number;
+      return Math.max(0, yScale(d.median) - yScale(d.q3)) as number;
     })
     .attr("width", 0)
     .attr("stroke", (d: any) => getBoxBorderColor(d.color))
@@ -454,13 +453,13 @@ export function renderBoxplot(
     .on("mouseover", function (event: d3.event, d: any) {
       tooltip.show(
         d.category +
-          (d.dataPoints.length == 0 ? "\nNo Data" : "") +
+          (d.count == 0 ? "\nNo Data" : "") +
           "\nQ3: " +
-          config.FormatNumber(d.stats.q3) +
+          config.FormatNumber(d.q3) +
           "\nMedian: " +
-          config.FormatNumber(d.stats.median) +
+          config.FormatNumber(d.median) +
           "\nCount: " +
-          d.dataPoints.length
+          d.count
       );
       // draw a rect around the box area
       g.append("rect")
@@ -476,11 +475,8 @@ export function renderBoxplot(
             xScale.bandwidth() / 2 -
             boxWidth / 2
         )
-        .attr("y", yScale(d.stats.q3))
-        .attr(
-          "height",
-          Math.max(0, yScale(d.stats.median) - yScale(d.stats.q3))
-        )
+        .attr("y", yScale(d.q3))
+        .attr("height", Math.max(0, yScale(d.median) - yScale(d.q3)))
         .attr("width", boxWidth);
     })
     .on("mouseout", () => {
@@ -504,15 +500,14 @@ export function renderBoxplot(
     .append("rect")
     .datum((d: any) => {
       Log.green(LOG_CATEGORIES.DebugMedian)(d);
-      const dataPoints = plotData.dataPoints.filter(
+
+      const dataPoints = d[1].filter(
         (r: any) =>
-          r.y >= d[1].q1 &&
-          r.row?.continuous("Y").value() < d[1].median &&
-          r.category === d[0] &&
-          r.trellis == d[1].trellis
+          r.y >= plotData.sumStats.get(d[0]).q1 &&
+          r.y < plotData.sumStats.get(d[0]).median
       );
 
-      let colorDataPoint = dataPoints.find((d: RowData) => d.Marked);
+      let colorDataPoint = dataPoints.find((d: RowData) => d?.Marked);
       if (colorDataPoint == undefined) {
         colorDataPoint = dataPoints[0];
       }
@@ -527,15 +522,18 @@ export function renderBoxplot(
             : colorDataPoint
             ? colorDataPoint.Color
             : "url(#no-data)",
+        q1: plotData.sumStats.get(d[0]).q1,
+        median: plotData.sumStats.get(d[0]).median,
+        count: dataPoints.length,
       };
     })
     .classed("markable", true)
     .attr("x", xScale.bandwidth() / 2)
     .attr("y", function (d: any) {
-      return yScale(d.stats.median) as any;
+      return yScale(d.median) as any;
     })
     .attr("height", function (d: any) {
-      return Math.max(0, yScale(d.stats.q1) - yScale(d.stats.median)) as number;
+      return Math.max(0, yScale(d.q1) - yScale(d.median)) as number;
     })
     .attr("width", 0)
     .style("fill", (d: any) => d.color)
@@ -545,13 +543,13 @@ export function renderBoxplot(
     .on("mouseover", function (event: d3.event, d: any) {
       tooltip.show(
         d.category +
-          (d.dataPoints.length == 0 ? "\nNo Data" : "") +
+          (d.count == 0 ? "\nNo Data" : "") +
           "\nQ1: " +
-          config.FormatNumber(d.stats.q1) +
+          config.FormatNumber(d.q1) +
           "\nMedian: " +
-          config.FormatNumber(d.stats.median) +
+          config.FormatNumber(d.median) +
           "\nCount: " +
-          d.dataPoints.length
+          d.count
       );
       // draw a rect around the box area
       g.append("rect")
@@ -567,11 +565,8 @@ export function renderBoxplot(
             xScale.bandwidth() / 2 -
             boxWidth / 2
         )
-        .attr("y", yScale(d.stats.median))
-        .attr(
-          "height",
-          Math.max(0, yScale(d.stats.q1) - yScale(d.stats.median))
-        )
+        .attr("y", yScale(d.median))
+        .attr("height", Math.max(0, yScale(d.q1) - yScale(d.median)))
         .attr("width", boxWidth);
     })
     .on("mouseout", () => {
@@ -597,13 +592,7 @@ export function renderBoxplot(
       Log.green(LOG_CATEGORIES.DebugMedian)("Datum", d);
       return {
         category: d[0],
-        dataPoints: plotData.dataPoints.filter(
-          (r: any) =>
-            r.y == d[1].median &&
-            r.category === d[0] &&
-            r.trellis == d[1].trellis
-        ),
-        stats: d[1],
+        median: plotData.sumStats.get(d[0]).median,
       };
     })
     .classed("markable", false)
@@ -613,16 +602,14 @@ export function renderBoxplot(
     .attr("x2", xScale.bandwidth() / 2 + boxWidth / 2)
     .attr("y1", function (d: any) {
       //Log.green(LOG_CATEGORIES.DebugMedian)(d, d.median, yScale(d.median));
-      return yScale(d.stats.median) as number;
+      return yScale(d.median) as number;
     })
     .attr("y2", function (d: any) {
-      return yScale(d.stats.median) as number;
+      return yScale(d.median) as number;
     })
     .attr("stroke", styling.generalStylingInfo.backgroundColor)
     .on("mouseover", function (event: d3.event, d: any) {
-      tooltip.show(
-        d.category + "\nMedian: " + config.FormatNumber(d.stats.median)
-      );
+      tooltip.show(d.category + "\nMedian: " + config.FormatNumber(d.median));
       // draw a rect around the median area
       g.append("rect")
         .attr("id", "box-plot-highlight-rect")
@@ -637,7 +624,7 @@ export function renderBoxplot(
             boxWidth / 2 -
             (height < 600 ? 2 : 5) / 2
         )
-        .attr("y", yScale(d.stats.median) - 2)
+        .attr("y", yScale(d.median) - 2)
         .attr("height", "4px")
         .attr("width", boxWidth + (height < 600 ? 2 : 5));
     })
@@ -655,8 +642,8 @@ export function renderBoxplot(
     maxPointsCount = Math.max(maxPointsCount, value.outlierCount);
   }
 
-  g.selectAll("indPoints")
-    .data(plotData.dataPointsGroupedByCat)
+  g.selectAll("outliers")
+    .data(plotData.rowDataGroupedByCat)
     .enter()
     .append("g")
     .attr("transform", function (d: any) {
@@ -665,13 +652,52 @@ export function renderBoxplot(
     .selectAll("circlegroups")
     .data((d: any) => {
       // d is an array. [0] = category, [1] = array of RowData
-      return d[1].filter((p: RowData) => {
+      const dataPoints = d[1].filter((p: RowData) => {
         return (
-          (p.y > plotData.sumStats.get(d[0]).uav ||
-            p.y < plotData.sumStats.get(d[0]).lav) &&
-          p.trellis == trellisName
+          p.y > plotData.sumStats.get(d[0]).uav ||
+          p.y < plotData.sumStats.get(d[0]).lav
         );
       });
+
+      // Group and count - one point for all y values that are the same;
+      const rolledUp = new d3.rollup(
+        dataPoints,
+        (v: any) => d3.count(v, (d: any) => d.y),
+        (d: any) => d.y,
+        (c: any) => c.Color,
+        (cv: any) => cv.ColorValue,
+        (r: any) => r.row
+      );
+
+      Log.red(LOG_CATEGORIES.DebugBigData)("rolledUp", rolledUp);
+
+      const points: any[] = [];
+
+      // Transform the rolled up data into a structure that's easy to consume below
+      // todo: simplify/tidy!
+      rolledUp.forEach((key: any, yValue: any) => {
+        key.forEach((key2: any, colorHexCode: any) => {
+          const color =
+            config.useFixedBoxColor.value() && config.areColorAndXAxesMatching
+              ? config.boxPlotColor.value()
+              : colorHexCode;
+          key2.forEach((key3: any, colorValue: any) => {
+            key3.forEach((count: any, row: any) => {
+              points.push({
+                category: d[0],
+                y: yValue,
+                color: color,
+                ColorValue: colorValue,
+                count: count,
+                row: row,
+              });
+            });
+          });
+        });
+      });
+
+      Log.green(LOG_CATEGORIES.DebugBigData)("points", points);
+      return points;
     })
     .enter()
     .append("circle")
@@ -680,19 +706,16 @@ export function renderBoxplot(
     .attr("cx", function () {
       return xScale.bandwidth() / 2;
     })
-    .attr("cy", function (d: RowData) {
-      Log.green(LOG_CATEGORIES.DebugLogYAxis)("cy", d, d.y, yScale(d.y));
+    .attr("cy", function (d: any) {
+      Log.red(LOG_CATEGORIES.DebugBigData)("cy d", d);
+
       return yScale(d.y) as number;
     })
     .attr("r", pointRadius)
-    .style("fill", (d: RowData) =>
-      config.useFixedBoxColor.value() && config.areColorAndXAxesMatching
-        ? config.boxPlotColor.value()
-        : d.Color
-    )
-    .attr("stroke", (d: RowData) => getBoxBorderColor(d.Color))
+    .style("fill", (d: any) => d.color)
+    .attr("stroke", (d: any) => getBoxBorderColor(d.color))
     .attr("stroke-width", "0.5px")
-    .on("mouseover", function (event: MouseEvent, d: RowData) {
+    .on("mouseover", function (event: MouseEvent, d: any) {
       // A highlight circle is a black ring overlaid on a white ring
       // in light mode, and a white circle overlaid on a black ring in dark mode
       g.append("circle")
@@ -716,8 +739,6 @@ export function renderBoxplot(
           getMarkerHighlightColor(styling.generalStylingInfo.backgroundColor)
         ) // adjustColor(d.Color, -40));
         .attr("stroke-width", "1px");
-
-      Log.red(LOG_CATEGORIES.ColorViolin)(d);
       tooltip.show(
         d.category +
           "\n" +
@@ -725,7 +746,10 @@ export function renderBoxplot(
           config.FormatNumber(d.y) +
           "\n" +
           "Color: " +
-          d.ColorValue
+          d.ColorValue +
+          "\n" +
+          "Count:" +
+          d.count
       );
       d3.select(event.currentTarget).classed("area-highlighted", true);
     })
@@ -733,10 +757,6 @@ export function renderBoxplot(
       tooltip.hide();
       d3.selectAll(".point-highlighted").remove();
       d3.select(event.currentTarget).classed("area-highlighted", false);
-    })
-    .on("change", function (event: any, d: RowData) {
-      rowsToBeMarked.push(d.row);
-      Log.green(LOG_CATEGORIES.Rendering)("added");
     })
     .on("click", function (event: MouseEvent, d: RowData) {
       state.disableAnimation = true;

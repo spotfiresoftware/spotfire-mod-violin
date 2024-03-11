@@ -44,10 +44,10 @@ export function renderComparisonCircles(
                 .classed("comparison-circle-highlighted", true)
                 .attr("style", "stroke:" + getComparisonCircleHighlightedColor(backgroundColor));
 
-            const minY = d3.min(plotData.dataPointsGroupedByCat.get(d[0]).map((p:any) => p.y));
-            const maxY = d3.max(plotData.dataPointsGroupedByCat.get(d[0]).map((p:any) => p.y));
+            const minY = d3.min(plotData.rowDataGroupedByCat.get(d[0]).map((p:any) => p.y));
+            const maxY = d3.max(plotData.rowDataGroupedByCat.get(d[0]).map((p:any) => p.y));
             // draw a rect around the box area
-            Log.green(LOG_CATEGORIES.ShowHighlightRect)(d, xScale(d[0]), plotData.dataPointsGroupedByCat.get(d[0]));
+            Log.green(LOG_CATEGORIES.ShowHighlightRect)(d, xScale(d[0]), plotData.rowDataGroupedByCat.get(d[0]));
             g.append("rect")
                 .attr("id", "highlightRect")
                 .attr("x", xScale(d[0]))
@@ -71,7 +71,7 @@ export function renderComparisonCircles(
             event.stopPropagation();
             state.disableAnimation = true;
             plotData.mark(
-                plotData.dataPointsGroupedByCat.get(d[0]).map((p: any) => p.row),
+                plotData.rowDataGroupedByCat.get(d[0]).map((p: any) => p.row),
                 event.ctrlKey ? "ToggleOrAdd" : "Replace"
             );
         });
@@ -89,7 +89,7 @@ export function highlightMarkedComparisonCircles(
     if (!config.comparisonCirclesEnabled.value()) return; // Don't do anything if comparison circles are not enabled
     // Now work out what data is marked, and highlight the appropriate circles
     const markedCategories = [];
-    for (const [category, value] of plotData.dataPointsGroupedByCat) {
+    for (const [category, value] of plotData.rowDataGroupedByCat) {
         if (value.some((p: any) => p.Marked)) markedCategories.push(category);
     }
 

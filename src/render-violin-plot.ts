@@ -244,7 +244,7 @@ export function renderViolin(
     .on("click", (event: MouseEvent, d: any) => {
       Log.green(LOG_CATEGORIES.DebugLogYAxis)("clicked violin", d);
       if (d[0].isGap || d[1].isGap) return; // Don't attempt to do anything if the user clicks a gap!
-      const dataPoints = plotData.dataPoints.filter((r: any) => {
+      const dataPoints = plotData.rowData.filter((r: any) => {
         if (d[0].category == "(None)") return true;
         return r.row.categorical("X").formattedValue() === d[0].category;
       });

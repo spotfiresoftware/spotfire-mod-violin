@@ -31,7 +31,7 @@ import {
   D3_SELECTION,
   TrellisZoomConfig,
 } from "./definitions";
-import { buildData } from "./data-manipulation";
+import { buildDataForTrellisPanel } from "./data-manipulation";
 import { clearWarning, createWarning } from "./warning";
 
 const Spotfire = window.Spotfire;
@@ -97,6 +97,7 @@ export enum LOG_CATEGORIES {
   BoxPlotColorBy,
   MultipleYAxisExpressions,
   ColorViolin,
+  DebugBigData
 }
 
 /**
@@ -1461,7 +1462,7 @@ Spotfire.initialize(async (mod) => {
       for (const renderingInfo of trellisRenderingInfo) {
         Log.green(LOG_CATEGORIES.General)(renderingInfo);
 
-        await buildData(renderingInfo.node, dataView, config)
+        await buildDataForTrellisPanel(renderingInfo.node, dataView, config)
           .then(async (data) => {
             Log.red(LOG_CATEGORIES.DebugDataBailout)("Got data", data);
             renderingInfo.data = data;
@@ -1579,7 +1580,7 @@ Spotfire.initialize(async (mod) => {
 
     Log.red(LOG_CATEGORIES.DebugLogYAxis)("About to build data");
     if (!isTrellis) {
-      buildData(await trellisAxisHierarchy.root(), dataView, config)
+      buildDataForTrellisPanel(await trellisAxisHierarchy.root(), dataView, config)
         .then(async (data) => {
           Log.red(LOG_CATEGORIES.DebugLogYAxis)("Got data");
           if (data == undefined) {

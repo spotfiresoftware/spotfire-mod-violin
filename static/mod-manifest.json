@@ -232,7 +232,8 @@
             "mode": "categorical",
             "dropTarget": {
                 "icon": "Color",
-                "description": "Color box plots by {0}"
+                "description": "Color box plots by {0}",
+                "expressionHeuristics": "none"
             }
         },
         "axes": [

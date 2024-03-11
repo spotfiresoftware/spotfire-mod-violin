@@ -32,16 +32,19 @@ import { SumStatsConfig } from "./sumstatsconfig";
 import { log } from "console";
 
 /**
- * Construct a data format suitable for consumption in d3.
+ * Construct a data object suitable for consumption in d3.
+ * The data object is built per trellis panel. If trellising is not enabled, there will be a single
+ * Data object for the rendered visualization.
  * @param mod The Mod API object
  * @param dataView The mod's DataView
  */
-export async function buildData(
+export async function buildDataForTrellisPanel(
   trellisNode: DataViewHierarchyNode,
   dataView: DataView,
   config: Partial<Options>
 ): Promise<Data> {
   const startTime = Date.now();
+  const startBuildData = performance.now();
 
   // Check if the dataView has expired. Throw error if it has. Check several times during building of data
   if (await dataView.hasExpired()) {
@@ -63,6 +66,7 @@ export async function buildData(
     nodeRows.length
   );
   const categories: string[] = [];
+
   if (!xAxis) {
     // category axis is empty
     const category = "(None)";
@@ -71,30 +75,38 @@ export async function buildData(
 
     nodeRows!.forEach((row: DataViewRow) => {
       if (Date.now() - startTime > 10000) {
-        throw "Error - data size is too big - check Count axis, or reduce amount of data";
+        throw new Error(
+          "Error - data size is too big - check Count axis, or reduce amount of data"
+        );
       }
       // Note - early versions of the code replaced empty values with zeros. This is not correct!
       const val = row.continuous<number>("Y").value();
       const count = row.continuous<number>("Count").value();
       if (val != null) {
+        const rowItem: RowData = {
+          category: category,
+          y: val,
+          trellis: trellisNode.formattedPath(),
+          Color: row.color().hexCode,
+          ColorValue:
+            colorAxis != undefined
+              ? row.categorical("Color").formattedValue()
+              : "(None)",
+          Marked: row.isMarked(),
+          id: row.elementId(true),
+          markingGroupId: 0,
+          row: row,
+        };
         for (let i = 0; i < count; i++) {
           if (Date.now() - startTime > 6000) {
             Log.red(LOG_CATEGORIES.DebugDataBailout)(
               "Throwing error during data iteration"
             );
-            throw "Error - data size is too big - check Count axis, or reduce amount of data";
+            throw new Error(
+              "Error - data size is too big - check Count axis, or reduce amount of data"
+            );
           }
-          rowData.push({
-            category: category,
-            y: val,
-            trellis: trellisNode.formattedPath(),
-            Color: row.color().hexCode,
-            ColorValue: colorAxis != undefined ? row.categorical("Color").formattedValue() : "(None)",
-            Marked: row.isMarked(),
-            id: row.elementId(true),
-            markingGroupId: 0,
-            row: row
-          });
+          rowData.push(rowItem);
         }
       }
     });
@@ -124,39 +136,70 @@ export async function buildData(
         categories.push(category);
       }
 
-      categoryRows!.forEach((row) => {
+      categoryRows!.forEach((row, index) => {
+        if (index % 10 == 0) {
+          Log.green(LOG_CATEGORIES.DebugBigData)(
+            "row index",
+            index,
+            (Date.now() - startTime) / 1000
+          );
+        }
+        if (Date.now() - startTime > 3000) {
+          Log.red(LOG_CATEGORIES.DebugDataBailout)(
+            "Throwing error during data iteration"
+          );
+          throw new Error(
+            "Error - data size is too big - check Count axis, or reduce amount of data"
+          );
+        }
         // Note - early versions of the code replaced empty values with zeros. This is not correct!
         const val = row.continuous<number>("Y").value();
         const count = row.continuous<number>("Count").value();
         if (val != null) {
+          const rowItem: RowData = {
+            category: category,
+            y: val,
+            trellis: trellisNode.formattedPath(),
+            Color: row.color().hexCode,
+            ColorValue:
+              colorAxis != undefined
+                ? row.categorical("Color").formattedValue()
+                : "(None)",
+            Marked: row.isMarked(),
+            id: row.elementId(true),
+            markingGroupId: 0,
+            row: row,
+          };
           for (let i = 0; i < count; i++) {
             if (Date.now() - startTime > 6000) {
               Log.red(LOG_CATEGORIES.DebugDataBailout)(
                 "Throwing error during data iteration"
               );
-              throw "Error - data size is too big - check Count axis, or reduce amount of data";
+              throw new Error(
+                "Error - data size is too big - check Count axis, or reduce amount of data"
+              );
             }
             Log.red(LOG_CATEGORIES.BoxPlotColorBy)(row.color().hexCode);
-            rowData.push({
-              category: category,
-              y: val,
-              trellis: trellisNode.formattedPath(),
-              Color: row.color().hexCode,
-              ColorValue: colorAxis != undefined ? row.categorical("Color").formattedValue() : "(None)",
-              Marked: row.isMarked(),
-              id: row.elementId(true),
-              markingGroupId: 0,
-              row: row,
-            });
+            rowData.push(rowItem);
           }
         }
       });
     });
   }
-
+  Log.green(LOG_CATEGORIES.DebugBigData)(
+    "Reading data took: " +
+      (performance.now() - startBuildData) / 1000 +
+      " seconds"
+  );
   let filteredRowData = rowData;
 
+  const startSumStats = performance.now();
   const sumStats = buildSumStats(config, rowData, trellisNode.formattedPath());
+  Log.green(LOG_CATEGORIES.DebugBigData)(
+    "Building all sumStats took: " +
+      (performance.now() - startBuildData) / 1000 +
+      " seconds"
+  );
 
   // If log Y axis, filter out all negative values
   if (config.yAxisScaleType.value() == "log") {
@@ -195,8 +238,8 @@ export async function buildData(
 
   const densitiesAll = [];
 
-    // Are there any marked rows (in all the data?)
-    const isAnyMarkedRecords = rowData.some((r: any) => r.Marked);
+  // Are there any marked rows (in all the data?)
+  const isAnyMarkedRecords = rowData.some((r: any) => r.Marked);
 
   // Determine min, max for axis values, combining reference line data and actual data
   const minRefTrendLines = d3.min(
@@ -242,8 +285,10 @@ export async function buildData(
     for (const [category, categoryRowData] of rowDataGroupedByCat) {
       let filteredCategoryRowData = categoryRowData;
 
-        // Are there any marked rows (in this category?)
-      const isAnyMarkedRecordsInThisCategory = filteredCategoryRowData.some((r: any) => r.Marked);
+      // Are there any marked rows (in this category?)
+      const isAnyMarkedRecordsInThisCategory = filteredCategoryRowData.some(
+        (r: any) => r.Marked
+      );
 
       if (config.yAxisScaleType.value() == "log") {
         filteredCategoryRowData = categoryRowData.filter(
@@ -264,8 +309,13 @@ export async function buildData(
       });
 
       const categorySumStats = sumStats.get(category);
-      Log.green(LOG_CATEGORIES.InnovativeLogTicks)("categorySumStats", categorySumStats.max);
-      const bandwidth = (categorySumStats.max - categorySumStats.min) * config.violinBandwidth.value();
+      Log.green(LOG_CATEGORIES.InnovativeLogTicks)(
+        "categorySumStats",
+        categorySumStats.max
+      );
+      const bandwidth =
+        (categorySumStats.max - categorySumStats.min) *
+        config.violinBandwidth.value();
 
       Log.green(LOG_CATEGORIES.InnovativeLogTicks)("bandWidth", bandwidth);
 
@@ -278,7 +328,9 @@ export async function buildData(
             {
               size: config.violinSmoothness.value(),
               bandwidth: bandwidth,
-              extent: config.violinLimitToExtents.value() ? [categorySumStats.min, categorySumStats.max] : null
+              extent: config.violinLimitToExtents.value()
+                ? [categorySumStats.min, categorySumStats.max]
+                : null,
             }
           )
           .points()
@@ -385,7 +437,11 @@ export async function buildData(
 
           densitiesSplitByMarking.push({
             category: category,
-            color: config.useFixedViolinColor.value() ? config.violinColor.value() : rowDataGroupedByCat.get(category).find((r:RowData) => r.y > min)?.Color,
+            color: config.useFixedViolinColor.value()
+              ? config.violinColor.value()
+              : rowDataGroupedByCat
+                  .get(category)
+                  .find((r: RowData) => r.y > min)?.Color,
             trellis: trellisNode.formattedPath(),
             densityPoints: filteredPoints,
             Marked: threshold.marked,
@@ -414,17 +470,18 @@ export async function buildData(
         const gapPoints = densityPointsSorted.filter(
           (p: any, i: number) => i < maxIndex
         );
-        
+
         if (gapPoints.length > 0) {
           densitiesSplitByMarking.push({
             category: category,
             trellis: trellisNode.formattedPath(),
-            densityPoints: gapPoints,          
+            densityPoints: gapPoints,
             Marked: false,
             IsGap: true,
           });
-          Log.red(LOG_CATEGORIES.ColorViolin)("last",
-            densitiesSplitByMarking[densitiesSplitByMarking.length - 1]                    
+          Log.red(LOG_CATEGORIES.ColorViolin)(
+            "last",
+            densitiesSplitByMarking[densitiesSplitByMarking.length - 1]
           );
         }
 
@@ -649,10 +706,10 @@ export async function buildData(
       max: maxY,
     },
     xScale: categories,
-    dataPoints: rowData,
+    rowData: rowData,
     densitiesSplitByMarking: densitiesSplitByMarking,
     densitiesAll: densitiesAll,
-    dataPointsGroupedByCat: rowDataGroupedByCat,
+    rowDataGroupedByCat: rowDataGroupedByCat,
     sumStats: sumStats,
     categories: categories,
     isAnyMarkedRecords: isAnyMarkedRecords,
@@ -661,6 +718,8 @@ export async function buildData(
     comparisonCirclesStats: comparisonCirclesStats,
     pValue: pValue,
     mark: async (rows: DataViewRow[], markingOperation: MarkingOperation) => {
+      // Mark distinct rows
+      rows = [...new Set(rows)] as DataViewRow[];
       Log.green(LOG_CATEGORIES.General)(
         dataView,
         rows,
@@ -689,17 +748,21 @@ function getReferenceAndTrendLinesMinMax(
       const referenceLine = SumStatsConfig.find(
         (config: SumStatsSettings) => config.name == referenceLineSetting.name
       );
-      Log.green(LOG_CATEGORIES.DebugLatestMarking)(
-        "sumStatsEntry",
-        sumStatsEntry,
-        referenceLine.property
-      );
+
       max = max
         ? Math.max(sumStatsEntry[referenceLine.property], max)
         : sumStatsEntry[referenceLine.property];
       min = min
-        ? Math.min(sumStatsEntry[referenceLine.property], max)
+        ? Math.min(sumStatsEntry[referenceLine.property], min)
         : sumStatsEntry[referenceLine.property];
+
+      Log.green(LOG_CATEGORIES.DebugBigData)(
+        "sumStatsEntry",
+        sumStatsEntry,
+        referenceLine.property,
+        config.FormatNumber(min),
+        config.FormatNumber(max)
+      );
     });
 
   Array.from(config.GetStatisticsConfigItems().values())
@@ -712,10 +775,10 @@ function getReferenceAndTrendLinesMinMax(
         ? Math.max(sumStatsEntry[trendLine.property], max)
         : sumStatsEntry[trendLine.property];
       min = min
-        ? Math.min(sumStatsEntry[trendLine.property], max)
+        ? Math.min(sumStatsEntry[trendLine.property], min)
         : sumStatsEntry[trendLine.property];
     });
-  Log.green(LOG_CATEGORIES.DebugShowAllXValues)(min, max);
+  Log.green(LOG_CATEGORIES.DebugBigData)("Overall min max", config.FormatNumber(min), config.FormatNumber(max));
   return { min: min, max: max };
 }
 
@@ -724,6 +787,8 @@ function buildSumStats(
   data: any,
   trellisName: string
 ) {
+  const startTime = performance.now();
+
   // Quick fix to filter <= 0 for Log Y Axis (or not)
   const filter = config.yAxisScaleType.value() == "log";
   const filterCount = config.yAxisScaleType.value() == "log";
@@ -734,6 +799,7 @@ function buildSumStats(
   const sumstat: Map<any, any> = new d3.rollup(
     data, // group function allows to group/nest the calculation per level of a factor
     (d: any) => {
+      let now = performance.now();
       //calculate different metrics
       let count: number;
       if (config.IsStatisticsConfigItemEnabled("Count")) {
@@ -749,7 +815,9 @@ function buildSumStats(
           })
         );
       }
-      Log.blue(LOG_CATEGORIES.DebugLogYAxis)(config.GetStatisticsConfigItems());
+
+      Log.blue(LOG_CATEGORIES.DebugBigData)("count", performance.now() - now);
+      now = performance.now();
 
       let countUndefined: number;
       if (config.IsStatisticsConfigItemEnabled("Count <= 0")) {
@@ -760,6 +828,12 @@ function buildSumStats(
           })
         );
       }
+
+      Log.blue(LOG_CATEGORIES.DebugBigData)(
+        "countUndef",
+        performance.now() - now
+      );
+      now = performance.now();
 
       let stdDev: number;
       if (config.IsStatisticsConfigItemEnabled("StdDev")) {
@@ -775,10 +849,13 @@ function buildSumStats(
         );
       }
 
+      Log.blue(LOG_CATEGORIES.DebugBigData)("stdDev", performance.now() - now);
+      now = performance.now();
+
       let avg: number;
       if (config.IsStatisticsConfigItemEnabled("Avg")) {
         avg = d3.mean(
-          d.map(function (g: any) {
+          d.map(function (g: RowData) {
             //if(DEBUG) Log.green(LOG_CATEGORIES.General)(g.y);
             return !filter ||
               (config.yAxisLog.value() && g.y > 0) ||
@@ -788,6 +865,9 @@ function buildSumStats(
           })
         );
       }
+
+      Log.blue(LOG_CATEGORIES.DebugBigData)("avg", performance.now() - now);
+      now = performance.now();
 
       let sum: number;
       if (config.IsStatisticsConfigItemEnabled("Sum")) {
@@ -803,68 +883,77 @@ function buildSumStats(
         );
       }
 
+      Log.blue(LOG_CATEGORIES.DebugBigData)("sum", performance.now() - now);
+      now = performance.now();
+
       let q1: number;
       if (config.IsStatisticsConfigItemEnabled("Q1")) {
         q1 = d3.quantile(
-          d
-            .map(function (g: any) {
-              return !filter ||
-                (config.yAxisLog.value() && g.y > 0) ||
-                !config.yAxisLog.value()
-                ? (g.y as number)
-                : NaN;
-            })
-            .sort(d3.ascending),
+          d.map(function (g: any) {
+            return g.y as number;
+          }),
+          //.sort(d3.ascending),
           0.25
         );
       }
 
+      Log.blue(LOG_CATEGORIES.DebugBigData)("q1", performance.now() - now);
+      now = performance.now();
+
+      // Median, q1, q3 are slow - due to d3.quantile? ~300ms before optimising
       let median: number;
       if (config.IsStatisticsConfigItemEnabled("Median")) {
         median = d3.quantile(
-          d
-            .map(function (g: any) {
-              return !filter ||
-                (config.yAxisLog.value() && g.y > 0) ||
-                !config.yAxisLog.value()
-                ? (g.y as number)
-                : NaN;
-            })
-            .sort(d3.ascending),
+          d.map(function (g: any) {
+            return !filter ||
+              (config.yAxisLog.value() && g.y > 0) ||
+              !config.yAxisLog.value()
+              ? (g.y as number)
+              : NaN;
+          }),
+          //.sort(d3.ascending),
           0.5
         );
       }
 
+      Log.blue(LOG_CATEGORIES.DebugBigData)("median", performance.now() - now);
+      now = performance.now();
+
       let q3: number;
       if (config.IsStatisticsConfigItemEnabled("Q3")) {
         q3 = d3.quantile(
-          d
-            .map(function (g: any) {
-              return !filter ||
-                (config.yAxisLog.value() && g.y > 0) ||
-                !config.yAxisLog.value()
-                ? (g.y as number)
-                : NaN;
-            })
-            .sort(d3.ascending),
+          d.map(function (g: any) {
+            return !filter ||
+              (config.yAxisLog.value() && g.y > 0) ||
+              !config.yAxisLog.value()
+              ? (g.y as number)
+              : NaN;
+          }),
+          //.sort(d3.ascending),
           0.75
         );
       }
+
+      Log.blue(LOG_CATEGORIES.DebugBigData)("q3", performance.now() - now);
+      now = performance.now();
 
       const interQuartileRange: number = q3! - q1!;
       let min: number;
       if (config.IsStatisticsConfigItemEnabled("Min")) {
         min = d3.min(
-            d.map(function (g: any) {
+          d.map(function (g: any) {
             //if(DEBUG) Log.green(LOG_CATEGORIES.General)(g.y);
             return !filter ||
-                (config.yAxisLog.value() && g.y > 0) ||
-                !config.yAxisLog.value()
-                ? (g.y as number)
-                : NaN;
-            })
+              (config.yAxisLog.value() && g.y > 0) ||
+              !config.yAxisLog.value()
+              ? (g.y as number)
+              : NaN;
+          })
         );
       }
+
+      Log.blue(LOG_CATEGORIES.DebugBigData)("min", performance.now() - now);
+      now = performance.now();
 
       const uif = q3 + 1.5 * interQuartileRange;
       const lif = q1 - 1.5 * interQuartileRange;
@@ -886,10 +975,14 @@ function buildSumStats(
         );
       }
 
+      Log.blue(LOG_CATEGORIES.DebugBigData)("max", performance.now() - now);
+      now = performance.now();
+
       let lav: number;
       if (config.IsStatisticsConfigItemEnabled("LAV")) {
         lav = d3.min(
           d.map((g: any) => {
+            // Might be possible to bail out early? - Yes - use find?
             if (filter && config.yAxisLog.value() && g.y <= 0) return NaN;
             return g.y >= lif ? (g.y as number) : (max as number);
           })
@@ -899,10 +992,13 @@ function buildSumStats(
         lav = lav > q1 ? q1 : lav;
       }
 
+      Log.blue(LOG_CATEGORIES.DebugBigData)("lav", performance.now() - now);
+      now = performance.now();
+
       let uav: number;
       if (config.IsStatisticsConfigItemEnabled("UAV")) {
         uav = d3.max(
-          d.map((g: any) => {
+          d.map((g: RowData) => {
             if (filter && config.yAxisLog.value() && g.y <= 0) return NaN;
             return g.y <= uif ? (g.y as number) : NaN;
           })
@@ -910,6 +1006,9 @@ function buildSumStats(
         // constrain uav to be >= Q3
         uav = uav < q3 ? q3 : uav;
       }
+
+      Log.blue(LOG_CATEGORIES.DebugBigData)("uav", performance.now() - now);
+      now = performance.now();
 
       let outlierCount: number;
       if (config.IsStatisticsConfigItemEnabled("Outliers")) {
@@ -921,7 +1020,17 @@ function buildSumStats(
         );
       }
 
-      Log.green(LOG_CATEGORIES.General)(outlierCount);
+      Log.blue(LOG_CATEGORIES.DebugBigData)(
+        "outliers",
+        performance.now() - now
+      );
+      now = performance.now();
+
+      Log.green(LOG_CATEGORIES.DebugBigData)(
+        "Build SumStats took " +
+          (performance.now() - startTime) / 1000 +
+          "seconds"
+      );
 
       return {
         trellis: trellisName,
