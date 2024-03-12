@@ -105,7 +105,9 @@
 .summary-value-comparison-circles {
   border: 1px solid;
   padding: 3px;
-  word-wrap: break-word;
+  text-overflow: clip;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 /* 
