@@ -1107,6 +1107,7 @@ export async function render(
   if (config.includeViolin.value() && config.drawViolinUnderBox.value()) {
     renderViolin(
       plotData,
+      orderedCategories,
       xScale,
       yScale,
       height,
@@ -1166,6 +1167,7 @@ export async function render(
   if (config.includeViolin.value() && !config.drawViolinUnderBox.value()) {
     renderViolin(
       plotData,
+      orderedCategories,
       xScale,
       yScale,
       height,

@@ -48,7 +48,7 @@ const SumStatsConfig: SumStatsSettings[] = [
       // yes this is bandwidth * 0.5, but leaving the calc here for greater tweakability in future
       return (3 * xBandwidth) / 6;
     },
-    labelVerticalOffset: 0,
+    labelVerticalOffset: 18,
     verticalOffset: function (xBandwidth: number) {
       // From: https://stackoverflow.com/questions/52107733/d3-triangle-positioning-to-an-exact-point
       function getWidth(a: number) {
@@ -76,7 +76,7 @@ const SumStatsConfig: SumStatsSettings[] = [
     labelHorizOffset: function (xBandwidth: number) {
       return (3 * xBandwidth) / 6;
     },
-    labelVerticalOffset: 0,
+    labelVerticalOffset: -10,
     verticalOffset: function (xBandwidth: number) {
       function getWidth(a: number) {
         return Math.sqrt((4 * a) / Math.sqrt(3));

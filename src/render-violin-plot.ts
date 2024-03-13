@@ -13,6 +13,7 @@ import {
  */
 export function renderViolin(
   plotData: Data,
+  orderedCategories: string[],
   xScale: d3.scaleBand,
   yScale: d3.scale,
   height: number,
@@ -28,35 +29,56 @@ export function renderViolin(
   const padding = { violinX: 20 };
   const isScaleLog = config.yAxisLog.value();
   const curveType = d3.curveLinear;
+ 
+
+  Log.green(LOG_CATEGORIES.ViolinIndividualScales)(
+    "plotData.densitiesAll",
+    plotData.densitiesAll
+  );
+  Log.green(LOG_CATEGORIES.ViolinIndividualScales)(
+    "plotData.densitiesSplitByMarking",
+    plotData.densitiesSplitByMarking
+  );
+
+  orderedCategories.forEach((category:string, violinIndex: number) => {
+    const densitiesAll = plotData.densitiesAll.filter((d:any) => d.category == category);
+    const densitiesSplitByMarking = plotData.densitiesSplitByMarking.filter((d:any) => d.category == category);
+    Log.green(LOG_CATEGORIES.ViolinIndividualScales)(
+      "densitiesAll for", category,
+      densitiesAll, "[0]", densitiesAll[0]
+    );
+    Log.green(LOG_CATEGORIES.ViolinIndividualScales)(
+      "densitiesSplitByMarking for", category,
+      densitiesSplitByMarking
+    );
+  
+  // densitiesAll is an array with 1 element only at this stage
+  const maxKdeValue = densitiesAll.length > 0 ? d3.max(densitiesAll[0].densityPoints.map((p:any) => p.y)) : 0;
+
+  Log.green(LOG_CATEGORIES.ViolinIndividualScales)(
+    "maxKdeValue", maxKdeValue
+  );
+
   /**
    * violinXscale is used for the correct placing of violin area
    */
   const violinXscale = d3
     .scaleLinear()
     .range([1, xScale.bandwidth() - padding.violinX])
-    .domain([-plotData.maxKdeValue, plotData.maxKdeValue]);
-
-  Log.green(LOG_CATEGORIES.DebugSingleRowMarking)(
-    "plotData.densitiesAll",
-    plotData.densitiesAll
-  );
-  Log.green(LOG_CATEGORIES.DebugSingleRowMarking)(
-    "plotData.densitiesSplitByMarking",
-    plotData.densitiesSplitByMarking
-  );
+    .domain([-maxKdeValue, maxKdeValue]);
 
   /**
    * Add the violin to the svg
    */
 
   // Segments for the violin - marked/unmarked
-  g.selectAll(".violin-path")
+  g.selectAll(".violin-path-" + violinIndex)
     // This is all violins that will be displayed, including category
-    .data(plotData.densitiesSplitByMarking)
+    .data(densitiesSplitByMarking)
     .enter()
     .append("g")
     .attr("transform", function (d: any) {
-      Log.green(LOG_CATEGORIES.ColorViolin)(d);
+      Log.green(LOG_CATEGORIES.ViolinIndividualScales)("violin d", d);
       return (
         "translate(" +
         ((xScale(d.category) ? xScale(d.category) : 0) + padding.violinX / 2) +
@@ -316,4 +338,5 @@ export function renderViolin(
         })
         .curve(curveType)
     );
+  });
 }

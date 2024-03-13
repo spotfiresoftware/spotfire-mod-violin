@@ -24,6 +24,13 @@ export function renderComparisonCircles(
         .attr("height", heightAvailable)
         .attr("fill", "none");
 
+    // To "cover up" any gridlines
+    g.append("rect")
+        .attr("x", xScale("Comparison"))
+        .attr("width", xScale.bandwidth)
+        .attr("height", heightAvailable)
+        .attr("fill", backgroundColor);
+
     g.selectAll(".comparison-circle")        
         .data(
             

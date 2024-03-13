@@ -98,7 +98,8 @@ export enum LOG_CATEGORIES {
   MultipleYAxisExpressions,
   ColorViolin,
   DebugBigData,
-  DebugXaxisFiltering
+  DebugXaxisFiltering,
+  ViolinIndividualScales
 }
 
 /**
