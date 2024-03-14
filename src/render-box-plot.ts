@@ -95,7 +95,7 @@ export function renderBoxplot(
       .attr(
         "height",
         (d: any) =>
-          yScale(d.confidenceIntervalLower) - yScale(d.confidenceIntervalUpper)
+          !isNaN( yScale(d.confidenceIntervalLower) - yScale(d.confidenceIntervalUpper)) ? yScale(d.confidenceIntervalLower) - yScale(d.confidenceIntervalUpper) : 0
       )
       .attr("width", Math.max(linesWidth / 2, 4))
       .attr("stroke", (d: any) => getBoxBorderColor(d.color))

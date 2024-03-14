@@ -948,11 +948,7 @@ function buildSumStats(
       performance.now() - now
     );
     now = performance.now();
-
-    // Standard Error/ Margin of Error
-    const stdErr = stdDev / count;
-    const marginErr = stdErr / 2;
-
+   
     // 95% confidence interval of the mean
     // 1.960 is the Confidence Level Z Value for 95%
     const confidenceIntervalUpper = avg + 1.960 * (stdDev / Math.sqrt(count));

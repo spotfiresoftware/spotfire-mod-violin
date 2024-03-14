@@ -1363,6 +1363,8 @@ export async function render(
       selectionBoxX -= 12;
     }
 
+    Log.blue(LOG_CATEGORIES.DebugViolinIndividualScalesMarking)(d3.selectAll(".violin-path-markable"));
+
     /**
      *
      * Violin marking

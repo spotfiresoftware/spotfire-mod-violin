@@ -55,10 +55,6 @@ export function renderViolin(
   // densitiesAll is an array with 1 element only at this stage
   const maxKdeValue = densitiesAll.length > 0 ? d3.max(densitiesAll[0].densityPoints.map((p:any) => p.y)) : 0;
 
-  Log.green(LOG_CATEGORIES.ViolinIndividualScales)(
-    "maxKdeValue", maxKdeValue
-  );
-
   /**
    * violinXscale is used for the correct placing of violin area
    */
@@ -66,6 +62,8 @@ export function renderViolin(
     .scaleLinear()
     .range([1, xScale.bandwidth() - padding.violinX])
     .domain([-maxKdeValue, maxKdeValue]);
+
+  Log.red(LOG_CATEGORIES.DebugYNaN)(category, maxKdeValue, densitiesAll, densitiesAll.length);
 
   /**
    * Add the violin to the svg
@@ -117,7 +115,7 @@ export function renderViolin(
           count: d.count,
         };
       });
-      Log.green(LOG_CATEGORIES.Rendering)("datum", datum);
+      Log.green(LOG_CATEGORIES.DebugYNaN)("datum", datum);
       return datum;
     }) // So now we are working bin per bin
     .attr(
@@ -281,8 +279,8 @@ export function renderViolin(
   Log.green(LOG_CATEGORIES.Rendering)(plotData.densitiesAll);
   // Now add a second set of paths for the violins - these will be invisible, but are used to make
   // the marking code a lot easier!
-  g.selectAll(".violin-path-markable")
-    .data(plotData.densitiesAll)
+  g.selectAll(".violin-path-markable-" + violinIndex)
+    .data(densitiesAll)
     .enter() // So now we are working group per group
     .append("g")
     .attr("transform", function (d: any) {
@@ -321,8 +319,7 @@ export function renderViolin(
         .area()
         .x0(function (d: any) {
           if (isNaN(violinXscale(-d.violinX))) {
-            Log.green(LOG_CATEGORIES.DebugYNaN)(d);
-            Log.green(LOG_CATEGORIES.DebugYNaN)(d[1]);
+            Log.green(LOG_CATEGORIES.DebugYNaN)(d.category, d.violinX, violinXscale(-d.violinX), maxKdeValue);
           }
           return violinXscale(-d.violinX) as number;
         })

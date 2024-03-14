@@ -101,7 +101,8 @@ export enum LOG_CATEGORIES {
   DebugXaxisFiltering,
   ViolinIndividualScales,
   SumStatsPerformance,
-  ConfidenceIntervals
+  ConfidenceIntervals,
+  DebugViolinIndividualScalesMarking
 }
 
 /**
