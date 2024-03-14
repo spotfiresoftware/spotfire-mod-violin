@@ -903,6 +903,13 @@ export function createSettingsPopout(
         );
       }
 
+      AddCheckbox(
+        "Show 95% Confidence Interval of the Mean",
+        config.show95pctConfidenceInterval,
+        boxOptionsPlaceholder,
+        () => {}
+      );
+
       if (!config.areColorAndXAxesMatching) {
         AddColorfield(
           config,

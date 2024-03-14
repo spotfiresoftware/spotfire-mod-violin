@@ -99,7 +99,9 @@ export enum LOG_CATEGORIES {
   ColorViolin,
   DebugBigData,
   DebugXaxisFiltering,
-  ViolinIndividualScales
+  ViolinIndividualScales,
+  SumStatsPerformance,
+  ConfidenceIntervals
 }
 
 /**
@@ -407,7 +409,8 @@ Spotfire.initialize(async (mod) => {
     mod.property<boolean>("violinLimitToExtents"),
     mod.property<boolean>("useFixedViolinColor"),
     mod.property<boolean>("useFixedBoxColor"),
-    mod.property<boolean>("drawViolinUnderBox")
+    mod.property<boolean>("drawViolinUnderBox"),
+    mod.property<boolean>("show95pctConfidenceInterval")
   );
 
   /**
@@ -459,6 +462,7 @@ Spotfire.initialize(async (mod) => {
    * @param {ModProperty<boolean>} useFixedViolinColor
    * @param {ModProperty<boolean>} useFixedBoxColor
    * @param {ModProperty<boolean>} drawViolinUnderBox
+   * @param {ModProperty<boolean>} show95pctConfidenceInterval
    */
   async function onChange(
     dataView: DataView,
@@ -506,7 +510,8 @@ Spotfire.initialize(async (mod) => {
     violinLimitToExtents: ModProperty<boolean>,
     useFixedViolinColor: ModProperty<boolean>,
     useFixedBoxColor: ModProperty<boolean>,
-    drawViolinUnderBox: ModProperty<boolean>
+    drawViolinUnderBox: ModProperty<boolean>,
+    show95pctConfidenceInterval: ModProperty<boolean>
   ) {
     Log.red(LOG_CATEGORIES.DebugIndividualYScales)(
       "OnChange",
@@ -581,6 +586,7 @@ Spotfire.initialize(async (mod) => {
         includeBoxplot.value() && drawViolinUnderBox.value() ? 1 : OPACITY,
       boxOpacity:
         includeViolin.value() && !drawViolinUnderBox.value() ? 1: OPACITY,
+      show95pctConfidenceInterval: show95pctConfidenceInterval,
       //statisticsConfigCache: statisticsConfig.value() == "" ? new Map<string, StatisticsConfig>() : new Map(JSON.parse(statisticsConfig.value())),
       GetStatisticsConfigItems(): Map<string, StatisticsConfig> {
         if (

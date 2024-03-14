@@ -224,8 +224,12 @@
             "name": "drawViolinUnderBox",
             "type": "boolean",
             "defaultValue": true
+        },
+        {
+            "name": "show95pctConfidenceInterval",
+            "type": "boolean",
+            "defaultValue": false
         }
-
     ],
     "dataViewDefinition": {
         "colorAxis": {

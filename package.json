@@ -31,6 +31,7 @@
         "ml-array-mean": "^1.1.5",
         "ms-dropdown": "^4.0.3",
         "popper": "^1.0.1",
+        "simple-statistics": "^7.8.3",
         "ts-jest": "^28.0.5",
         "ts-loader": "^9.3.1",
         "ts-node": "^10.7.0",

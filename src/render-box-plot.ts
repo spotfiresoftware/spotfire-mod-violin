@@ -69,6 +69,53 @@ export function renderBoxplot(
     return !d.dataPoints?.some((p: RowData) => p?.Marked);
   }
 
+  if (config.show95pctConfidenceInterval.value()) {
+    // Confidence intervals
+    boxplot
+      .append("rect")
+      .datum((d: any) => {
+        Log.green(LOG_CATEGORIES.ConfidenceIntervals)(
+          "datum, sumStats",
+          d,
+          plotData.sumStats.get(d[0])
+        );
+        const now = performance.now();
+        return {
+          category: d[0],
+          confidenceIntervalLower: plotData.sumStats.get(d[0])
+            .confidenceIntervalLower,
+          confidenceIntervalUpper: plotData.sumStats.get(d[0])
+            .confidenceIntervalUpper,
+        };
+      })
+      .attr("x", verticalLinesX + boxWidth / 2 + linesWidth / 2)
+      .attr("y", function (d: any) {
+        return yScale(d.confidenceIntervalUpper) as number;
+      })
+      .attr(
+        "height",
+        (d: any) =>
+          yScale(d.confidenceIntervalLower) - yScale(d.confidenceIntervalUpper)
+      )
+      .attr("width", Math.max(linesWidth / 2, 4))
+      .attr("stroke", (d: any) => getBoxBorderColor(d.color))
+      .attr("fill", (d: any) => "black")
+      .style("opacity", config.boxOpacity)
+      .classed("not-marked", (d: any) => notMarked(d))
+      .on("mouseover", function (event: d3.event, d: any) {
+        tooltip.show(
+          d.category +
+            (d.count == 0 ? "\nNo Data" : "") +
+            "\n95% Confidence Interval:" +
+            "\n" +
+            "L95 " +
+            config.FormatNumber(d.confidenceIntervalLower) +
+            "\nU95: " +
+            config.FormatNumber(d.confidenceIntervalUpper)
+        );
+      });
+  }
+
   // Q3 to UAV (Upper Adjacent Value) - top vertical line
   boxplot
     .append("rect")

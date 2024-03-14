@@ -180,6 +180,8 @@ export interface Options {
     violinOpacity: number;
     boxOpacity: number;
 
+    show95pctConfidenceInterval: ModProperty<boolean>;
+
     GetStatisticsConfigItems(): Map<string, StatisticsConfig>;
 
     SetStatisticsConfigItem(statisticsConfigItem: StatisticsConfig) : void;
