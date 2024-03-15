@@ -102,7 +102,7 @@ export enum LOG_CATEGORIES {
   ViolinIndividualScales,
   SumStatsPerformance,
   ConfidenceIntervals,
-  DebugViolinIndividualScalesMarking
+  DebugViolinIndividualScalesMarking,
 }
 
 /**
@@ -586,7 +586,7 @@ Spotfire.initialize(async (mod) => {
       violinOpacity:
         includeBoxplot.value() && drawViolinUnderBox.value() ? 1 : OPACITY,
       boxOpacity:
-        includeViolin.value() && !drawViolinUnderBox.value() ? 1: OPACITY,
+        includeViolin.value() && !drawViolinUnderBox.value() ? 1 : OPACITY,
       show95pctConfidenceInterval: show95pctConfidenceInterval,
       //statisticsConfigCache: statisticsConfig.value() == "" ? new Map<string, StatisticsConfig>() : new Map(JSON.parse(statisticsConfig.value())),
       GetStatisticsConfigItems(): Map<string, StatisticsConfig> {
@@ -693,6 +693,9 @@ Spotfire.initialize(async (mod) => {
           (name == "Median" && config.includeBoxplot.value()) ||
           (name == "Count" && config.comparisonCirclesEnabled.value()) ||
           (name == "StdDev" && config.comparisonCirclesEnabled.value()) ||
+          (name == "StdDev" &&
+            config.includeBoxplot.value() &&
+            config.show95pctConfidenceInterval.value()) ||
           (name == "Avg" && config.comparisonCirclesEnabled.value()) ||
           (name == "Min" && config.includeViolin.value()) ||
           (name == "Max" && config.includeViolin.value())
@@ -1589,7 +1592,11 @@ Spotfire.initialize(async (mod) => {
 
     Log.red(LOG_CATEGORIES.DebugLogYAxis)("About to build data");
     if (!isTrellis) {
-      buildDataForTrellisPanel(await trellisAxisHierarchy.root(), dataView, config)
+      buildDataForTrellisPanel(
+        await trellisAxisHierarchy.root(),
+        dataView,
+        config
+      )
         .then(async (data) => {
           Log.red(LOG_CATEGORIES.DebugLogYAxis)("Got data");
           if (data == undefined) {

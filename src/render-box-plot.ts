@@ -12,6 +12,7 @@ import {
   LOG_CATEGORIES,
   Log,
   getBoxBorderColor,
+  getContrastingColor,
   getMarkerHighlightColor,
 } from "./index";
 
@@ -79,7 +80,6 @@ export function renderBoxplot(
           d,
           plotData.sumStats.get(d[0])
         );
-        const now = performance.now();
         return {
           category: d[0],
           confidenceIntervalLower: plotData.sumStats.get(d[0])
@@ -101,8 +101,8 @@ export function renderBoxplot(
           : 0
       )
       .attr("width", Math.max(linesWidth / 2, 4))
-      .attr("stroke", (d: any) => getBoxBorderColor(d.color))
-      .attr("fill", (d: any) => "black")
+      .attr("stroke", (d: any) => getContrastingColor(styling.generalStylingInfo.backgroundColor))
+      .attr("fill", (d: any) => getContrastingColor(styling.generalStylingInfo.backgroundColor))
       .style("opacity", config.boxOpacity)
       .classed("not-marked", (d: any) => notMarked(d))
       .on("mouseover", function (event: d3.event, d: any) {
