@@ -8,9 +8,6 @@ import { IAnovaResult } from "ml-anova/lib/utils";
 // @ts-ignore
 import { Tukey } from "../node_modules/lib-r-math.js";
 
-// Simple statistics; for better performance when calculating summary stats
-import * as ss from "simple-statistics";
-
 const { qtukey } = Tukey();
 
 // @ts-ignore
@@ -846,15 +843,25 @@ function buildSumStats(
     );
     now = performance.now();
 
-    // d3 Median, q1, q3 are slow - due to d3.quantile - with 5M records, switching to simplestats
-    // (typically) halves overall time to calculate sumstats
-    // We use ss.quantileSorted, medianSorted, as the data has already been sorted before sumstats are
-    // calculated.
+    // Function to manually calculate the quartiles - significantly outperforms d3.quartile
+    function quartile_r7(values: number[], count: number, q: number) {
+      var index = (count - 1) * q;
+      var base = Math.floor(index);
+      var rest = index - base;
+      if (values[base + 1] !== undefined) {
+        return values[base] + rest * (values[base + 1] - values[base]);
+      } else {
+        return values[base];
+      }
+    }
 
+    // d3 Median, q1, q3 are slow with d3.quantile - with 5M records, switching to manual calculation
+    // (typically) halves overall time to calculate sumstats  
     let q1: number;
     if (config.IsStatisticsConfigItemEnabled("Q1")) {
-      q1 = ss.quantileSorted(
+      q1 = quartile_r7(
         yValues,
+        count,
         //.sort(d3.ascending),
         0.25
       );
@@ -865,7 +872,7 @@ function buildSumStats(
 
     let median: number;
     if (config.IsStatisticsConfigItemEnabled("Median")) {
-      median = ss.median(yValues);
+      median = count % 2 == 1? yValues[(count + 1) / 2 - 1]: d3.mean([yValues[(count / 2) - 1], yValues[(count / 2)]]);
     }
 
     Log.blue(LOG_CATEGORIES.SumStatsPerformance)(
@@ -876,8 +883,9 @@ function buildSumStats(
 
     let q3: number;
     if (config.IsStatisticsConfigItemEnabled("Q3")) {
-      q3 = ss.quantileSorted(
+      q3 = quartile_r7(
         yValues,
+        count,
         //.sort(d3.ascending),
         0.75
       );
@@ -948,11 +956,11 @@ function buildSumStats(
       performance.now() - now
     );
     now = performance.now();
-   
+
     // 95% confidence interval of the mean
     // 1.960 is the Confidence Level Z Value for 95%
-    const confidenceIntervalUpper = avg + 1.960 * (stdDev / Math.sqrt(count));
-    const confidenceIntervalLower = avg - 1.960 * (stdDev / Math.sqrt(count)) ;
+    const confidenceIntervalUpper = avg + 1.96 * (stdDev / Math.sqrt(count));
+    const confidenceIntervalLower = avg - 1.96 * (stdDev / Math.sqrt(count));
 
     // todo: check!
     let outlierCount: number;
@@ -996,7 +1004,7 @@ function buildSumStats(
       lof: lof,
       uof: uof,
       confidenceIntervalLower: confidenceIntervalLower,
-      confidenceIntervalUpper: confidenceIntervalUpper
+      confidenceIntervalUpper: confidenceIntervalUpper,
     } as any;
 
     sumstat.set(category, stats);
