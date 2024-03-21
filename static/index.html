@@ -1,87 +1,161 @@
 <!DOCTYPE html>
 <html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Violin Plot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" type="text/css" media="all" href="main.css" />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      media="all"
+      href="errors_warnings.css"
+    />
+    <link href="bootstrap.min.css" rel="stylesheet" />
+    <link href="colorpicker.css" rel="stylesheet" />
+  </head>
 
-<head>
-  <meta charset="utf-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <title>Violin Plot</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" type="text/css" media="all" href="main.css" />
-  <link rel="stylesheet" type="text/css" media="all" href="errors_warnings.css" />
-  <link href="bootstrap.min.css" rel="stylesheet">
-  <link href="colorpicker.css" rel="stylesheet">
-</head>
+  <body class="body">
+    <div class="testDropdown" style="display: none">
+      <svg
+        id="help-button"
+        data-bs-toggle="modal"
+        data-bs-target="#helpModal"
+        width="16"
+        height="16"
+        fill="currentColor"
+        aria-hidden="true"
+        focusable="false"
+        data-prefix="fas"
+        data-icon="question-circle"
+        class="svg-inline--fa fa-question-circle fa-w-16"
+        role="img"
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 512 512"
+      >
+        <path
+          fill="currentColor"
+          d="M504 256c0 136.997-111.043 248-248 248S8 392.997 8 256C8 119.083 119.043 8 256 8s248 111.083 248 248zM262.655 90c-54.497 0-89.255 22.957-116.549 63.758-3.536 5.286-2.353 12.415 2.715 16.258l34.699 26.31c5.205 3.947 12.621 3.008 16.665-2.122 17.864-22.658 30.113-35.797 57.303-35.797 20.429 0 45.698 13.148 45.698 32.958 0 14.976-12.363 22.667-32.534 33.976C247.128 238.528 216 254.941 216 296v4c0 6.627 5.373 12 12 12h56c6.627 0 12-5.373 12-12v-1.333c0-28.462 83.186-29.647 83.186-106.667 0-58.002-60.165-102-116.531-102zM256 338c-25.365 0-46 20.635-46 46 0 25.364 20.635 46 46 46s46-20.636 46-46c0-25.365-20.635-46-46-46z"
+        ></path>
+      </svg>
+      <svg
+        id="dropdown-menu-button-1"
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        fill="currentColor"
+        class="bi bi-gear settings dropdown-toggle"
+        viewBox="0 0 16 16"
+        data-bs-toggle="dropdown"
+        aria-expanded="false"
+      >
+        <path
+          d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"
+        />
+        <path
+          d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"
+        />
+      </svg>
+    </div>
 
-<body class="body">
+    <div id="warning-message"></div>
+    <div id="trellis-zoom-container"></div>
 
+    <div id="mod-container"></div>
 
-
-  <div class="testDropdown" style="display: none;">
-    <svg id="help-button" data-bs-toggle="modal" data-bs-target="#helpModal" width="16" height="16" fill="currentColor"
-      aria-hidden="true" focusable="false" data-prefix="fas" data-icon="question-circle"
-      class="svg-inline--fa fa-question-circle fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 512 512">
-      <path fill="currentColor"
-        d="M504 256c0 136.997-111.043 248-248 248S8 392.997 8 256C8 119.083 119.043 8 256 8s248 111.083 248 248zM262.655 90c-54.497 0-89.255 22.957-116.549 63.758-3.536 5.286-2.353 12.415 2.715 16.258l34.699 26.31c5.205 3.947 12.621 3.008 16.665-2.122 17.864-22.658 30.113-35.797 57.303-35.797 20.429 0 45.698 13.148 45.698 32.958 0 14.976-12.363 22.667-32.534 33.976C247.128 238.528 216 254.941 216 296v4c0 6.627 5.373 12 12 12h56c6.627 0 12-5.373 12-12v-1.333c0-28.462 83.186-29.647 83.186-106.667 0-58.002-60.165-102-116.531-102zM256 338c-25.365 0-46 20.635-46 46 0 25.364 20.635 46 46 46s46-20.636 46-46c0-25.365-20.635-46-46-46z">
-      </path>
-    </svg>
-    <svg id="dropdown-menu-button-1" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-      class="bi bi-gear settings dropdown-toggle" viewBox="0 0 16 16" data-bs-toggle="dropdown" aria-expanded="false">
-      <path
-        d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z" />
-      <path
-        d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z" />
-    </svg>
-
-  </div>
-
-  <div id="warning-message"></div>
-  <div id="trellis-zoom-container">
-    
-  </div>
-
-  <div id="mod-container">
-
-  </div>
-
-  <div class="dropdown-container">
-    <div class="dropdown">
-
-
-
-      <svg xmlns="http://www.w3.org/2000/svg" enable-background="new 0 0 24 24"
-        class="bi bi-gear dropdown-toggle removecaret" height="18px" viewBox="0 0 24 24" width="18px" fill="#616161"
-        role="button" id="dropdown-menu-link" data-bs-toggle="dropdown" aria-expanded="false">
+    <div class="warning-icon">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 14 14"
+        fill="#616161"
+      >
         <g>
-          <path d="M0,0h24v24H0V0z" fill="none" />
-          <path id="gear-icon"
-            d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z" />
+          <path
+            fill="#FAB632"
+            d="M12.83,11.08,10.19,6.36,7.56,1.64a1.2,1.2,0,0,0-1.65-.49,1.26,1.26,0,0,0-.48.49L2.8,6.36.17,11.08a1.29,1.29,0,0,0,.46,1.75,1.19,1.19,0,0,0,.61.17H11.76A1.27,1.27,0,0,0,13,11.7,1.23,1.23,0,0,0,12.83,11.08ZM7,11H6V9H7ZM7,8H6V4H7Z"
+          ></path>
         </g>
       </svg>
+    </div>
 
-
-      <div class="dropdown-menu shadow " id="settings-menu">
-
-
+    <div class="warning-info-popup">
+      <div class="warning-info-title">
+        Symmetrical Log Y Axis is Experimental
+      </div>
+      <div class="warning-info-text">
+        <p class="warning-info-para">
+          The symmetrical log y axis is Experimental. The statistical measures
+          for the box Plot and the Violin are calculated on the raw data, and
+          displayed on a symmetrical log Y axis. Log10(y &lt;= 0) is undefined,
+          so this axis is reflected around y = 0, in order that negative y
+          values can be displayed. Where y = 0, a slope value of 1 is set
+          (imagine a line chart where the slope is 1), in order that the y-axis
+          can be continuous. You can
+          <a class="warning-info-para" href="">dismiss this warning</a>, or
+          leave it here. It will return if you change the y-axis from linear to
+          log.
+        </p>
       </div>
     </div>
 
+    <div class="dropdown-container">
+      <div class="dropdown">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          enable-background="new 0 0 24 24"
+          class="bi bi-gear dropdown-toggle removecaret"
+          height="18px"
+          viewBox="0 0 24 24"
+          width="18px"
+          fill="#616161"
+          role="button"
+          id="dropdown-menu-link"
+          data-bs-toggle="dropdown"
+          aria-expanded="false"
+        >
+          <g>
+            <path d="M0,0h24v24H0V0z" fill="none" />
+            <path
+              id="gear-icon"
+              d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"
+            />
+          </g>
+        </svg>
 
-  </div>
- 
+        <div class="dropdown-menu shadow" id="settings-menu"></div>
+      </div>
+    </div>
 
-  <div id="modalscontainer"></div>
+    <div id="modalscontainer"></div>
 
+    <script src="jquery.min.js"></script>
+    <script src="bootstrap.bundle.min.js"></script>
+    <script src="modal-steps.min.js"></script>
+    <script id="spotfire-loader">
+      var Spotfire = (function (e) {
+        "use strict";
+        return (
+          (e.initialize = function (e) {
+            var t = "sfTemp" + 1e4 * Math.random() + "Cb",
+              a = window;
+            a[t] = e;
+            var r = { subject: "GetUrl", callbackId: -1, options: { cbId: t } };
+            a.addEventListener("message", function e(t) {
+              if (t.source === a.parent && t.data.src) {
+                a.removeEventListener("message", e);
+                var r = document,
+                  n = r.createElement("script");
+                (n.src = t.data.src), (r.head || r.body).appendChild(n);
+              }
+            }),
+              a.parent.postMessage(r, "*");
+          }),
+          e
+        );
+      })({});
+    </script>
 
-  <script src="jquery.min.js"></script>
-  <script src="bootstrap.bundle.min.js"></script>
-  <script src="modal-steps.min.js"></script>
-  <script
-    id="spotfire-loader">var Spotfire = function (e) { "use strict"; return e.initialize = function (e) { var t = "sfTemp" + 1e4 * Math.random() + "Cb", a = window; a[t] = e; var r = { subject: "GetUrl", callbackId: -1, options: { cbId: t } }; a.addEventListener("message", function e(t) { if (t.source === a.parent && t.data.src) { a.removeEventListener("message", e); var r = document, n = r.createElement("script"); n.src = t.data.src, (r.head || r.body).appendChild(n) } }), a.parent.postMessage(r, "*") }, e }({});</script>
-
-
-  <script src="bundle.js"></script>
-
-</body>
-
+    <script src="bundle.js"></script>
+  </body>
 </html>

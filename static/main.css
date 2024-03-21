@@ -1,5 +1,3 @@
-
-
 .body {
   margin: 0;
   overflow-x: hidden;
@@ -12,7 +10,7 @@
 }
 
 .lasso .drawn {
-  fill-opacity: .05;
+  fill-opacity: 0.05;
 }
 
 .lasso .loop-close {
@@ -21,13 +19,13 @@
 }
 
 .lasso .origin {
-  fill: #3399FF;
-  fill-opacity: .5;
+  fill: #3399ff;
+  fill-opacity: 0.5;
 }
 
 .container-offset-right {
   position: absolute;
-  left:0px;
+  left: 0px;
   /*left: 40px;*/
 }
 
@@ -46,7 +44,6 @@
 }
 
 .axis {
-
   -webkit-user-select: none;
   /* Safari */
   -moz-user-select: none;
@@ -55,14 +52,22 @@
   /* IE10+/Edge */
   user-select: none;
   /* Standard */
-
 }
 
 .x-axis {
   display: none;
 }
 
+.horizontal-grid {
+  opacity: 1;
+  stroke-width: 1px;
+  /*z-index: -100;*/
+}
 
+.median-line {
+  stroke-width: 2px;
+  opacity: 1;
+}
 
 .table-container {
   position: relative;
@@ -77,14 +82,14 @@
 }
 
 .summary-header {
-  overflow: hidden;
+  overflow: clip;
   text-align: left;
   padding: 0px;
 }
 
-
 .summary-header,
 .summary-value {
+  text-overflow:clip;
   border: 1px solid;
   text-align: center;
   margin: 0px;
@@ -92,15 +97,18 @@
 }
 
 .summary-div {
+  text-overflow: clip;
   overflow: hidden;
+  padding: 1px;
 }
 
 .summary-value-comparison-circles {
   border: 1px solid;
   padding: 3px;
-  word-wrap: break-word;
+  text-overflow: clip;
+  overflow: hidden;
+  white-space: nowrap;
 }
-
 
 /* 
   Hovering is confusing as it shows the arrows after you've clicked them, and they're the wrong way round
@@ -122,7 +130,7 @@
 
 div.sortable {
   cursor: pointer;
-  text-align: left;  
+  text-align: left;
 }
 
 table {
@@ -155,7 +163,6 @@ table {
   width: 100%;
 }
 
-
 .vertical-zoom-slider text,
 .vertical-zoom-slider .tick {
   display: none;
@@ -171,7 +178,6 @@ path.handle {
 
 .track-inset {
   stroke: #cac9c9;
-  ;
 }
 
 .trellis-header {
@@ -190,7 +196,7 @@ path.handle {
 
 .trellis-body {
   border-style: solid;
-  border-width: 1px;  
+  border-width: 1px;
 }
 
 .dropdown-container {
@@ -199,6 +205,57 @@ path.handle {
   top: -5px;
   height: 100%;
   visibility: hidden;
+}
+
+.warning-icon {
+  position: fixed;
+  left: 0px;
+  top: -5px;
+  height: 14px;
+  width: 14px;
+  visibility: hidden;
+  cursor: pointer;
+}
+
+.warning-info-popup {
+  left: 7px;
+  top: 18px;
+  width: 400px;
+  background-color: #f8f8f8;
+  color: #313336;
+  padding-top: 8px;
+  padding-left: 8px;
+  padding-right: 8px;
+  padding-bottom: 10px;
+  border-top-left-radius: 3px;
+  border-top-right-radius: 3px;
+  border-bottom-left-radius: 3px;
+  border-bottom-right-radius: 3px;
+  border-top-color: #bdbfc3;
+  border-right-color: #bdbfc3;
+  border-bottom-color: #bdbfc3;
+  border-left-color: #bdbfc3;
+  border-top-width: 1px;
+  border-right-width: 1px;
+  border-bottom-width: 1px;
+  border-left-width: 1px;
+  border-style: Solid;
+  box-shadow: 0px 1px 5px 0px rgb(0 0 0 / 20%);
+  font-family: "Roboto",sans-serif;
+  font-size: 11px;
+  position:absolute;
+  visibility: hidden;
+}
+
+.warning-info-title {
+  font-weight: Bold;
+  margin-left: 22px;
+  margin-bottom: 4px;
+}
+
+.warning-info-text { 
+  margin-left: 22px;
+  overflow-wrap: break-word;
 }
 
 .removecaret.dropdown-toggle::after {
@@ -270,7 +327,6 @@ path.handle {
 }
 
 ::-webkit-scrollbar-track {
-
   border-style: Solid;
   border-top-left-radius: 0px;
   border-top-right-radius: 0px;
@@ -280,19 +336,18 @@ path.handle {
   border-right-width: 1px;
   border-bottom-width: 1px;
   border-left-width: 1px;
-  background-color: #F8F8F8;
-  border-top-color: #C6C8CC;
-  border-right-color: #C6C8CC;
-  border-bottom-color: #C6C8CC;
-  border-left-color: #C6C8CC;
-
+  background-color: #f8f8f8;
+  border-top-color: #c6c8cc;
+  border-right-color: #c6c8cc;
+  border-bottom-color: #c6c8cc;
+  border-left-color: #c6c8cc;
 }
 
 ::-webkit-scrollbar-thumb {
   border: 3px solid transparent;
   border-radius: 8px;
   background-clip: content-box;
-  background-image: linear-gradient(to right, #C6C8CC, #C6C8CC);
+  background-image: linear-gradient(to right, #c6c8cc, #c6c8cc);
 }
 
 ::-webkit-scrollbar-button:single-button {
@@ -307,11 +362,11 @@ path.handle {
   border-right-width: 1px;
   border-bottom-width: 1px;
   border-left-width: 1px;
-  background-color: #F8F8F8;
-  border-top-color: #C6C8CC;
-  border-right-color: #C6C8CC;
-  border-bottom-color: #C6C8CC;
-  border-left-color: #C6C8CC;
+  background-color: #f8f8f8;
+  border-top-color: #c6c8cc;
+  border-right-color: #c6c8cc;
+  border-bottom-color: #c6c8cc;
+  border-left-color: #c6c8cc;
 }
 
 /* Up */
@@ -378,7 +433,6 @@ path.handle {
 .trend-line {
   fill: none;
   stroke-width: 2px;
-
 }
 
 .trend-line-config {
@@ -410,7 +464,7 @@ path.handle {
 }
 
 #box-plot-highlight-rect {
-  fill:none;
+  fill: none;
 }
 
 .box-plot-marked-rect {
@@ -419,18 +473,16 @@ path.handle {
 }
 
 .not-marked {
-  filter: contrast(50%) brightness(150%)
+  filter: contrast(50%) brightness(150%);
 }
 
 .area-highlighted {
   stroke: black;
   shape-rendering: geometricPrecision;
-
-
 }
 
 .rect-selection {
-  fill: #85A2CB;
+  fill: #85a2cb;
   stroke: #313336;
   fill-opacity: 0.5;
   stroke-opacity: 1;
@@ -442,7 +494,6 @@ path.handle {
   position: fixed;
   top: 10px;
   left: 10px;
-
 }
 
 #modalscontainer {

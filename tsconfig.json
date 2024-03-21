@@ -16,8 +16,8 @@
         "noImplicitAny": true,
         "strict": true,
         "charset": "utf8",
-        "sourceMap": false,
-        "inlineSources": false,
+        "sourceMap": true,
+        "inlineSources": true,
         "module": "NodeNext",
         "outDir": "./build",
         "lib": [
