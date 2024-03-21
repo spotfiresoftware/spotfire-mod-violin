@@ -41,7 +41,6 @@
     "dependencies": {
         "@easylogic/colorpicker": "^1.10.11",
         "agentkeepalive": "^4.3.0",
-        "braces": "^2.3.1",
         "chokidar": "^3.5.3",
         "css-loader": "^6.9.0",
         "d3-drag": "^3.0.0",
