@@ -1,8 +1,6 @@
 // @ts-ignore
 import * as d3 from "d3";
 
-// @ts-ignore
-import f from "./d3-jetpack-modules/d3-jetpack-f";
 import {
   Size,
   Tooltip,
@@ -14,7 +12,6 @@ import {
 
 import {
   setTrellisPanelZoomedTitle,
-  adjustColor,
   LOG_CATEGORIES,
   Log,
   GenerateRoundedRectSvg,

@@ -1,4 +1,3 @@
-import f from "./d3-jetpack-modules/d3-jetpack-f";
 import {
     getBorderColor,
     getComplementaryColor,
