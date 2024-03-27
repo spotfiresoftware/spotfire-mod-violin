@@ -1,680 +1,815 @@
 //@ts-ignore
 import * as d3 from "d3";
 
-import { DataViewRow, GeneralStylingInfo, ScaleStylingInfo, Tooltip } from "spotfire-api";
-import { Data, Options, RenderState } from "./definitions";
-import { LOG_CATEGORIES, Log, adjustColor, getBorderColor, getComplementaryColor, getContrastingColor, getMarkerHighlightColor } from "./index";
+import {
+  DataViewRow,
+  GeneralStylingInfo,
+  ScaleStylingInfo,
+  Tooltip,
+} from "spotfire-api";
+import { Data, Options, RenderState, RowData } from "./definitions";
+import {
+  LOG_CATEGORIES,
+  Log,
+  getBoxBorderColor,
+  getContrastingColor,
+  getMarkerHighlightColor,
+} from "./index";
 
 export function renderBoxplot(
-    styling: {
-        generalStylingInfo: GeneralStylingInfo;
-        scales: ScaleStylingInfo;
-    },
-    trellisName: string,
-    rowsToBeMarked: DataViewRow[],
-    plotData: Data,
-    xScale: any,
-    yScale: any,
-    height: number,
-    g: any,
-    tooltip: Tooltip,
-    xAxisSpotfire: Spotfire.Axis,
-    state: RenderState,
-    animationSpeed: number,
-    config: Partial<Options>
+  styling: {
+    generalStylingInfo: GeneralStylingInfo;
+    scales: ScaleStylingInfo;
+  },
+  plotData: Data,
+  xScale: any,
+  yScale: any,
+  height: number,
+  g: any,
+  tooltip: Tooltip,
+  xAxisSpotfire: Spotfire.Axis,
+  state: RenderState,
+  animationSpeed: number,
+  config: Partial<Options>
 ) {
-    const isScaleLog = config.yAxisLog.value();
-    const LOG_Y_MIN = 0.01; // Centralize these?
+  /**
+   * Add box plot if option is selected
+   */
+  Log.green(LOG_CATEGORIES.Data)(plotData.rowData, xScale);
+  const boxWidth = xScale.bandwidth() / (10 - config.boxWidth.value() + 1);
+  const verticalLinesX = xScale.bandwidth() / 2 - boxWidth / 5 / 2 + 0.5;
+  const linesWidth = boxWidth / 5;
 
-    // Boxes will be opaque if violin is NOT shown. Otherwise, a small amount of
-    // transparency, so that violins will show through
-    const BOX_OPACITY = config.includeViolin.value() ? 0.75 : 1.0;
+  const boxplot = g
+    .selectAll("boxplot")
+    // "Filter" the sumStats maps to exclude empty values
+    .data(plotData.rowDataGroupedByCat)
+    // todo - IMPORTANT - filter for q1 != undefined.
+    /*  [...plotData.sumStats].filter((s: any) => {
+        return s[1].q1 != undefined;
+      })
+    )*/
+    .enter() // So now we are working group per group
+    .append("g")
+    .attr("transform", function (d: any) {
+      Log.green(LOG_CATEGORIES.Rendering)("boxd", d);
+      return "translate(" + xScale(d[0]) + " ,0)";
+    });
 
-    /**
-     * Add box plot if option is selected
-     */
-    Log.green(LOG_CATEGORIES.Data)(plotData.dataPoints, xScale);
-    const boxWidth = xScale.bandwidth() / (10 - config.boxWidth.value() + 1);
+  function notMarked(d: any, isOutlier: boolean = false): boolean {
+    // Straightforward cases
+    if (!plotData.isAnyMarkedRecords) return false;
+    if (!config.areColorAndXAxesMatching && isOutlier) return false;
+    if (!config.areColorAndXAxesMatching)
+      return (
+        plotData.isAnyMarkedRecords &&
+        !d.dataPoints.some((p: RowData) => p?.Marked)
+      );
+    if (config.areColorAndXAxesMatching && !config.useFixedBoxColor.value())
+      return false;
+    return !d.dataPoints?.some((p: RowData) => p?.Marked);
+  }
 
-    const boxplot = g
-        .selectAll("boxplot")
-        // "Filter" the sumStats maps to exclude empty values
-        .data(
-            [...plotData.sumStats].filter((s: any) => {
-                return s[1].q1 != undefined; /* && 
-                    (!config.yAxisLog.value() ||
-                    s[1].q1 > LOG_Y_MIN &&
-                    s[1].q3 > LOG_Y_MIN &&
-                    s[1].uav > LOG_Y_MIN &&
-                    s[1].lav > LOG_Y_MIN &&
-                    s[1].median > LOG_Y_MIN)*/
-            })
+  if (config.show95pctConfidenceInterval.value()) {
+    // Confidence intervals
+    boxplot
+      .append("rect")
+      .datum((d: any) => {
+        Log.green(LOG_CATEGORIES.ConfidenceIntervals)(
+          "datum, sumStats",
+          d,
+          plotData.sumStats.get(d[0])
+        );
+        return {
+          category: d[0],
+          confidenceIntervalLower: plotData.sumStats.get(d[0])
+            .confidenceIntervalLower,
+          confidenceIntervalUpper: plotData.sumStats.get(d[0])
+            .confidenceIntervalUpper,
+        };
+      })
+      .attr("x", verticalLinesX + boxWidth / 2 + linesWidth / 2)
+      .attr("y", function (d: any) {
+        return yScale(d.confidenceIntervalUpper) as number;
+      })
+      .attr("height", (d: any) =>
+        !isNaN(
+          yScale(d.confidenceIntervalLower) - yScale(d.confidenceIntervalUpper)
         )
-        .enter() // So now we are working group per group
-        .append("g")
-        .attr("transform", function (d: any) {
-            Log.green(LOG_CATEGORIES.Rendering)("boxd", d);
-            return "translate(" + xScale(d[0]) + " ,0)";
-        });
+          ? yScale(d.confidenceIntervalLower) -
+            yScale(d.confidenceIntervalUpper)
+          : 0
+      )
+      .attr("width", Math.max(linesWidth / 2, 4))
+      .attr("stroke", (d: any) => getContrastingColor(styling.generalStylingInfo.backgroundColor))
+      .attr("fill", (d: any) => getContrastingColor(styling.generalStylingInfo.backgroundColor))
+      .style("opacity", config.boxOpacity)
+      .classed("not-marked", (d: any) => notMarked(d))
+      .on("mouseover", function (event: d3.event, d: any) {
+        tooltip.show(
+          d.category +
+            (d.count == 0 ? "\nNo Data" : "") +
+            "\n95% Confidence Interval:" +
+            "\n" +
+            "L95 " +
+            config.FormatNumber(d.confidenceIntervalLower) +
+            "\nU95: " +
+            config.FormatNumber(d.confidenceIntervalUpper)
+        );
+      });
+  }
 
-    // Q3 to UAV (Upper Adjacent Value) - top vertical line
-    boxplot
-        .append("line")
-        .datum((d: any) => {
-            /*if (isNaN(yScale(d[1].q3) || isNaN(yScale(d[1].uav)))) {
-                return {};
-            }*/
-            return {
-                category: d[0],
-                dataPoints: plotData.dataPoints.filter(
-                    (r: any) => r.y <= d[1].uav && r.y > d[1].q3 && r.x === d[0] && r.trellis == d[1].trellis
-                ),
-                stats: d[1]
-            };
-        })
+  // Q3 to UAV (Upper Adjacent Value) - top vertical line
+  boxplot
+    .append("rect")
+    .datum((d: any) => {
+      Log.green(LOG_CATEGORIES.DebugBigData)("datum, plotData", d, plotData);
+      const now = performance.now();
+      const dataPoints = d[1].filter(
+        (r: RowData) =>
+          r.y <= plotData.sumStats.get(d[0]).uav &&
+          r.y > plotData.sumStats.get(d[0]).q3
+      );
+      Log.green(LOG_CATEGORIES.DebugBigData)(
+        "top vertical line filtering",
+        performance.now() - now
+      );
 
-        .classed("markable", true)
-        .attr("x1", xScale.bandwidth() / 2)
-        .attr("x2", xScale.bandwidth() / 2)
-        // Before animation
-        .attr("y1", function (d: any) {
-            if (isScaleLog && d.stats.q3 <= LOG_Y_MIN) return yScale(LOG_Y_MIN);
-            return yScale(d.stats.q3) as number;
-        })
-        .attr("y2", function (d: any) {
-            if (isScaleLog && d.stats.q3 <= LOG_Y_MIN) return yScale(LOG_Y_MIN);
-            return yScale(d.stats.q3) as number;
-        })
-        .attr("stroke", function () {
-            return config.boxPlotColor.value(); // (d:any) => {Log.green(LOG_CATEGORIES.Rendering)(d, plotData.dataPoints.filter((dx:any) => dx.x == d[0]).some((p: any) => p.y < d[1])); return config.boxPlotColor.value()})
-        })
-        .style("opacity", BOX_OPACITY)
-        .style("stroke-width", height < 600 ? 2 : 5)
-        .classed("not-marked", function (d: any) {
-            if (!plotData.isAnyMarkedRecords) {
-                return false;
-            }
-            return !d.dataPoints.some((p: any) => p.Marked);
-        })
-        .on("mouseover", function (event: d3.event, d: any) {
-            tooltip.show(
-                d.category +
-                    "\nQ3 to UAV" +
-                    "\nQ3: " +
-                    d3.format(config.GetYAxisFormatString())(d.stats.q3) +
-                    "\nUAV: " +
-                    d3.format(config.GetYAxisFormatString())(d.stats.uav) +
-                    "\nCount: " +
-                    d.dataPoints.length
-            );
-            // draw a rect around the box area
-            g.append("rect")
-                .attr("id", "box-plot-highlight-rect")
-                .attr("stroke", getMarkerHighlightColor(styling.generalStylingInfo.backgroundColor)) 
-                .attr(
-                    "x",
-                    (xScale(d.category) ? xScale(d.category) : 0) +
-                        xScale.bandwidth() / 2 -
-                        (height < 600 ? 2 : 5) / 2 -
-                        2.5
-                )
-                .attr("y", isScaleLog && d.stats.uav < LOG_Y_MIN ? yScale(LOG_Y_MIN) : yScale(d.stats.uav))
-                .attr(
-                    "height",
-                    isScaleLog && d.stats.q1 < LOG_Y_MIN
-                        ? yScale(LOG_Y_MIN)
-                        : Math.max(0, yScale(d.stats.q3) -
-                              (isScaleLog && d.stats.uav < LOG_Y_MIN ? yScale(LOG_Y_MIN) : yScale(d.stats.uav)))
-                )
-                .attr("width", (height < 600 ? 2 : 5) * 2);
-        })
-        .on("mouseout", () => {
-            tooltip.hide();
-            d3.select("#box-plot-highlight-rect").remove();
-        })
-        .on("click", (event: MouseEvent, d: any) => {
-            state.disableAnimation = true;
-            plotData.mark(
-                d.dataPoints.map((r: any) => r.row) as DataViewRow[],
-                event.ctrlKey ? "ToggleOrAdd" : "Replace"
-            );
-        })
-        .transition()
-        .duration(animationSpeed)
-        .attr("y1", function (d: any) {
-            if (isScaleLog && d.stats.q3 <= LOG_Y_MIN) return yScale(LOG_Y_MIN);
-            return yScale(d.stats.q3) as number;
-        })
-        .attr("y2", function (d: any) {
-            if (isScaleLog && d.stats.uav <= LOG_Y_MIN) return yScale(LOG_Y_MIN);
-            return yScale(d.stats?.uav) as number;
-        });
+      let colorDataPoint = dataPoints.find((d: RowData) => d?.Marked);
+      if (colorDataPoint == undefined) {
+        colorDataPoint = dataPoints[0];
+      }
 
-    //- top horizontal line (UAV)
-    boxplot
-        .append("line")
-        .datum((d: any) => {
-            return {
-                category: d[0],
-                dataPoints: plotData.dataPoints.filter(
-                    (r: any) => r.y == d[1].uav && r.x === d[0] && r.trellis == d[1].trellis
-                ),
-                stats: d[1]
-            };
-        })
-        .classed("markable", true)
-        .attr("x1", xScale.bandwidth() / 2)
-        .attr("x2", xScale.bandwidth() / 2)
-        .attr("y1", function (d: any) {
-            if (config.yAxisLog.value() && d.stats.uav <= LOG_Y_MIN) return yScale(LOG_Y_MIN);
-            return yScale(d.stats.uav) as any;
-        })
-        .attr("y2", function (d: any) {
-            if (config.yAxisLog.value() && d.stats.uav <= LOG_Y_MIN) return yScale(LOG_Y_MIN);
-            return yScale(d.stats.uav) as any;
-        })
-        .attr("stroke", config.boxPlotColor.value())
-        .style("opacity", BOX_OPACITY)
-        .style("stroke-width", height < 600 ? 2 : 5)
-        .classed("not-marked", function (d: any) {
-            if (!plotData.isAnyMarkedRecords) {
-                return false;
-            }
-            return !d.dataPoints.some((p: any) => p.Marked);
-        })
-        .on("mouseover", function (event: d3.event, d: any) {
-            tooltip.show(
-                d.category +
-                    "\nUAV" +
-                    "\nUAV: " +
-                    d3.format(config.GetYAxisFormatString())(d.stats.uav) +
-                    "\nCount: " +
-                    d.dataPoints.length
-            );
-            // draw a rect around the box area
-            g.append("rect")
-                .attr("id", "box-plot-highlight-rect")
-                .attr("stroke", getMarkerHighlightColor(styling.generalStylingInfo.backgroundColor)) 
+      return {
+        category: d[0],
+        dataPoints: dataPoints,
+        color:
+          !config.areColorAndXAxesMatching || config.useFixedBoxColor.value()
+            ? config.boxPlotColor.value()
+            : colorDataPoint
+            ? colorDataPoint.Color
+            : "url(#no_data)",
+        uav: plotData.sumStats.get(d[0])?.uav,
+        q3: plotData.sumStats.get(d[0])?.q3,
+        count: dataPoints.length,
+      };
+    })
+    .classed("markable", true)
+    .attr("x", verticalLinesX)
+    .attr("y", function (d: any) {
+      Log.green(LOG_CATEGORIES.DebugBigData)("d for Q3 to UAV", d);
+      return yScale(d.uav) as number;
+    })
+    .attr("height", (d: any) => yScale(d.q3) - yScale(d.uav))
+    .attr("width", linesWidth)
+    .attr("stroke", (d: any) => getBoxBorderColor(d.color))
+    .attr("fill", (d: any) => d.color)
+    .style("opacity", config.boxOpacity)
+    .classed("not-marked", (d: any) => notMarked(d))
+    .on("mouseover", function (event: d3.event, d: any) {
+      tooltip.show(
+        d.category +
+          (d.count == 0 ? "\nNo Data" : "") +
+          "\nQ3 to UAV" +
+          "\nQ3: " +
+          config.FormatNumber(d.q3) +
+          "\nUAV: " +
+          config.FormatNumber(d.uav) +
+          "\nCount: " +
+          d.count
+      );
+      // draw a rect around the box area
+      g.append("rect")
+        .attr("id", "box-plot-highlight-rect")
+        .attr(
+          "stroke",
+          getMarkerHighlightColor(styling.generalStylingInfo.backgroundColor)
+        )
+        .attr(
+          "x",
+          (xScale(d.category) ? xScale(d.category) : 0) + verticalLinesX
+        )
+        .attr("y", yScale(d.uav))
+        .attr("height", Math.max(0, yScale(d.q3) - yScale(d.uav)))
+        .attr("width", linesWidth);
+    })
+    .on("mouseout", () => {
+      tooltip.hide();
+      d3.select("#box-plot-highlight-rect").remove();
+    })
+    .on("click", (event: MouseEvent, d: any) => {
+      state.disableAnimation = true;
+      plotData.mark(
+        d.dataPoints.map((r: RowData) => r.row) as DataViewRow[],
+        event.ctrlKey ? "ToggleOrAdd" : "Replace"
+      );
+    });
 
-                .attr(
-                    "x",
-                    (xScale(d.category) ? xScale(d.category) : 0) +
-                        xScale.bandwidth() / 2 -
-                        boxWidth / 2 -
-                        (height < 600 ? 2 : 5) / 2
-                )
-                .attr(
-                    "y",
-                    isScaleLog && d.stats.uav < LOG_Y_MIN
-                        ? yScale(LOG_Y_MIN)
-                        : yScale(d.stats.uav) - (height < 600 ? 2 : 5)
-                )
-                .attr("height", (height < 600 ? 2 : 5) * 2)
-                .attr("width", boxWidth + (height < 600 ? 2 : 5));
-        })
-        .on("mouseout", () => {
-            tooltip.hide();
-            d3.select("#box-plot-highlight-rect").remove();
-        })
-        .on("click", (event: MouseEvent, d: any) => {
-            state.disableAnimation = true;
-            plotData.mark(
-                d.dataPoints.map((r: any) => r.row) as DataViewRow[],
-                event.ctrlKey ? "ToggleOrAdd" : "Replace"
-            );
-        })
-        .transition()
-        .duration(animationSpeed)
-        .attr("x1", xScale.bandwidth() / 2 - boxWidth / 2)
-        .attr("x2", xScale.bandwidth() / 2 + boxWidth / 2);
+  //- top horizontal line (UAV)
+  boxplot
+    .append("rect")
+    .datum((d: any) => {
+      const dataPoints = [
+        d[1].find((r: any) => r.y == plotData.sumStats.get(d[0]).uav),
+      ];
 
-    // LAV (Lower Adjacent Value) to Q1 - bottom vertical line
-    boxplot
-        .append("line")
-        .datum((d: any) => {
-            return {
-                category: d[0],
-                dataPoints: plotData.dataPoints.filter(
-                    (r: any) => r.y >= d[1].lav && r.y < d[1].q1 && r.x === d[0] && r.trellis == d[1].trellis
-                ),
-                stats: d[1]
-            };
-        })
-        .classed("markable", true)
-        .attr("x1", xScale.bandwidth() / 2)
-        .attr("x2", xScale.bandwidth() / 2)
-        .attr("y1", function (d: any) {
-            // Log.green(LOG_CATEGORIES.Rendering)(d);
-            if (isScaleLog && d.stats.q1 <= LOG_Y_MIN) return yScale(LOG_Y_MIN);
-            return yScale(d.stats.q1) as number;
-        })
-        .attr("y2", function (d: any) {
-            if (isScaleLog && d.stats.q1 <= LOG_Y_MIN) return yScale(LOG_Y_MIN);
-            return yScale(d.stats.q1) as number;
-        })
-        .attr("stroke", config.boxPlotColor.value()) // (d:any) => {Log.green(LOG_CATEGORIES.Rendering)(d, plotData.dataPoints.filter((dx:any) => dx.x == d[0]).some((p: any) => p.y < d[1])); return config.boxPlotColor.value()})
-        .style("opacity", BOX_OPACITY)
-        .style("stroke-width", height < 600 ? 2 : 5)
-        .classed("not-marked", function (d: any) {
-            if (!plotData.isAnyMarkedRecords) {
-                return false;
-            }
-            return !d.dataPoints.some((p: any) => p.Marked);
-        })
-        .on("mouseover", function (event: d3.event, d: any) {
-            tooltip.show(
-                d.category +
-                    "\nLAV to Q1" +
-                    "\nLAV: " +
-                    d3.format(config.GetYAxisFormatString())(d.stats.lav) +
-                    "\nQ1: " +
-                    d3.format(config.GetYAxisFormatString())(d.stats.q1) +
-                    "\nCount: " +
-                    d.dataPoints.length
-            );
-            //d3.select(event.currentTarget).classed("boxplot-highlighted", true);
-            // draw a rect around the box area
-            g.append("rect")
-                .attr("id", "box-plot-highlight-rect")
-                .attr("stroke", getMarkerHighlightColor(styling.generalStylingInfo.backgroundColor)) 
+      let colorDataPoint = dataPoints.find((d: RowData) => d?.Marked);
+      if (colorDataPoint == undefined) {
+        colorDataPoint = dataPoints[0];
+      }
 
-                .attr(
-                    "x",
-                    (xScale(d.category) ? xScale(d.category) : 0) +
-                        xScale.bandwidth() / 2 -
-                        (height < 600 ? 2 : 5) / 2 -
-                        2.5
-                )
-                .attr("y", isScaleLog && d.stats.q1 < LOG_Y_MIN ? yScale(LOG_Y_MIN) : yScale(d.stats.q1))
-                .attr(
-                    "height",
-                    isScaleLog && d.stats.q1 < LOG_Y_MIN
-                        ? yScale(LOG_Y_MIN)
-                        : Math.max(0, yScale(d.stats.lav) -
-                              (isScaleLog && d.stats.lav < LOG_Y_MIN ? yScale(LOG_Y_MIN) : yScale(d.stats.q1)))
-                )
-                .attr("width", (height < 600 ? 2 : 5) * 2);
-        })
-        .on("mouseout", () => {
-            tooltip.hide();
-            d3.select("#box-plot-highlight-rect").remove();
-        })
-        .on("click", (event: MouseEvent, d: any) => {
-            state.disableAnimation = true;
-            plotData.mark(
-                d.dataPoints.map((r: any) => r.row) as DataViewRow[],
-                event.ctrlKey ? "ToggleOrAdd" : "Replace"
-            );
-        })
-        .transition()
-        .duration(animationSpeed)
-        .attr("y1", function (d: any) {
-            if (isScaleLog && d.stats.q1 <= LOG_Y_MIN) return yScale(LOG_Y_MIN);
-            return yScale(d.stats.q1) as number;
-        })
-        .attr("y2", function (d: any) {
-            if (isScaleLog && d.stats.lav <= LOG_Y_MIN) return yScale(LOG_Y_MIN);
-            return yScale(d.stats.lav) as number;
-        });
-
-    //bottom horizontal line
-    boxplot
-        .append("line")
-        .datum((d: any) => {
-            return {
-                category: d[0],
-                dataPoints: plotData.dataPoints.filter(
-                    (r: any) => r.y == d[1].lav && r.x === d[0] && r.trellis == d[1].trellis
-                ),
-                stats: d[1]
-            };
-        })
-        .classed("markable", true)
-        .attr("x1", xScale.bandwidth() / 2)
-        .attr("x2", xScale.bandwidth() / 2)
-        .attr("y1", function (d: any) {
-            if (isScaleLog && d.stats.lav <= LOG_Y_MIN) return yScale(LOG_Y_MIN);
-            return yScale(d.stats.lav) as any;
-        })
-        .attr("y2", function (d: any) {
-            if (isScaleLog && d.stats.lav <= LOG_Y_MIN) return yScale(LOG_Y_MIN);
-            return yScale(d.stats.lav) as any;
-        })
-        .attr("stroke", config.boxPlotColor.value())
-        .style("opacity", BOX_OPACITY)
-        .style("stroke-width", height < 600 ? 2 : 5)
-        .classed("not-marked", function (d: any) {
-            if (!plotData.isAnyMarkedRecords) {
-                return false;
-            }
-            return !d.dataPoints.some((p: any) => p.Marked);
-        })
-        .on("mouseover", function (event: d3.event, d: any) {
-            tooltip.show(
-                d.category +
-                    "\nLAV" +
-                    "\nLAV: " +
-                    d3.format(config.GetYAxisFormatString())(d.stats.lav) +
-                    "\nCount: " +
-                    d.dataPoints.length
-            );
-            // draw a rect around the box area
-            g.append("rect")
-                .attr("id", "box-plot-highlight-rect")
-                .attr("stroke", getMarkerHighlightColor(styling.generalStylingInfo.backgroundColor)) 
-
-                .attr(
-                    "x",
-                    (xScale(d.category) ? xScale(d.category) : 0) +
-                        xScale.bandwidth() / 2 -
-                        boxWidth / 2 -
-                        (height < 600 ? 2 : 5) / 2
-                )
-                .attr(
-                    "y",
-                    isScaleLog && d.stats.lav < LOG_Y_MIN
-                        ? yScale(LOG_Y_MIN)
-                        : yScale(d.stats.lav) - (height < 600 ? 2 : 5)
-                )
-                .attr("height", (height < 600 ? 2 : 5) * 2)
-                .attr("width", boxWidth + (height < 600 ? 2 : 5));
-        })
-        .on("mouseout", () => {
-            tooltip.hide();
-            d3.select("#box-plot-highlight-rect").remove();
-        })
-        .on("click", (event: MouseEvent, d: any) => {
-            state.disableAnimation = true;
-            plotData.mark(
-                d.dataPoints.map((r: any) => r.row) as DataViewRow[],
-                event.ctrlKey ? "ToggleOrAdd" : "Replace"
-            );
-        })
-        .transition()
-        .duration(animationSpeed)
-        .attr("x1", xScale.bandwidth() / 2 - boxWidth / 2)
-        .attr("x2", xScale.bandwidth() / 2 + boxWidth / 2);
-
-    //top box
-    boxplot
-        .append("rect")
-        .datum((d: any) => {
-            Log.red(LOG_CATEGORIES.Marking)(d, plotData.dataPoints);
-            return {
-                category: d[0],
-                dataPoints: plotData.dataPoints.filter(
-                    (r: any) => r.y >= d[1].median && r.y <= d[1].q3 && r.x === d[0] && r.trellis == d[1].trellis
-                ),
-                stats: d[1]
-            };
-        })
-        .classed("markable", true)
-        .attr("x", xScale.bandwidth() / 2)
-        .attr("y", function (d: any) {
-            if (isScaleLog && d.stats.q3 <= LOG_Y_MIN) return yScale(LOG_Y_MIN);
-            Log.blue(LOG_CATEGORIES.DebugSingleRowMarking)("d", d, d.stats.q3, "yScale", yScale(d.stats.q3));
-            return yScale(d.stats.q3) as number;
-        })
-        .attr("height", function (d: any) {
-            return (
-                isScaleLog && d.stats.median <= LOG_Y_MIN
-                    ? yScale(LOG_Y_MIN)
-                    : Math.max(0, yScale(d.stats.median) -
-                      (isScaleLog && d.stats.q3 < LOG_Y_MIN ? yScale(LOG_Y_MIN) : yScale(d.stats.q3)))
-            ) as number;
-        })
-        .attr("width", 0)
-        .style("fill", () => {
-            return config.boxPlotColor.value();
-        })
-        .style("opacity", BOX_OPACITY)
-        .classed("not-marked", function (d: any) {
-            if (!plotData.isAnyMarkedRecords) {
-                return false;
-            }
-            return !d.dataPoints.some((p: any) => p.Marked);
-        })
-        .on("mouseover", function (event: d3.event, d: any) {
-            tooltip.show(
-                d.category +
-                    "\nQ3: " +
-                    d3.format(config.GetYAxisFormatString())(d.stats.q3) +
-                    "\nMedian: " +
-                    d3.format(config.GetYAxisFormatString())(d.stats.median) +
-                    "\nCount: " +
-                    d.dataPoints.length
-            );
-            // draw a rect around the box area
-            g.append("rect")
-                .attr("id", "box-plot-highlight-rect")
-                .attr("stroke", getMarkerHighlightColor(styling.generalStylingInfo.backgroundColor)) 
-
-                .attr(
-                    "x",
-                    (xScale(d.category) ? xScale(d.category) : 0) +
-                        xScale.bandwidth() / 2 -
-                        boxWidth / 2 -
-                        (height < 600 ? 2 : 5) / 2
-                )
-                .attr(
-                    "y",
-                    isScaleLog && d.stats.q3 < LOG_Y_MIN
-                        ? yScale(LOG_Y_MIN)
-                        : yScale(d.stats.q3) - (height < 600 ? 2 : 5) / 2
-                )
-                .attr(
-                    "height",
-                    isScaleLog && d.stats.median < LOG_Y_MIN
-                        ? yScale(LOG_Y_MIN)
-                        : Math.max(0, yScale(d.stats.median) -
-                              (isScaleLog && d.stats.q3 < LOG_Y_MIN ? yScale(LOG_Y_MIN) : yScale(d.stats.q3)) +
-                              (height < 600 ? 2 : 5))
-                )
-                .attr("width", boxWidth + (height < 600 ? 2 : 5));
-        })
-        .on("mouseout", () => {
-            tooltip.hide();
-            d3.select("#box-plot-highlight-rect").remove();
-        })
-        .on("click", (event: MouseEvent, d: any) => {
-            state.disableAnimation = true;
-            plotData.mark(
-                d.dataPoints.map((r: any) => r.row) as DataViewRow[],
-                event.ctrlKey ? "ToggleOrAdd" : "Replace"
-            );
-        })
-        .transition()
-        .duration(animationSpeed)
-        .attr("x", xScale.bandwidth() / 2 - boxWidth / 2)
+      return {
+        category: d[0],
+        dataPoints: dataPoints,
+        color:
+          !config.areColorAndXAxesMatching || config.useFixedBoxColor.value()
+            ? config.boxPlotColor.value()
+            : colorDataPoint
+            ? colorDataPoint.Color
+            : "url(#no-data)",
+        uav: plotData.sumStats.get(d[0]).uav,
+      };
+    })
+    .classed("markable", true)
+    .attr("x", xScale.bandwidth() / 2 - boxWidth / 2)
+    .attr("y", function (d: any) {
+      return (yScale(d.uav) - 2) as number;
+    })
+    .attr("height", 4)
+    .attr("width", boxWidth)
+    .attr("stroke", (d: any) => getBoxBorderColor(d.color))
+    .attr("fill", (d: any) => d.color)
+    .style("opacity", config.boxOpacity)
+    //.style("stroke-width", height < 600 ? 3 : 5)
+    .classed("not-marked", (d: any) => notMarked(d))
+    .on("mouseover", function (event: d3.event, d: any) {
+      tooltip.show(
+        d.category + "\nUAV" + "\nUAV: " + config.FormatNumber(d.uav)
+      );
+      // draw a rect around the box area
+      g.append("rect")
+        .attr("id", "box-plot-highlight-rect")
+        .attr(
+          "stroke",
+          getMarkerHighlightColor(styling.generalStylingInfo.backgroundColor)
+        )
+        .attr(
+          "x",
+          (xScale(d.category) ? xScale(d.category) : 0) +
+            xScale.bandwidth() / 2 -
+            boxWidth / 2
+        )
+        .attr("y", yScale(d.uav) - 2)
+        .attr("height", 4)
         .attr("width", boxWidth);
+    })
+    .on("mouseout", () => {
+      tooltip.hide();
+      d3.select("#box-plot-highlight-rect").remove();
+    })
+    .on("click", (event: MouseEvent, d: any) => {
+      state.disableAnimation = true;
+      plotData.mark(
+        d.dataPoints.map((r: any) => r.row) as DataViewRow[],
+        event.ctrlKey ? "ToggleOrAdd" : "Replace"
+      );
+    })
+    .transition()
+    .duration(animationSpeed)
+    .attr("x1", xScale.bandwidth() / 2 - boxWidth / 2)
+    .attr("x2", xScale.bandwidth() / 2 + boxWidth / 2);
 
-    //bottom box
-    boxplot
-        .append("rect")
-        .datum((d: any) => {
-            return {
-                category: d[0],
-                dataPoints: plotData.dataPoints.filter(
-                    (r: any) =>
-                        r.y >= d[1].q1 &&
-                        r.row?.continuous("Y").value() < d[1].median &&
-                        r.x === d[0] &&
-                        r.trellis == d[1].trellis
-                ),
-                stats: d[1]
-            };
-        })
-        .classed("markable", true)
-        .attr("x", xScale.bandwidth() / 2)
-        .attr("y", function (d: any) {
-            if (isScaleLog && d.stats.median <= LOG_Y_MIN) return yScale(LOG_Y_MIN);
-            return yScale(d.stats.median) as any;
-        })
-        .attr("height", function (d: any) {
-            return (
-                isScaleLog && d.stats.q1 < LOG_Y_MIN
-                    ? yScale(LOG_Y_MIN)
-                    : Math.max(0, yScale(d.stats.q1) -
-                      (isScaleLog && d.stats.median < LOG_Y_MIN ? yScale(LOG_Y_MIN) : yScale(d.stats.median)))
-            ) as number;
-        })
-        .attr("width", 0)
-        .style("fill", () => {
-            return config.boxPlotColor.value();
-        })
-        .style("opacity", BOX_OPACITY)
-        .classed("not-marked", function (d: any) {
-            if (!plotData.isAnyMarkedRecords) {
-                return false;
-            }
-            return !d.dataPoints.some((p: any) => p.Marked);
-        })
-        .on("mouseover", function (event: d3.event, d: any) {
-            tooltip.show(
-                d.category +
-                    "\nQ1: " +
-                    d3.format(config.GetYAxisFormatString())(d.stats.q1) +
-                    "\nMedian: " +
-                    d3.format(config.GetYAxisFormatString())(d.stats.median) +
-                    "\nCount: " +
-                    d.dataPoints.length
-            );
-            // draw a rect around the box area
-            g.append("rect")
-                .attr("id", "box-plot-highlight-rect")
-                .attr("stroke", getMarkerHighlightColor(styling.generalStylingInfo.backgroundColor)) 
+  // LAV (Lower Adjacent Value) to Q1 - bottom vertical line
+  boxplot
+    .append("rect")
+    .datum((d: any) => {
+      const now = performance.now();
 
-                .attr(
-                    "x",
-                    (xScale(d.category) ? xScale(d.category) : 0) +
-                        xScale.bandwidth() / 2 -
-                        boxWidth / 2 -
-                        (height < 600 ? 2 : 5) / 2
-                )
-                .attr(
-                    "y",
-                    isScaleLog && d.stats.median < LOG_Y_MIN
-                        ? yScale(LOG_Y_MIN)
-                        : yScale(d.stats.median) - (height < 600 ? 2 : 5)
-                )
-                .attr("height", Math.max(0, yScale(d.stats.q1) - yScale(d.stats.median) + (height < 600 ? 2 : 5)))
-                .attr("width", boxWidth + (height < 600 ? 2 : 5));
-        })
-        .on("mouseout", () => {
-            tooltip.hide();
-            d3.select("#box-plot-highlight-rect").remove();
-        })
-        .on("click", (event: MouseEvent, d: any) => {
-            state.disableAnimation = true;
-            plotData.mark(
-                d.dataPoints.map((r: any) => r.row) as DataViewRow[],
-                event.ctrlKey ? "ToggleOrAdd" : "Replace"
-            );
-        })
-        .transition()
-        .duration(animationSpeed)
-        .attr("x", xScale.bandwidth() / 2 - boxWidth / 2)
+      const dataPoints = d[1].filter(
+        (r: any) =>
+          r.y >= plotData.sumStats.get(d[0]).lav &&
+          r.y < plotData.sumStats.get(d[0]).q1
+      );
+
+      let colorDataPoint = dataPoints.find((d: RowData) => d?.Marked);
+      if (colorDataPoint == undefined) {
+        colorDataPoint = dataPoints[0];
+      }
+
+      Log.green(LOG_CATEGORIES.DebugBigData)(
+        "bottom vertical line filtering",
+        performance.now() - now
+      );
+
+      return {
+        category: d[0],
+        dataPoints: dataPoints,
+        color:
+          !config.areColorAndXAxesMatching || config.useFixedBoxColor.value()
+            ? config.boxPlotColor.value()
+            : colorDataPoint
+            ? colorDataPoint.Color
+            : "url(#no-data)",
+        q1: plotData.sumStats.get(d[0]).q1,
+        lav: plotData.sumStats.get(d[0]).lav,
+        count: dataPoints.length,
+      };
+    })
+    .classed("markable", true)
+    .attr("x", verticalLinesX)
+    .attr("y", (d: any) => yScale(d.q1))
+    .attr("height", (d: any) => yScale(d.lav) - yScale(d.q1))
+    .attr("width", linesWidth)
+    .attr("stroke", (d: any) => getBoxBorderColor(d.color))
+    .attr("fill", (d: any) => d.color)
+    .style("opacity", config.boxOpacity)
+    .classed("not-marked", (d: any) => notMarked(d))
+    .on("mouseover", function (event: d3.event, d: any) {
+      tooltip.show(
+        d.category +
+          (d.dataPoints.length == 0 ? "\nNo Data" : "") +
+          "\nLAV to Q1" +
+          "\nLAV: " +
+          config.FormatNumber(d.lav) +
+          "\nQ1: " +
+          config.FormatNumber(d.q1) +
+          "\nCount: " +
+          d.count
+      );
+      //d3.select(event.currentTarget).classed("boxplot-highlighted", true);
+      // draw a rect around the box area
+      g.append("rect")
+        .attr("id", "box-plot-highlight-rect")
+        .attr(
+          "stroke",
+          getMarkerHighlightColor(styling.generalStylingInfo.backgroundColor)
+        )
+
+        .attr(
+          "x",
+          (xScale(d.category) ? xScale(d.category) : 0) + verticalLinesX
+        )
+        .attr("y", yScale(d.q1))
+        .attr("height", Math.max(0, yScale(d.lav) - yScale(d.q1)))
+        .attr("width", linesWidth);
+    })
+    .on("mouseout", () => {
+      tooltip.hide();
+      d3.select("#box-plot-highlight-rect").remove();
+    })
+    .on("click", (event: MouseEvent, d: any) => {
+      state.disableAnimation = true;
+      plotData.mark(
+        d.dataPoints.map((r: any) => r.row) as DataViewRow[],
+        event.ctrlKey ? "ToggleOrAdd" : "Replace"
+      );
+    })
+    .transition()
+    .duration(animationSpeed)
+    .attr("y1", function (d: any) {
+      return yScale(d.q1) as number;
+    })
+    .attr("y2", function (d: any) {
+      return yScale(d.lav) as number;
+    });
+
+  //bottom horizontal line
+  boxplot
+    .append("rect")
+    .datum((d: any) => {
+      const dataPoints = [
+        d[1].find((r: any) => r.y == plotData.sumStats.get(d[0]).lav),
+      ];
+
+      let colorDataPoint = dataPoints.find((d: RowData) => d?.Marked);
+      if (colorDataPoint == undefined) {
+        colorDataPoint = dataPoints[0];
+      }
+
+      return {
+        category: d[0],
+        dataPoints: dataPoints,
+        color:
+          !config.areColorAndXAxesMatching || config.useFixedBoxColor.value()
+            ? config.boxPlotColor.value()
+            : colorDataPoint
+            ? colorDataPoint.Color
+            : "url(#no-data)",
+        lav: plotData.sumStats.get(d[0]).lav,
+      };
+    })
+    .classed("markable", true)
+    .attr("x", xScale.bandwidth() / 2 - boxWidth / 2)
+
+    .attr("y", function (d: any) {
+      return (yScale(d.lav) - 2) as number;
+    })
+
+    .attr("height", 4)
+    .attr("width", boxWidth)
+    .attr("stroke", (d: any) => getBoxBorderColor(d.color))
+    .attr("fill", (d: any) => d.color)
+    .style("opacity", config.boxOpacity)
+    .classed("not-marked", (d: any) => notMarked(d))
+    .on("mouseover", function (event: d3.event, d: any) {
+      tooltip.show(
+        d.category + "\nLAV" + "\nLAV: " + config.FormatNumber(d.lav)
+      );
+      // draw a rect around the box area
+      g.append("rect")
+        .attr("id", "box-plot-highlight-rect")
+        .attr(
+          "stroke",
+          getMarkerHighlightColor(styling.generalStylingInfo.backgroundColor)
+        )
+
+        .attr(
+          "x",
+          (xScale(d.category) ? xScale(d.category) : 0) +
+            xScale.bandwidth() / 2 -
+            boxWidth / 2
+        )
+        .attr("y", yScale(d.lav) - 2)
+        .attr("height", 4)
         .attr("width", boxWidth);
+    })
+    .on("mouseout", () => {
+      tooltip.hide();
+      d3.select("#box-plot-highlight-rect").remove();
+    })
+    .on("click", (event: MouseEvent, d: any) => {
+      state.disableAnimation = true;
+      plotData.mark(
+        d.dataPoints.map((r: any) => r.row) as DataViewRow[],
+        event.ctrlKey ? "ToggleOrAdd" : "Replace"
+      );
+    })
+    .transition()
+    .duration(animationSpeed)
+    .attr("x1", xScale.bandwidth() / 2 - boxWidth / 2)
+    .attr("x2", xScale.bandwidth() / 2 + boxWidth / 2);
 
-    // median
-    boxplot
-        .append("line")
-        .classed("markable", false)
-        .attr("x1", xScale.bandwidth() / 2)
-        .attr("x2", xScale.bandwidth() / 2)
-        .attr("y1", function (d: any) {
-            return isScaleLog && d[1].median < LOG_Y_MIN ? yScale(LOG_Y_MIN) : (yScale(d[1].median) as number);
-        })
-        .attr("y2", function (d: any) {
-            return isScaleLog && d[1].median < LOG_Y_MIN ? yScale(LOG_Y_MIN) : (yScale(d[1].median) as number);
-        })
-        .attr("stroke", "white")
-        .style("stroke-width", 2)
-        .transition()
-        .duration(animationSpeed)
-        .attr("x1", xScale.bandwidth() / 2 - boxWidth / 2)
-        .attr("x2", xScale.bandwidth() / 2 + boxWidth / 2);
+  //top box
+  boxplot
+    .append("rect")
+    .datum((d: any) => {
+      const dataPoints = d[1].filter(
+        (r: any) =>
+          r.y >= plotData.sumStats.get(d[0]).median &&
+          r.y <= plotData.sumStats.get(d[0]).q3
+      );
 
-    /**Radius of individual data   point circles */
-    const pointRadius = (height * config.circleSize.value()) / 1000;
+      let colorDataPoint = dataPoints.find((d: RowData) => d?.Marked);
+      if (colorDataPoint == undefined) {
+        colorDataPoint = dataPoints[0];
+      }
 
-    // We are only ever plotting outlier points.
-    let maxPointsCount = 0;
-    for (const [, value] of plotData.sumStats) {
-        maxPointsCount = Math.max(maxPointsCount, value.outlierCount);
-    }
+      return {
+        category: d[0],
+        dataPoints,
+        color:
+          !config.areColorAndXAxesMatching || config.useFixedBoxColor.value()
+            ? config.boxPlotColor.value()
+            : colorDataPoint
+            ? colorDataPoint.Color
+            : "url(#no-data)",
+        median: plotData.sumStats.get(d[0]).median,
+        q3: plotData.sumStats.get(d[0]).q3,
+        count: dataPoints.length,
+      };
+    })
+    .classed("markable", true)
+    .attr("x", xScale.bandwidth() / 2)
+    .attr("y", function (d: any) {
+      Log.blue(LOG_CATEGORIES.DebugSingleRowMarking)(
+        "d",
+        d,
+        d.q3,
+        "yScale",
+        yScale(d.q3)
+      );
+      return yScale(d.q3) as number;
+    })
+    .attr("height", function (d: any) {
+      return Math.max(0, yScale(d.median) - yScale(d.q3)) as number;
+    })
+    .attr("width", 0)
+    .attr("stroke", (d: any) => getBoxBorderColor(d.color))
+    .style("fill", (d: any) => {
+      return d.color;
+    })
+    .style("opacity", config.boxOpacity)
+    .classed("not-marked", (d: any) => notMarked(d))
+    .on("mouseover", function (event: d3.event, d: any) {
+      tooltip.show(
+        d.category +
+          (d.count == 0 ? "\nNo Data" : "") +
+          "\nQ3: " +
+          config.FormatNumber(d.q3) +
+          "\nMedian: " +
+          config.FormatNumber(d.median) +
+          "\nCount: " +
+          d.count
+      );
+      // draw a rect around the box area
+      g.append("rect")
+        .attr("id", "box-plot-highlight-rect")
+        .attr(
+          "stroke",
+          getMarkerHighlightColor(styling.generalStylingInfo.backgroundColor)
+        )
 
-    g.selectAll("indPoints")
-        .data(plotData.dataPointsGroupedByCat)
-        .enter()
-        .append("g")
-        .attr("transform", function (d: any) {
-            return "translate(" + xScale(d[0]) + " ,0)";
-        })
-        .selectAll("circlegroups")
-        .data((d: any) => {
-            // d is an array. [0] = x value, [1] = array of data points
-            return d[1].filter((p: any) => {
-                return (
-                    (p.y > plotData.sumStats.get(d[0]).uav || p.y < plotData.sumStats.get(d[0]).lav) &&
-                    p.trellis == trellisName
-                );
+        .attr(
+          "x",
+          (xScale(d.category) ? xScale(d.category) : 0) +
+            xScale.bandwidth() / 2 -
+            boxWidth / 2
+        )
+        .attr("y", yScale(d.q3))
+        .attr("height", Math.max(0, yScale(d.median) - yScale(d.q3)))
+        .attr("width", boxWidth);
+    })
+    .on("mouseout", () => {
+      tooltip.hide();
+      d3.select("#box-plot-highlight-rect").remove();
+    })
+    .on("click", (event: MouseEvent, d: any) => {
+      state.disableAnimation = true;
+      plotData.mark(
+        d.dataPoints.map((r: any) => r.row) as DataViewRow[],
+        event.ctrlKey ? "ToggleOrAdd" : "Replace"
+      );
+    })
+    .transition()
+    .duration(animationSpeed)
+    .attr("x", xScale.bandwidth() / 2 - boxWidth / 2)
+    .attr("width", boxWidth);
+
+  //bottom box
+  boxplot
+    .append("rect")
+    .datum((d: any) => {
+      Log.green(LOG_CATEGORIES.DebugMedian)(d);
+
+      const dataPoints = d[1].filter(
+        (r: any) =>
+          r.y >= plotData.sumStats.get(d[0]).q1 &&
+          r.y < plotData.sumStats.get(d[0]).median
+      );
+
+      let colorDataPoint = dataPoints.find((d: RowData) => d?.Marked);
+      if (colorDataPoint == undefined) {
+        colorDataPoint = dataPoints[0];
+      }
+
+      return {
+        category: d[0],
+        dataPoints: dataPoints,
+        stats: d[1],
+        color:
+          !config.areColorAndXAxesMatching || config.useFixedBoxColor.value()
+            ? config.boxPlotColor.value()
+            : colorDataPoint
+            ? colorDataPoint.Color
+            : "url(#no-data)",
+        q1: plotData.sumStats.get(d[0]).q1,
+        median: plotData.sumStats.get(d[0]).median,
+        count: dataPoints.length,
+      };
+    })
+    .classed("markable", true)
+    .attr("x", xScale.bandwidth() / 2)
+    .attr("y", function (d: any) {
+      return yScale(d.median) as any;
+    })
+    .attr("height", function (d: any) {
+      return Math.max(0, yScale(d.q1) - yScale(d.median)) as number;
+    })
+    .attr("width", 0)
+    .style("fill", (d: any) => d.color)
+    .style("opacity", config.boxOpacity)
+    .attr("stroke", (d: any) => getBoxBorderColor(d.color))
+    .classed("not-marked", (d: any) => notMarked(d))
+    .on("mouseover", function (event: d3.event, d: any) {
+      tooltip.show(
+        d.category +
+          (d.count == 0 ? "\nNo Data" : "") +
+          "\nQ1: " +
+          config.FormatNumber(d.q1) +
+          "\nMedian: " +
+          config.FormatNumber(d.median) +
+          "\nCount: " +
+          d.count
+      );
+      // draw a rect around the box area
+      g.append("rect")
+        .attr("id", "box-plot-highlight-rect")
+        .attr(
+          "stroke",
+          getMarkerHighlightColor(styling.generalStylingInfo.backgroundColor)
+        )
+
+        .attr(
+          "x",
+          (xScale(d.category) ? xScale(d.category) : 0) +
+            xScale.bandwidth() / 2 -
+            boxWidth / 2
+        )
+        .attr("y", yScale(d.median))
+        .attr("height", Math.max(0, yScale(d.q1) - yScale(d.median)))
+        .attr("width", boxWidth);
+    })
+    .on("mouseout", () => {
+      tooltip.hide();
+      d3.select("#box-plot-highlight-rect").remove();
+    })
+    .on("click", (event: MouseEvent, d: any) => {
+      state.disableAnimation = true;
+      plotData.mark(
+        d.dataPoints.map((r: any) => r.row) as DataViewRow[],
+        event.ctrlKey ? "ToggleOrAdd" : "Replace"
+      );
+    })
+    .transition()
+    .duration(animationSpeed)
+    .attr("x", xScale.bandwidth() / 2 - boxWidth / 2)
+    .attr("width", boxWidth);
+
+  // median
+  boxplot
+    .append("line")
+    .datum((d: any) => {
+      Log.green(LOG_CATEGORIES.DebugMedian)("Datum", d);
+      return {
+        category: d[0],
+        median: plotData.sumStats.get(d[0]).median,
+      };
+    })
+    .classed("markable", false)
+    .classed("median-line", true)
+    .style("opacity", 1)
+    .attr("x1", xScale.bandwidth() / 2 - boxWidth / 2)
+    .attr("x2", xScale.bandwidth() / 2 + boxWidth / 2)
+    .attr("y1", function (d: any) {
+      //Log.green(LOG_CATEGORIES.DebugMedian)(d, d.median, yScale(d.median));
+      return yScale(d.median) as number;
+    })
+    .attr("y2", function (d: any) {
+      return yScale(d.median) as number;
+    })
+    .attr("stroke", styling.generalStylingInfo.backgroundColor)
+    .on("mouseover", function (event: d3.event, d: any) {
+      tooltip.show(d.category + "\nMedian: " + config.FormatNumber(d.median));
+      // draw a rect around the median area
+      g.append("rect")
+        .attr("id", "box-plot-highlight-rect")
+        .attr(
+          "stroke",
+          getMarkerHighlightColor(styling.generalStylingInfo.backgroundColor)
+        )
+        .attr(
+          "x",
+          (xScale(d.category) ? xScale(d.category) : 0) +
+            xScale.bandwidth() / 2 -
+            boxWidth / 2 -
+            (height < 600 ? 2 : 5) / 2
+        )
+        .attr("y", yScale(d.median) - 2)
+        .attr("height", "4px")
+        .attr("width", boxWidth + (height < 600 ? 2 : 5));
+    })
+    .on("mouseout", () => {
+      tooltip.hide();
+      d3.select("#box-plot-highlight-rect").remove();
+    });
+
+  /**Radius of individual data   point circles */
+  const pointRadius = (height * config.circleSize.value()) / 1000;
+
+  // We are only ever plotting outlier points.
+  let maxPointsCount = 0;
+  for (const [, value] of plotData.sumStats) {
+    maxPointsCount = Math.max(maxPointsCount, value.outlierCount);
+  }
+
+  g.selectAll("outliers")
+    .data(plotData.rowDataGroupedByCat)
+    .enter()
+    .append("g")
+    .attr("transform", function (d: any) {
+      return "translate(" + xScale(d[0]) + " ,0)";
+    })
+    .selectAll("circlegroups")
+    .data((d: any) => {
+      // d is an array. [0] = category, [1] = array of RowData
+      const dataPoints = d[1].filter((p: RowData) => {
+        return (
+          p.y > plotData.sumStats.get(d[0]).uav ||
+          p.y < plotData.sumStats.get(d[0]).lav
+        );
+      });
+
+      // Group and count - one point for all y values that are the same;
+      const rolledUp = new d3.rollup(
+        dataPoints,
+        (v: any) => d3.count(v, (d: any) => d.y),
+        (d: any) => d.y,
+        (c: any) => c.Color,
+        (cv: any) => cv.ColorValue,
+        (r: any) => r.row
+      );
+
+      Log.red(LOG_CATEGORIES.DebugBigData)("rolledUp", rolledUp);
+
+      const points: any[] = [];
+
+      // Transform the rolled up data into a structure that's easy to consume below
+      // todo: simplify/tidy!
+      rolledUp.forEach((key: any, yValue: any) => {
+        key.forEach((key2: any, colorHexCode: any) => {
+          const color =
+            config.useFixedBoxColor.value() && config.areColorAndXAxesMatching
+              ? config.boxPlotColor.value()
+              : colorHexCode;
+          key2.forEach((key3: any, colorValue: any) => {
+            key3.forEach((count: any, row: any) => {
+              points.push({
+                category: d[0],
+                y: yValue,
+                color: color,
+                ColorValue: colorValue,
+                count: count,
+                row: row,
+              });
             });
-        })
-        .enter()
-        .append("circle")
-        .classed("markable-points", true)
-        .classed("not-marked", (d: any) => {
-            if (!plotData.isAnyMarkedRecords) return false;
-            return !d.Marked;
-        })
-        .attr("cx", function () {
-            return xScale.bandwidth() / 2;
-        })
-        .attr("cy", function (d: any) {
-            return isScaleLog && d.y < LOG_Y_MIN ? yScale(LOG_Y_MIN) : (yScale(d.y) as number);
-        })
-        .attr("r", pointRadius)
-        .style("fill", function () {
-            return config.boxPlotColor.value();
-        })
-        .attr("stroke", (d: any) => "#060606")
-        .attr("stroke-width", "0.5px")
-        .on("mouseover", function (event: MouseEvent, d: any) {
-            // A highlight circle is a black ring overlaid on a white ring 
-            // in light mode, and a white circle overlaid on a black ring in dark mode
-            g.append("circle")
-                .attr("transform", "translate(" + xScale(d.x) + " ,0)")
-                .attr("id", "highlightcircle")
-                .classed("point-highlighted", true)
-                .attr("cx", xScale.bandwidth() / 2)
-                .attr("cy", isScaleLog && d.y < LOG_Y_MIN ? yScale(LOG_Y_MIN) : yScale(d.y))
-                .attr("r", pointRadius + 3)
-                .attr("stroke", styling.generalStylingInfo.backgroundColor)
-                .attr("stroke-width", "3px");
-            g.append("circle")
-                .attr("transform", "translate(" + xScale(d.x) + " ,0)")
-                .attr("id", "highlightcircle")
-                .classed("point-highlighted", true)
-                .attr("cx", xScale.bandwidth() / 2)
-                .attr("cy", isScaleLog && d.y < LOG_Y_MIN ? yScale(LOG_Y_MIN) : yScale(d.y))
-                .attr("r", pointRadius + 3)
-                .attr("stroke", getMarkerHighlightColor(styling.generalStylingInfo.backgroundColor)) // adjustColor(d.Color, -40));
-                .attr("stroke-width", "1px");
-            tooltip.show("y: " + d3.format(config.GetYAxisFormatString())(d.y));
-            d3.select(event.currentTarget).classed("area-highlighted", true);
-        })
-        .on("mouseout", function (event: MouseEvent) {
-            tooltip.hide();
-            d3.selectAll(".point-highlighted").remove();
-            d3.select(event.currentTarget).classed("area-highlighted", false);
-        })
-        .on("change", function (event: any, d: any) {
-            rowsToBeMarked.push(d.row);
-            Log.green(LOG_CATEGORIES.Rendering)("added");
-        })
-        .on("click", function (event: MouseEvent, d: any) {
-            state.disableAnimation = true;
-            plotData.mark([d.row], event.ctrlKey ? "ToggleOrAdd" : "Replace");
+          });
         });
+      });
+
+      Log.green(LOG_CATEGORIES.DebugBigData)("points", points);
+      return points;
+    })
+    .enter()
+    .append("circle")
+    .classed("markable-points", true)
+    .classed("not-marked", (d: any) => notMarked(d, true))
+    .attr("cx", function () {
+      return xScale.bandwidth() / 2;
+    })
+    .attr("cy", function (d: any) {
+      Log.red(LOG_CATEGORIES.DebugBigData)("cy d", d);
+
+      return yScale(d.y) as number;
+    })
+    .attr("r", pointRadius)
+    .style("fill", (d: any) => d.color)
+    .attr("stroke", (d: any) => getBoxBorderColor(d.color))
+    .attr("stroke-width", "0.5px")
+    .on("mouseover", function (event: MouseEvent, d: any) {
+      // A highlight circle is a black ring overlaid on a white ring
+      // in light mode, and a white circle overlaid on a black ring in dark mode
+      g.append("circle")
+        .attr("transform", "translate(" + xScale(d.category) + " ,0)")
+        .attr("id", "highlightcircle")
+        .classed("point-highlighted", true)
+        .attr("cx", xScale.bandwidth() / 2)
+        .attr("cy", yScale(d.y))
+        .attr("r", pointRadius + 3)
+        .attr("stroke", styling.generalStylingInfo.backgroundColor)
+        .attr("stroke-width", "3px");
+      g.append("circle")
+        .attr("transform", "translate(" + xScale(d.category) + " ,0)")
+        .attr("id", "highlightcircle")
+        .classed("point-highlighted", true)
+        .attr("cx", xScale.bandwidth() / 2)
+        .attr("cy", yScale(d.y))
+        .attr("r", pointRadius + 3)
+        .attr(
+          "stroke",
+          getMarkerHighlightColor(styling.generalStylingInfo.backgroundColor)
+        ) // adjustColor(d.Color, -40));
+        .attr("stroke-width", "1px");
+      tooltip.show(
+        d.category +
+          "\n" +
+          "y: " +
+          config.FormatNumber(d.y) +
+          "\n" +
+          "Color: " +
+          d.ColorValue +
+          "\n" +
+          "Count:" +
+          d.count
+      );
+      d3.select(event.currentTarget).classed("area-highlighted", true);
+    })
+    .on("mouseout", function (event: MouseEvent) {
+      tooltip.hide();
+      d3.selectAll(".point-highlighted").remove();
+      d3.select(event.currentTarget).classed("area-highlighted", false);
+    })
+    .on("click", function (event: MouseEvent, d: RowData) {
+      state.disableAnimation = true;
+      plotData.mark([d.row], event.ctrlKey ? "ToggleOrAdd" : "Replace");
+    });
 }

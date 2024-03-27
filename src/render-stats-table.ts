@@ -1,4 +1,3 @@
-import f from "./d3-jetpack-modules/d3-jetpack-f";
 import {
     getBorderColor,
     getComplementaryColor,
@@ -53,27 +52,30 @@ export function renderStatisticsTable(
     Log.blue(LOG_CATEGORIES.DebugShowingStatsTable)("sumstats", plotData.sumStats);
     Array.from(config.GetStatisticsConfigItems().values()).filter((statisticsConfig: StatisticsConfig) => statisticsConfig.tableEnabled).forEach((entry: StatisticsConfig) => {
         // Now iterate over the orderedCategories, getting the value for each metric
-        const statisticsValues = [];
-        statisticsValues.push(entry.name);
+        const configProperty = SumStatsConfig.find((e: SumStatsSettings) => e.name === entry.name);
+        if (configProperty != undefined) {
+            const statisticsValues = [];
+            statisticsValues.push(entry.name);
 
-        const propertyName = SumStatsConfig.find((e: SumStatsSettings) => e.name === entry.name).property;
-        Log.blue(LOG_CATEGORIES.DebugShowingStatsTable)("orderedCategories", orderedCategories);
-        orderedCategories.forEach((category:string, i:number) => {
-            Log.red(LOG_CATEGORIES.DebugShowingStatsTable)("category", category);
-            // Avoid "Comparison" category if comparison circles are enabled
-            if (!config.comparisonCirclesEnabled.value() || i < orderedCategories.length - 1) {
-                const sumStats = plotData.sumStats.get(category);
-                Log.green(LOG_CATEGORIES.DebugComparisonCirclesInTable)("category", category, i);
-                if (sumStats) {
-                    Log.green(LOG_CATEGORIES.DebugComparisonCirclesInTable)(entry.name, propertyName, category, sumStats["max"]);
-                    statisticsValues.push(sumStats[propertyName]);
-                } else {
-                    statisticsValues.push("");
-                }
-            }            
-        });
-        Log.red(LOG_CATEGORIES.DebugShowAllXValues)("statisticsValues", statisticsValues);
-        tableData.push(statisticsValues);
+            const propertyName = SumStatsConfig.find((e: SumStatsSettings) => e.name === entry.name)!.property;
+            Log.blue(LOG_CATEGORIES.DebugLogYAxis)("orderedCategories", orderedCategories);
+            orderedCategories.forEach((category:string, i:number) => {
+                Log.red(LOG_CATEGORIES.DebugShowingStatsTable)("category", category);
+                // Avoid "Comparison" category if comparison circles are enabled
+                if (!config.comparisonCirclesEnabled.value() || i < orderedCategories.length - 1) {
+                    const sumStats = plotData.sumStats.get(category);
+                    Log.green(LOG_CATEGORIES.DebugComparisonCirclesInTable)("category", category, i);
+                    if (sumStats) {
+                        Log.green(LOG_CATEGORIES.DebugComparisonCirclesInTable)(entry.name, propertyName, category, sumStats["max"]);
+                        statisticsValues.push(sumStats[propertyName]);
+                    } else {
+                        statisticsValues.push("");
+                    }
+                }            
+            });
+            Log.red(LOG_CATEGORIES.DebugShowAllXValues)("statisticsValues", statisticsValues);
+            tableData.push(statisticsValues);
+        }
     });
     Log.red(LOG_CATEGORIES.DebugShowingStatsTable)(tableData);
 
@@ -85,6 +87,21 @@ export function renderStatisticsTable(
     const headerColumns : string[] = ["", ...orderedCategories];
 
     Log.green(LOG_CATEGORIES.DebugComparisonCirclesInTable)("tableData", tableData);
+
+    let fontSizePx = 10;
+    switch(fontClass) {
+        case "smaller-font":
+            fontSizePx = 9;
+            break;
+        case "small-font":
+            fontSizePx = 12;
+            break;
+        case "medium-font":
+            fontSizePx = styling.generalStylingInfo.font.fontSize;
+            break;
+    }
+
+    fontSizePx *= config.summaryTableFontScalingFactor.value();
 
     // create table header
     table
@@ -103,6 +120,7 @@ export function renderStatisticsTable(
             "width:" + (i == 0 ? leftMostColumnWidth : cellWidth) + "px"
         )
         .style("text-align", "center")
+        .style("font-size", fontSizePx + "px")
         .style("font-family", styling.generalStylingInfo.font.fontFamily)
         .style("font-weight", styling.generalStylingInfo.font.fontWeight)
         .style("color", styling.generalStylingInfo.font.color)
@@ -144,9 +162,9 @@ export function renderStatisticsTable(
         })
         .style("border-color", getBorderColor(styling.generalStylingInfo.backgroundColor))
         .style("background-color", ((d: any, i: number) => i == 0 ? getComplementaryColor(styling.generalStylingInfo.backgroundColor) : ""))
-        .append("div")
+        .append("div")        
         .classed("summary-div", true)
-        .classed("summary-div-sortable", (d: any, i: number) => i == 0)
+        .classed("summary-div-sortable", (d: any, i: number) => i == 0)        
         .attr("class", (d: any, i: number) => {
             Log.green(LOG_CATEGORIES.Rendering)(d);
             if (i == 0) {
@@ -159,7 +177,13 @@ export function renderStatisticsTable(
                 return "sortable " + orderBy + "";
             }
         })
+        .classed("summary-div", true)        
         .attr("style", (d: any, i: number) => "width:" + (i == 0 ? leftMostColumnWidth : cellWidth) + "px")
+        // Font class is inherited from the table element
+        .style("font-size", fontSizePx + "px")
+        .style("font-family", styling.generalStylingInfo.font.fontFamily)
+        .style("font-weight", styling.generalStylingInfo.font.fontWeight)
+        .style("color", styling.generalStylingInfo.font.color)
         .html(function (c: any, i: number) {
             Log.green(LOG_CATEGORIES.Rendering)("rowColumn", i, c[0], c[1]);
             if (i == 0) {
@@ -182,15 +206,12 @@ export function renderStatisticsTable(
             if (typeof c[0] == "string") return c[0];
             if (isNaN(c[0])) return "";
             if (c[1] != undefined) return d3.format(c[1])(c[0]); // for Count
-            else return d3.format(config.GetYAxisFormatString())(c[0]);
+            else return config.FormatNumber(c[0]);
         })
         .on("mouseover", ((event: Event) => {
             tooltip.show(d3.select(event.currentTarget).node().outerText);
         }))
         .on("mouseout", () => tooltip.hide())
-        .style("font-family", styling.generalStylingInfo.font.fontFamily)
-        .style("font-weight", styling.generalStylingInfo.font.fontWeight)
-        .style("color", styling.generalStylingInfo.font.color)
         .on("click", (event: d3.Event) => {
 
             Log.green(LOG_CATEGORIES.Rendering)(event.target.classList, config.orderBy.value());
@@ -228,18 +249,19 @@ export function renderStatisticsTable(
                     .classed("summary-div", true)
                     .attr("style", () => "width:" + cellWidth + "px")
                     .html(
-                        "Alpha level: " +
-                        d3.format(config.GetYAxisFormatString())(plotData.comparisonCirclesStats.alpha) +
+                        "α: " +
+                        config.FormatNumber(plotData.comparisonCirclesStats.alpha) +
                         "<br/>" +
-                        "Root MSE: " +
-                        d3.format(config.GetYAxisFormatString())(Math.sqrt(plotData.comparisonCirclesStats.rootMse)) +
+                        "RMSE: " +
+                        config.FormatNumber(plotData.comparisonCirclesStats.rootMse) +
                         "<br/>" +
-                        "sqrt(2)q*: " +
-                        d3.format(config.GetYAxisFormatString())(plotData.comparisonCirclesStats.q))
+                        "√2q*: " +
+                        config.FormatNumber(plotData.comparisonCirclesStats.q))
                     .on("mouseover", ((event: Event) => {
                         tooltip.show(d3.select(event.currentTarget).node().outerText);
                     }))
                     .on("mouseout", () => tooltip.hide())
+                    .style("font-size", fontSizePx + "px")
                     .style("font-family", styling.generalStylingInfo.font.fontFamily)
                     .style("font-weight", styling.generalStylingInfo.font.fontWeight)
                     .style("color", styling.generalStylingInfo.font.color);

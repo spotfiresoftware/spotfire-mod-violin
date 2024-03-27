@@ -32,10 +32,11 @@ export interface RenderedPanel {
 }
 
 export interface RowData {
-    x: string;
+    category: string;
     y: number;
     trellis: string;
     Color: string;
+    ColorValue: string;
     Marked: boolean;
     id: string;
     markingGroupId: number;
@@ -55,6 +56,7 @@ export interface SumStatsSettings {
     size(xBandwidth: number): number,
     path(xBandwidth: number): number,
     labelHorizOffset(xBandwidth: number): number,
+    labelVerticalOffset: number,
     verticalOffset(xBandwidth: number): number,
     dashArray: number,
     rotation: number
@@ -73,13 +75,10 @@ export interface Data {
     yDataDomain: { min: number; max: number };
     xScale: string[];
     clearMarking(): void;
-    dataPoints: RowData[];
-    dataPointsGroupedByCat: Map<any, any>;
-    dataPointsGroupedByCatAndMarking: Map<any, any>;
-    markedYValues: Map<any, any>;
+    rowData: RowData[];
+    rowDataGroupedByCat: Map<any, any>;
     densitiesSplitByMarking: any[];
     densitiesAll: any[];
-    markingThresholds: Map<any, any>;
     sumStats: Map<any, any>;
     categories: string[];
     isAnyMarkedRecords: boolean;
@@ -108,6 +107,11 @@ export interface Options {
     //** y-axis types include linear and log */
     yAxisLog: ModProperty<boolean>;
 
+    // y-axis scale type - linear/log/symlog
+    yAxisScaleType: ModProperty<string>;
+
+    symLogWarningDismissed: ModProperty<boolean>;
+
     includeViolin: ModProperty<boolean>;
     /** To do: would color the violing area instead of individual points*/
     colorForViolin: boolean;
@@ -123,7 +127,6 @@ export interface Options {
     resolution?: ModProperty<number>;
 
     yZoomMin?: ModProperty<number>;
-
     yZoomMax?: ModProperty<number>;
 
     yZoomMinUnset?: ModProperty<boolean>;
@@ -131,9 +134,14 @@ export interface Options {
 
     orderBy?: ModProperty<string>;
 
+    // Y axis formatting
+    yAxisFormatType: ModProperty<string>;
     yAxisDecimals: ModProperty<number>;
+    yAxisCurrencySymbol: ModProperty<string>;
     yAxisUseThousandsSeparator: ModProperty<boolean>;
     yAxisUseShortNumberFormat: ModProperty<boolean>;
+
+    yScalePerTrellisPanel: ModProperty<boolean>;
 
     showZoomSliders? : ModProperty<boolean>;
     trellisIndividualZoomSettings?: ModProperty<string>;
@@ -157,7 +165,22 @@ export interface Options {
 
     statisticsConfig: ModProperty<string>;
 
-    individualZoomSlider: ModProperty<boolean>;
+    areColorAndXAxesMatching : boolean;
+
+    summaryTableFontScalingFactor: ModProperty<number>;
+
+    violinLimitToExtents: ModProperty<boolean>;
+
+    useFixedViolinColor: ModProperty<boolean>;
+
+    useFixedBoxColor: ModProperty<boolean>;
+
+    drawViolinUnderBox: ModProperty<boolean>;
+
+    violinOpacity: number;
+    boxOpacity: number;
+
+    show95pctConfidenceInterval: ModProperty<boolean>;
 
     GetStatisticsConfigItems(): Map<string, StatisticsConfig>;
 
@@ -165,6 +188,12 @@ export interface Options {
 
     GetStatisticsConfigItem(name: string) : StatisticsConfig;
 
-    GetYAxisFormatString(): string;
+    FormatNumber(number: number): string;
+
+    IsStatisticsConfigItemEnabled(name: string) : boolean;
+
+    GetTrellisZoomConfigs(): TrellisZoomConfig[];
+
+    ResetGlobalZoom(): void;
 
 }
