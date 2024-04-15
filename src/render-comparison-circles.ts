@@ -1,4 +1,4 @@
-import { getBorderColor, getComparisonCircleHighlightedColor, getComplementaryColor, getContrastingColor, Log, LOG_CATEGORIES, LOG_Y_MIN } from "./index";
+import { getBorderColor, getComparisonCircleHighlightedColor, getComplementaryColor, getContrastingColor, Log, LOG_CATEGORIES } from "./index";
 // @ts-ignore
 import * as d3 from "d3";
 import { D3_SELECTION, Data, Options } from "./definitions";
@@ -6,37 +6,40 @@ import { Tooltip } from "spotfire-api";
 
 export function renderComparisonCircles(
     config: Partial<Options>,
+    trellisIndex: number,
     g: D3_SELECTION,
     xScale: d3.scaleBand,
     yScale: d3.scale,
     tooltip: Tooltip,
     heightAvailable: number,
     plotData: Data,
-    isScaleLog: boolean,
     backgroundColor: string,
     state: any
 ) {
     g.append("clipPath")
-        .attr("id", "comparisonClip")
+        .attr("id", "comparison-clip-" + trellisIndex)
         .append("rect")
         .attr("x", xScale("Comparison"))
         .attr("width", xScale.bandwidth)
         .attr("height", heightAvailable)
         .attr("fill", "none");
 
-    g.selectAll(".comparison-circle")
-        // Filter data if log y scale to exclude those where y0 or radius is < LOG_Y_MIN
+    // To "cover up" any gridlines
+    g.append("rect")
+        .attr("x", xScale("Comparison"))
+        .attr("width", xScale.bandwidth)
+        .attr("height", heightAvailable)
+        .attr("fill", backgroundColor);
+
+    g.selectAll(".comparison-circle")        
         .data(
-            new Map(
-                [...plotData.comparisonCirclesData].filter(
-                    ([, v]) => !isScaleLog || (v.y0 >= LOG_Y_MIN && v.y0 - v.radius >= LOG_Y_MIN)
-                )
-            )
+            
+            plotData.comparisonCirclesData
         )
         .enter()
         .append("g")
         .append("circle")
-        .attr("clip-path", "url(#comparisonClip)")
+        .attr("clip-path", "url(#comparison-clip-" + trellisIndex +")")
         .attr("cx", xScale("Comparison") + xScale.bandwidth() / 2)
         .attr("cy", (d: any) => yScale(d[1].y0))
         .attr("r", (d: any) => Math.abs(yScale(d[1].y0) - yScale(d[1].y0 - d[1].radius)))
@@ -44,15 +47,15 @@ export function renderComparisonCircles(
         //.classed("markable", true)
         .on("mouseover", function (event: d3.event, d: any) {
             Log.green(LOG_CATEGORIES.Rendering)("mouseover");
-            tooltip.show(d[0] + "\n" + "Avg: " + d3.format(config.GetYAxisFormatString())(d[1].y0));
+            tooltip.show(d[0] + "\n" + "Avg: " + config.FormatNumber(d[1].y0));
             d3.select(event.currentTarget)
                 .classed("comparison-circle-highlighted", true)
                 .attr("style", "stroke:" + getComparisonCircleHighlightedColor(backgroundColor));
 
-            const minY = d3.min(plotData.dataPointsGroupedByCat.get(d[0]).map((p:any) => p.y));
-            const maxY = d3.max(plotData.dataPointsGroupedByCat.get(d[0]).map((p:any) => p.y));
+            const minY = d3.min(plotData.rowDataGroupedByCat.get(d[0]).map((p:any) => p.y));
+            const maxY = d3.max(plotData.rowDataGroupedByCat.get(d[0]).map((p:any) => p.y));
             // draw a rect around the box area
-            Log.green(LOG_CATEGORIES.ShowHighlightRect)(d, xScale(d[0]), plotData.dataPointsGroupedByCat.get(d[0]));
+            Log.green(LOG_CATEGORIES.ShowHighlightRect)(d, xScale(d[0]), plotData.rowDataGroupedByCat.get(d[0]));
             g.append("rect")
                 .attr("id", "highlightRect")
                 .attr("x", xScale(d[0]))
@@ -76,7 +79,7 @@ export function renderComparisonCircles(
             event.stopPropagation();
             state.disableAnimation = true;
             plotData.mark(
-                plotData.dataPointsGroupedByCat.get(d[0]).map((p: any) => p.row),
+                plotData.rowDataGroupedByCat.get(d[0]).map((p: any) => p.row),
                 event.ctrlKey ? "ToggleOrAdd" : "Replace"
             );
         });
@@ -94,7 +97,7 @@ export function highlightMarkedComparisonCircles(
     if (!config.comparisonCirclesEnabled.value()) return; // Don't do anything if comparison circles are not enabled
     // Now work out what data is marked, and highlight the appropriate circles
     const markedCategories = [];
-    for (const [category, value] of plotData.dataPointsGroupedByCat) {
+    for (const [category, value] of plotData.rowDataGroupedByCat) {
         if (value.some((p: any) => p.Marked)) markedCategories.push(category);
     }
 

@@ -13,681 +13,1002 @@ const { qtukey } = Tukey();
 // @ts-ignore
 import * as kde_pkg from "@uwdata/kde";
 
-import { DataViewHierarchyNode, DataViewAxis, DataViewRow, MarkingOperation, DataView } from "spotfire-api";
-import { Options, Data, RowData, StatisticsConfig, SumStatsSettings } from "./definitions";
-import { Log, LOG_CATEGORIES, LOG_Y_MIN } from "./index";
+import {
+  DataViewHierarchyNode,
+  DataViewAxis,
+  DataViewRow,
+  MarkingOperation,
+  DataView,
+} from "spotfire-api";
+import {
+  Options,
+  Data,
+  RowData,
+  StatisticsConfig,
+  SumStatsSettings,
+} from "./definitions";
+import { Log, LOG_CATEGORIES } from "./index";
 import { SumStatsConfig } from "./sumstatsconfig";
 import { log } from "console";
 
 /**
- * Construct a data format suitable for consumption in d3.
+ * Construct a data object suitable for consumption in d3.
+ * The data object is built per trellis panel. If trellising is not enabled, there will be a single
+ * Data object for the rendered visualization.
  * @param mod The Mod API object
  * @param dataView The mod's DataView
  */
-export async function buildData(
-    trellisNode: DataViewHierarchyNode,
-    dataView: DataView,
-    config: Partial<Options>
+export async function buildDataForTrellisPanel(
+  trellisNode: DataViewHierarchyNode,
+  dataView: DataView,
+  config: Partial<Options>
 ): Promise<Data> {
-    const startTime = Date.now();
+  const startTime = Date.now();
+  const startBuildData = performance.now();
 
-    // Check if the dataView has expired. Throw error if it has. Check several times during building of data
-    if (await dataView.hasExpired()) {        
-        throw new Error("DataView Has expired");
-    }
-    const nodeRows = trellisNode.rows();
-    
-    const rowData: Array<RowData> = new Array();
+  // Check if the dataView has expired. Throw error if it has. Check several times during building of data
+  if (await dataView.hasExpired()) {
+    throw new Error("DataView Has expired");
+  }
+  const nodeRows = trellisNode.rows();
 
-    const xAxis: DataViewAxis = await dataView.categoricalAxis("X");
+  let rowData: Array<RowData> = new Array();
 
-    const xHierarchy = await dataView.hierarchy("X");
-    const xHierarchyLeaves = (await xHierarchy!.root())!.leaves();
-    Log.green(LOG_CATEGORIES.DebugLatestMarking)(xHierarchyLeaves, await trellisNode.leaves(), nodeRows.length);
-    const categories: string[] = [];
-    if (!xAxis) {
-        // x axis is empty
-        const category = "(None)";
-        categories.push(category);
-        Log.green(LOG_CATEGORIES.Data)("X axis is empty");
+  const xAxis: DataViewAxis = await dataView.categoricalAxis("X");
 
-        nodeRows!.forEach((row) => {
-            if (Date.now() - startTime > 10000) {
-                throw "Error - data size is too big - check Count axis, or reduce amount of data";
-            }
-            // Note - early versions of the code replaced empty values with zeros. This is not correct!
-            const val = row.continuous<number>("Y").value();
-            const count = row.continuous<number>("Count").value();
-            if (val != null) {
-                for (let i = 0; i < count; i++) {
-                    if (Date.now() - startTime > 6000) {
-                        Log.red(LOG_CATEGORIES.DebugDataBailout)("Throwing error during data iteration");
-                        throw "Error - data size is too big - check Count axis, or reduce amount of data";
-                    }
-                    rowData.push({
-                        x: category,
-                        y: val,
-                        trellis: trellisNode.formattedPath(),
-                        Color: config.boxPlotColor.value(),
-                        Marked: row.isMarked(),
-                        id: row.elementId(true),
-                        markingGroupId: 0,
-                        row: row
-                    });
-                }
-            }
-        });
-    } else {
-        xHierarchyLeaves?.forEach((xLeaf: DataViewHierarchyNode) => {
-            Log.red(LOG_CATEGORIES.DebugDataBailout)("x");
+  const xHierarchy = await dataView.hierarchy("X");
+  const xHierarchyLeaves = (await xHierarchy!.root())!.leaves();
+  const colorAxis = await dataView.categoricalAxis("Color");
 
-            const category = xLeaf.formattedPath();
+  Log.green(LOG_CATEGORIES.DebugLatestMarking)(
+    xHierarchyLeaves,
+    await trellisNode.leaves(),
+    nodeRows.length
+  );
+  const categories: string[] = [];
 
-            const categoryRows = trellisNode
-                .rows()
-                .filter((r: DataViewRow) => r.categorical("X").formattedValue() == category);
+  if (!xAxis) {
+    // category axis is empty
+    const category = "(None)";
+    categories.push(category);
+    Log.green(LOG_CATEGORIES.Data)("X axis is empty");
 
-            Log.red(LOG_CATEGORIES.DebugShowAllXValues)("Category:", category, categoryRows);
-
-            // no data for this x axis value - add an empty data point
-            if ((categoryRows.length == 0 && !config.xAxisFiltered.value()) || categoryRows.length > 0) {
-                categories.push(category);
-            }
-
-            categoryRows!.forEach((row) => {
-                // Note - early versions of the code replaced empty values with zeros. This is not correct!
-                const val = row.continuous<number>("Y").value();
-                const count = row.continuous<number>("Count").value();
-                if (val != null) {
-                    for (let i = 0; i < count; i++) {
-                        if (Date.now() - startTime > 6000) {
-                            Log.red(LOG_CATEGORIES.DebugDataBailout)("Throwing error during data iteration");
-                            throw "Error - data size is too big - check Count axis, or reduce amount of data";
-                        }
-                        rowData.push({
-                            x: category,
-                            y: val,
-                            trellis: trellisNode.formattedPath(),
-                            Color: config.boxPlotColor.value(),
-                            Marked: row.isMarked(),
-                            id: row.elementId(true),
-                            markingGroupId: 0,
-                            row: row
-                        });
-                    }
-                }
-            });
-        });
-    }
-
-    Log.red(LOG_CATEGORIES.DebugShowAllXValues)("rowData", rowData);
-
-    const sumStats = buildSumStats(rowData, trellisNode.formattedPath());
-    Log.green(LOG_CATEGORIES.DebugShowAllXValues)("sumStats", sumStats);
-    // Get mins and maxes of any enabled reference or trend lines
-    //const categories = [...new Set(rowData.map(item => item.x))];
-    const referenceAndTrendLinesMinMaxAll: any[] = [];
-
-    Log.red(LOG_CATEGORIES.DebugShowAllXValues)("Categories:", categories);
-
-    categories.forEach((category: string) => {
-        Log.red(LOG_CATEGORIES.DebugLatestMarking)("sumstats", sumStats, category);
-        if (sumStats.get(category)) {
-            referenceAndTrendLinesMinMaxAll.push(getReferenceAndTrendLinesMinMax(sumStats.get(category), config));
+    nodeRows!.forEach((row: DataViewRow) => {
+      if (Date.now() - startTime > 10000) {
+        throw new Error(
+          "Error - data size is too big - check Count axis, or reduce amount of data"
+        );
+      }
+      // Note - early versions of the code replaced empty values with zeros. This is not correct!
+      const val = row.continuous<number>("Y").value();
+      const count = row.continuous<number>("Count").value();
+      if (val != null) {
+        const rowItem: RowData = {
+          category: category,
+          y: val,
+          trellis: trellisNode.formattedPath(),
+          Color: row.color().hexCode,
+          ColorValue:
+            colorAxis != undefined
+              ? row.categorical("Color").formattedValue()
+              : "(None)",
+          Marked: row.isMarked(),
+          id: row.elementId(true),
+          markingGroupId: 0,
+          row: row,
+        };
+        for (let i = 0; i < count; i++) {
+          if (Date.now() - startTime > 6000) {
+            Log.red(LOG_CATEGORIES.DebugDataBailout)(
+              "Throwing error during data iteration"
+            );
+            throw new Error(
+              "Error - data size is too big - check Count axis, or reduce amount of data"
+            );
+          }
+          rowData.push(rowItem);
         }
-        
+      }
+    });
+  } else {
+    xHierarchyLeaves?.forEach((xLeaf: DataViewHierarchyNode) => {
+      const category = xLeaf.formattedPath();
+      Log.red(LOG_CATEGORIES.DebugXaxisFiltering)(
+        "trellis",
+        trellisNode.formattedValue(),
+        "category",
+        category
+      );
+
+      const categoryRows = trellisNode
+        .rows()
+        .filter(
+          (r: DataViewRow) => r.categorical("X").formattedValue() == category
+        );
+
+      Log.red(LOG_CATEGORIES.DebugShowAllXValues)(
+        "Category:",
+        category,
+        categoryRows
+      );
+
+      // no data for this category axis value - add an empty data point
+      if (
+        (categoryRows.length == 0 && !config.xAxisFiltered.value()) ||
+        categoryRows.length > 0
+      ) {
+        categories.push(category);
+      }
+
+      categoryRows!.forEach((row, index) => {
+        if (index % 10 == 0) {
+          Log.green(LOG_CATEGORIES.DebugBigData)(
+            "row index",
+            index,
+            (Date.now() - startTime) / 1000
+          );
+        }
+        if (Date.now() - startTime > 3000) {
+          Log.red(LOG_CATEGORIES.DebugDataBailout)(
+            "Throwing error during data iteration"
+          );
+          throw new Error(
+            "Error - data size is too big - check Count axis, or reduce amount of data"
+          );
+        }
+        // Note - early versions of the code replaced empty values with zeros. This is not correct!
+        const val = row.continuous<number>("Y").value();
+        const count = row.continuous<number>("Count").value();
+        if (val != null) {
+          const rowItem: RowData = {
+            category: category,
+            y: val,
+            trellis: trellisNode.formattedPath(),
+            Color: row.color().hexCode,
+            ColorValue:
+              colorAxis != undefined
+                ? row.categorical("Color").formattedValue()
+                : "(None)",
+            Marked: row.isMarked(),
+            id: row.elementId(true),
+            markingGroupId: 0,
+            row: row,
+          };
+          for (let i = 0; i < count; i++) {
+            if (Date.now() - startTime > 6000) {
+              Log.red(LOG_CATEGORIES.DebugDataBailout)(
+                "Throwing error during data iteration"
+              );
+              throw new Error(
+                "Error - data size is too big - check Count axis, or reduce amount of data"
+              );
+            }
+            Log.red(LOG_CATEGORIES.BoxPlotColorBy)(row.color().hexCode);
+            rowData.push(rowItem);
+          }
+        }
+      });
+    });
+  }
+  Log.green(LOG_CATEGORIES.DebugBigData)(
+    "Reading data took: " +
+      (performance.now() - startBuildData) / 1000 +
+      " seconds"
+  );
+
+  // If log Y axis, filter out all negative values
+  if (config.yAxisScaleType.value() == "log") {
+    Log.red(LOG_CATEGORIES.DebugLogYAxis)(
+      "rowData not filtered",
+      rowData,
+      config.yAxisScaleType.value()
+    );
+    rowData = rowData.filter((r: any) => r.y > 0);
+    Log.red(LOG_CATEGORIES.DebugLogYAxis)("rowData filtered", rowData);
+  }
+
+  const sortedRowDataGroupedByCat: Map<string, RowData[]> = new d3.rollup(
+    rowData,
+    (d: any) => d.sort((a: any, b: any) => d3.ascending(a.y, b.y)),
+    (k: any) => k.category
+  );
+
+  Log.red(LOG_CATEGORIES.SumStatsPerformance)(
+    "dataPointsGroupedByCat",
+    sortedRowDataGroupedByCat
+  );
+
+  Log.red(LOG_CATEGORIES.DebugShowAllXValues)("Categories:", categories);
+
+  const startSumStats = performance.now();
+  const sumStats = buildSumStats(
+    config,
+    sortedRowDataGroupedByCat,
+    trellisNode.formattedPath()
+  );
+  Log.green(LOG_CATEGORIES.SumStatsPerformance)(
+    "Building all sumStats took: " +
+      (performance.now() - startBuildData) / 1000 +
+      " seconds"
+  );
+
+  // Get mins and maxes of any enabled reference or trend lines
+  const referenceAndTrendLinesMinMaxAll: any[] = [];
+  categories.forEach((category: string) => {
+    Log.red(LOG_CATEGORIES.DebugLatestMarking)("sumstats", sumStats, category);
+    if (sumStats.get(category)) {
+      referenceAndTrendLinesMinMaxAll.push(
+        getReferenceAndTrendLinesMinMax(sumStats.get(category), config)
+      );
+    }
+  });
+
+  Log.red(LOG_CATEGORIES.DebugShowAllXValues)(
+    "referenceAndTrendLinesMinMaxAll",
+    referenceAndTrendLinesMinMaxAll
+  );
+
+  // Check if the dataView has expired. Throw error if it has. Check several times during building of data
+  if (await dataView.hasExpired()) throw new Error("DataView Has expired");
+
+  let maxKdeValue: number = 0;
+
+  const densitiesAll = [];
+
+  // Are there any marked rows (in all the data?)
+  const isAnyMarkedRecords = rowData.some((r: any) => r.Marked);
+
+  // Determine min, max for axis values, combining reference line data and actual data
+  const minRefTrendLines = d3.min(
+    referenceAndTrendLinesMinMaxAll.map((entry: any) => entry.min)
+  );
+  const maxRefTrendLines = d3.max(
+    referenceAndTrendLinesMinMaxAll.map((entry: any) => entry.max)
+  );
+
+  let minY = Math.min(
+    minRefTrendLines ? minRefTrendLines : rowData[0]?.y,
+    d3.min(rowData.map((d: any) => d?.y))
+  );
+  let maxY = Math.max(
+    maxRefTrendLines ? maxRefTrendLines : rowData[0]?.y,
+    d3.max(rowData.map((d: any) => d?.y))
+  );
+
+  Log.blue(LOG_CATEGORIES.DebugLogYAxis)("minY, maxY", minY, maxY);
+
+  const densitiesSplitByMarking: any = [];
+
+  // Calculate densities if violin is enabled
+  if (config.includeViolin.value()) {
+    // Group the data manually into bins of marked/not marked
+    for (let [category, categoryRowData] of sortedRowDataGroupedByCat) {
+      // Are there any marked rows (in this category?)
+      const isAnyMarkedRecordsInThisCategory = categoryRowData.some(
+        (r: any) => r.Marked
+      );
+
+      if (config.yAxisScaleType.value() == "log") {
+        categoryRowData = categoryRowData.filter((r: RowData) => r.y > 0);
+      }
+
+      let markingGroupId = 0;
+
+      let previousElement = categoryRowData[0];
+      categoryRowData.forEach((element: RowData) => {
+        if (element.Marked != previousElement.Marked) {
+          markingGroupId++;
+        }
+        //Log.blue(LOG_CATEGORIES.DebugSingleRowMarking)("element", element, previousElement, markingGroupId, element.Marked, previousElement.Marked);
+        element.markingGroupId = markingGroupId;
+        previousElement = element;
+      });
+
+      const categorySumStats = sumStats.get(category);
+      Log.green(LOG_CATEGORIES.InnovativeLogTicks)(
+        "categorySumStats",
+        categorySumStats.max
+      );
+      const bandwidth =
+        (categorySumStats.max - categorySumStats.min) *
+        config.violinBandwidth.value();
+
+      Log.green(LOG_CATEGORIES.InnovativeLogTicks)("bandWidth", bandwidth);
+
+      // Calculate the densities - note - in the result, x is the y axis in the plot; y is the width of the violin at
+      // that point.
+      let densityPointsSorted = Array.from(
+        kde_pkg
+          .density1d(
+            categoryRowData.map((d: any) => d.y),
+            {
+              size: config.violinSmoothness.value(),
+              bandwidth: bandwidth,
+              extent: config.violinLimitToExtents.value()
+                ? [categorySumStats.min, categorySumStats.max]
+                : null,
+            }
+          )
+          .points()
+      )
+        .filter((p: any) => !isNaN(p.y))
+        .sort((a: any, b: any) => d3.ascending(a.x, b.x));
+
+      Log.green(LOG_CATEGORIES.DebugYNaN)(densityPointsSorted);
+
+      // Now need a data structure where data points are grouped by marking
+      const pointsGroupedByMarking = d3.rollup(
+        categoryRowData,
+        (d: any) => d,
+        (d: any) => d.markingGroupId
+      );
+      Log.blue(LOG_CATEGORIES.ColorViolin)(
+        "dataPointsGroupedByMarking",
+        pointsGroupedByMarking
+      );
+
+      // Thresholds is the thresholds of each block (group) of marked/unmarked data
+      const thresholds: any = [];
+      for (const [, filteredPoints] of pointsGroupedByMarking) {
+        const threshold: any = {
+          min: d3.min(filteredPoints.map((d: any) => d.y)),
+          max: d3.max(filteredPoints.map((d: any) => d.y)),
+          marked: filteredPoints.some((d: any) => d.Marked),
+        };
+        thresholds.push(threshold);
+      }
+
+      Log.blue(LOG_CATEGORIES.InnovativeLogTicks)(
+        "densityPointsSorted",
+        densityPointsSorted
+      );
+
+      // Filter out any points <= 0, if scale is log
+      if (config.yAxisScaleType.value() == "log") {
+        densityPointsSorted = densityPointsSorted.filter((p: any) => p.x > 0);
+      }
+
+      densitiesAll.push({
+        category: category,
+        trellis: trellisNode.formattedPath(),
+        densityPoints: densityPointsSorted,
+      });
+
+      Log.green(LOG_CATEGORIES.ColorViolin)(
+        "thresholds",
+        category,
+        thresholds,
+        minY
+      );
+
+      thresholds.forEach((threshold: any) => {
+        let min = threshold.min;
+        let max = threshold.max;
+
+        if (min == max) {
+          // The threshold covers a single row of data
+          // Adjust the thresholds slightly so we capture some marked stuff
+          const adjustmentFactor = (maxY - minY) / 200;
+          Log.red(LOG_CATEGORIES.DebugSingleRowMarking)(
+            "adjustmentFactor",
+            adjustmentFactor
+          );
+          min = min - adjustmentFactor;
+          max = max + adjustmentFactor;
+        }
+
+        const filteredPoints = isAnyMarkedRecordsInThisCategory
+          ? densityPointsSorted.filter((p: any) => p.x >= min && p.x <= max)
+          : densityPointsSorted;
+
+        if (filteredPoints.length > 0) {
+          // if (i == thresholds.length - 1) {
+          //     // Extend the density points to cover to the extent of the marked/not marked data - to thresholds
+          //     // that matches the y value of the marked data.
+
+          //     const firstItem =
+          //     {
+          //         x: threshold.min,
+          //         y: (points[0] as any).y
+          //     };
+          //     points = [firstItem, ...points]; // prepend the first item
+
+          //     points.push(
+          //         {
+          //             category: threshold.max,
+          //             y: (points[points.length - 1] as any).y
+          //         }
+          //     )
+          // }
+
+          Log.green(LOG_CATEGORIES.Stats)(
+            "augmented, filtered points",
+            filteredPoints
+          );
+
+          maxKdeValue = Math.max(
+            maxKdeValue,
+            d3.max(filteredPoints.map((p: any) => p.y))
+          );
+
+          densitiesSplitByMarking.push({
+            category: category,
+            color: config.useFixedViolinColor.value()
+              ? config.violinColor.value()
+              : sortedRowDataGroupedByCat
+                  .get(category)
+                  .find((r: RowData) => r.y > min)?.Color,
+            trellis: trellisNode.formattedPath(),
+            densityPoints: filteredPoints,
+            Marked: threshold.marked,
+            IsGap: false,
+            count: sortedRowDataGroupedByCat.get(category).filter((d: any) => {
+              return d.y >= threshold.min && d.y <= threshold.max;
+            }).length,
+          });
+          Log.blue(LOG_CATEGORIES.DebugLogYAxis)(
+            "densitiesSplitByMarking",
+            densitiesSplitByMarking
+          );
+        }
+      });
+
+      // Now fill in the "gaps", where there are no data points for parts of the violin
+      if (isAnyMarkedRecordsInThisCategory) {
+        // bottom (min):
+        // Find the first point that's just greater than thresholds[0].min
+        const maxIndex =
+          Math.min(
+            densityPointsSorted.findIndex((p: any) => p.x > thresholds[0]?.min),
+            densityPointsSorted.length - 1
+          ) + 1;
+
+        const gapPoints = densityPointsSorted.filter(
+          (p: any, i: number) => i < maxIndex
+        );
+
+        if (gapPoints.length > 0) {
+          densitiesSplitByMarking.push({
+            category: category,
+            trellis: trellisNode.formattedPath(),
+            densityPoints: gapPoints,
+            Marked: false,
+            IsGap: true,
+          });
+          Log.red(LOG_CATEGORIES.ColorViolin)(
+            "last",
+            densitiesSplitByMarking[densitiesSplitByMarking.length - 1]
+          );
+        }
+
+        thresholds.forEach((threshold: any, i: number) => {
+          const densityPointsReversed =
+            Array.from(densityPointsSorted).reverse();
+
+          // Get index of densityPoint that's just greater than min of next threshold
+          let maxIndex = Math.min(
+            densityPointsSorted.findIndex(
+              (p: any) => p.x > thresholds[i + 1]?.min
+            ),
+            densityPointsSorted.length - 1
+          );
+
+          //Log.blue(LOG_CATEGORIES.DebugLogYAxis)(
+          //  "thresholds maxIndex", maxIndex, densityPointsSorted);
+
+          if (maxIndex == undefined) {
+            maxIndex = (densityPointsSorted.length - 1) as number;
+          }
+
+          // Get index of densityPoint that's just less than max of this threshold
+          const minIndex =
+            densityPointsSorted.length -
+            densityPointsReversed.findIndex((p: any) => p.x < threshold.max) -
+            1;
+
+          const gapPoints = densityPointsSorted.filter(
+            (p: any, i: number) => i >= minIndex && i <= maxIndex //p.x >= threshold.max && p.x <= thresholds[i + 1]?.min
+          );
+
+          densitiesSplitByMarking.push({
+            category: category,
+            trellis: trellisNode.formattedPath(),
+            densityPoints: gapPoints,
+            Marked: false,
+            IsGap: true,
+          });
+
+          Log.blue(LOG_CATEGORIES.DebugLogYAxis)(
+            "Adding from thresholds",
+            minIndex,
+            maxIndex,
+            threshold.max,
+            thresholds[i + 1]?.min,
+            densityPointsSorted[minIndex],
+            densityPointsSorted[maxIndex],
+            gapPoints,
+            densityPointsSorted
+          );
+        });
+
+        // top (max):
+        densitiesSplitByMarking.push({
+          category: category,
+          trellis: trellisNode.formattedPath(),
+          densityPoints: densityPointsSorted.filter(
+            (p: any) => p.x > thresholds[thresholds.length - 1].max
+          ),
+          Marked: false,
+          IsGap: true,
+        });
+      }
+    }
+  }
+
+  // calculations for Tukey Kramer comparison circles
+  // df - degrees of freedom
+  // k - number of populations
+  // alpha -  (the Type I error rate, or the probability of rejecting a true null hypothesis)
+  const comparisonCirclesData: Map<any, any> = new Map();
+  let comparisonCirclesStats: any;
+
+  // Check if the dataView has expired. Throw error if it has. Check several times during building of data
+  if (await dataView.hasExpired()) throw new Error("DataView Has expired");
+
+  if (config.comparisonCirclesEnabled.value()) {
+    let sumAll: number = 0;
+
+    let df: number = 0;
+    let k: number = 0;
+
+    // degrees of freedom, k
+    sumStats.forEach((element: any) => {
+      const count = element.count;
+      if (count > 1 && !isNaN(element.stdDev)) {
+        sumAll += count * element.stdDev * element.stdDev;
+        df += count - 1;
+        k++;
+      }
     });
 
-    Log.red(LOG_CATEGORIES.DebugShowAllXValues)("referenceAndTrendLinesMinMaxAll", referenceAndTrendLinesMinMaxAll);
+    let qTukey: number = 0;
 
-    const minRefTrendLines = d3.min(referenceAndTrendLinesMinMaxAll.map((entry: any) => entry.min));
-    const maxRefTrendLines = d3.max(referenceAndTrendLinesMinMaxAll.map((entry: any) => entry.max));
-
-    // Determine min, max for axis values, combining reference line data and actual data
-    let minY = Math.min(minRefTrendLines ? minRefTrendLines : rowData[0]?.y, d3.min(rowData.map((d: any) => d?.y)));
-    let maxY = Math.max(maxRefTrendLines ? maxRefTrendLines : rowData[0]?.y, d3.max(rowData.map((d: any) => d?.y)));
-    
-    Log.blue(LOG_CATEGORIES.DebugLatestMarking)(maxY, minY);
-
-    const markedYValuesMap = d3.rollup(
-        rowData,
-        (d: any) => {
-            return d.some((p: any) => p.Marked);
-        },
-        (p: any) => p.x,
-        (p: any) => p.y
-    );
-    // Now convert entries to an array and sort them
-    Log.green(LOG_CATEGORIES.Marking)(markedYValuesMap);
-    // todo - optimise!
-    const markedYValues = new Map<any, any>();
-
-    for (const [key, value] of markedYValuesMap) {
-        let yVals = [];
-        for (const [y, Marked] of value) {
-            yVals.push({ y, Marked });
-        }
-        yVals = yVals.sort((a: any, b: any) => d3.ascending(a.y, b.y));
-        markedYValues.set(key, yVals);
+    // studentized range (q) distribution
+    if (k >= 2 && df >= 3 && df > k) {
+      // Not sure why dividing by SQRT2, but this matches Spotfire implementation
+      qTukey =
+        qtukey(1 - config.comparisonCirclesAlpha.value(), k, df) / Math.SQRT2;
     }
 
-    const dataPointsGroupedByCat = new d3.rollup(
-        rowData,
-        (d: any) => d.sort((a: any, b: any) => d3.ascending(a.y, b.y)),
-        (k: any) => k.x
+    let stdErr: number = 0;
+    if (df != 0) {
+      stdErr = sumAll / df;
+    }
+
+    Log.green(LOG_CATEGORIES.ComparisonCircles)(
+      "df, k, sumAll, qTukey, stdErr",
+      df,
+      k,
+      sumAll,
+      qTukey,
+      stdErr
     );
 
-    Log.red(LOG_CATEGORIES.DebugSingleRowMarking)("dataPointsGroupedByCat", dataPointsGroupedByCat);
-
-
-    // Looking at grouping the data manually into bins of marked/not marked!
-    for (const [, value] of dataPointsGroupedByCat) {
-        let previousElement = value[0];
-        let markingGroupId = 0;
-        Log.red(LOG_CATEGORIES.DebugSingleRowMarking)("value", value);
-        value.forEach((element: RowData) => {            
-            if (element.Marked != previousElement.Marked) {
-                markingGroupId++;
-            }
-            //Log.blue(LOG_CATEGORIES.DebugSingleRowMarking)("element", element, previousElement, markingGroupId, element.Marked, previousElement.Marked);
-            element.markingGroupId = markingGroupId;
-            previousElement = element;
-        });
+    for (const [key, element] of sumStats.entries()) {
+      Log.green(LOG_CATEGORIES.ComparisonCircles)(element);
+      const radius = qTukey * Math.sqrt(stdErr / element.count);
+      const y0 = element.avg;
+      Log.green(LOG_CATEGORIES.ComparisonCircles)(key, y0, radius);
+      comparisonCirclesData.set(key, {
+        radius: radius,
+        y0: y0,
+        significantlyDifferent: false,
+      });
     }
 
-    // Check if the dataView has expired. Throw error if it has. Check several times during building of data
-    if (await dataView.hasExpired()) throw new Error("DataView Has expired");
+    comparisonCirclesStats = {
+      alpha: config.comparisonCirclesAlpha.value(),
+      rootMse: Math.sqrt(stdErr),
+      q: Math.SQRT2 * qTukey,
+    };
 
-    let maxKdeValue: number = 0;
-    const densitiesSplitByMarking = [];
-    const densitiesAll = [];
+    Log.green(LOG_CATEGORIES.ComparisonCircles)(
+      "comparisonCirclesStats",
+      comparisonCirclesStats
+    );
+  }
 
-    let isAnyMarkedRecords = false;
-
-    // Are there any marked rows (in all the data?)
-    if (rowData.some((r: any) => r.Marked)) {
-        isAnyMarkedRecords = true;
-    }
-    const dataPointsGroupedByCatAndMarking = new Map<number, any>(); // todo - TYPES!
-    const markingThresholds = new Map<number, any>();
-
-    // Calculate densities if violin is enabled
-    if (config.includeViolin.value()) {
-        Log.green(LOG_CATEGORIES.DebugSingleRowMarking)("dataPointsGroupedByCat", dataPointsGroupedByCat);
-
-        for (const [key, value] of dataPointsGroupedByCat) {
-            // Now need a data structure where data points are grouped by x, then marked values
-            dataPointsGroupedByCatAndMarking.set(
-                key,
-                d3.rollup(
-                    value,
-                    (d: any) => d,
-                    (d: any) => d.markingGroupId
-                )
-            );
-            const thresholds = [];
-            const markingGroups = dataPointsGroupedByCatAndMarking.get(key);
-            Log.green(LOG_CATEGORIES.DebugLatestMarking)(markingGroups);
-            for (const [, points] of markingGroups) {
-                const threshold: any = {
-                    min: d3.min(points.map((d: any) => d.y)),
-                    max: d3.max(points.map((d: any) => d.y)),
-                    marked: points.some((d: any) => d.Marked)
-                };
-                thresholds.push(threshold);                
-            }
-
-            // Now set max of last threshold
-            //thresholds[thresholds.length - 1].max = d3.max(
-            //    markingGroups.get(thresholds.length - 1).map((d: any) => d.y)
-            //);
-            markingThresholds.set(key, thresholds);
-        }
-
-        Log.green(LOG_CATEGORIES.DebugSingleRowMarking)(markingThresholds);
-
-        // Now calculate the densities
-        for (const [category, points] of dataPointsGroupedByCat) {
-            const densityPoints = Array.from(
-                kde_pkg
-                    .density1d(
-                        points.map((d: any) => d.y),
-                        {
-                            size: config.violinSmoothness.value(),
-                            bandwidth: (maxY - minY) * config.violinBandwidth.value()
-                        }
-                    )
-                    .points()
-            );
-
-            const densityPointsSorted: any[] = densityPoints.sort((a: any, b: any) => d3.ascending(a.x, b.x));
-            
-            Log.blue(LOG_CATEGORIES.DebugLatestMarking)("densityPointsSorted", densityPointsSorted);
-
-            densitiesAll.push({
-                x: category,
-                trellis: trellisNode.formattedPath(),
-                densityPoints: densityPointsSorted
-            });
-
-
-            Log.green(LOG_CATEGORIES.Stats)("densityPoints", densityPoints);
-            const thresholds = markingThresholds.get(category);
-            Log.green(LOG_CATEGORIES.DebugLatestMarking)("thresholds", thresholds, minY);
-            for (let i = 0; i < thresholds.length; i++) {
-                const threshold = thresholds[i];
-                Log.green(LOG_CATEGORIES.DebugSingleRowMarking)(
-                    "threshold",
-                    threshold,
-                    i,
-                    "zeroth densityPoint",
-                    (densityPoints[0] as any).x
-                );
-                let min = threshold.min;
-                let max = threshold.max;
-
-                if (min == max) { // The threshold covers a single row of data
-                    // Adjust the thresholds slightly so we capture some marked stuff
-                    const adjustmentFactor = (maxY-minY)/200;
-                    Log.red(LOG_CATEGORIES.DebugSingleRowMarking)("adjustmentFactor", adjustmentFactor);
-                    min = min - adjustmentFactor;
-                    max = max + adjustmentFactor;
-                }
-
-                const filteredPoints = isAnyMarkedRecords ? densityPointsSorted.filter((p: any) => p.x >= min && p.x <= max) : densityPointsSorted;
-                Log.green(LOG_CATEGORIES.DebugLatestMarking)(
-                    "Unfiltered points",
-                    densityPointsSorted,
-                    min,
-                    max,
-                    "thresholds",
-                    threshold.min,
-                    threshold.max,
-                    "filtered points",
-                    filteredPoints
-                );
-                if (filteredPoints.length > 0) {
-                    // if (i == thresholds.length - 1) {
-                    //     // Extend the density points to cover to the extent of the marked/not marked data - to thresholds
-                    //     // that matches the y value of the marked data.
-
-                    //     const firstItem =
-                    //     {
-                    //         x: threshold.min,
-                    //         y: (points[0] as any).y
-                    //     };
-                    //     points = [firstItem, ...points]; // prepend the first item
-
-                    //     points.push(
-                    //         {
-                    //             x: threshold.max,
-                    //             y: (points[points.length - 1] as any).y
-                    //         }
-                    //     )
-                    // }
-
-                    Log.green(LOG_CATEGORIES.Stats)("augmented, filtered points", filteredPoints);
-                    if (threshold.marked) isAnyMarkedRecords = true;
-                    maxKdeValue = Math.max(maxKdeValue, d3.max(filteredPoints.map((p: any) => p.y)));
-                    densitiesSplitByMarking.push({
-                        x: category,
-                        trellis: trellisNode.formattedPath(),
-                        densityPoints: filteredPoints,
-                        Marked: threshold.marked,
-                        IsGap: false,
-                        count: dataPointsGroupedByCat.get(category).filter((d: any) => {
-                            return d.y >= threshold.min && d.y <= threshold.max;
-                        }).length
-                    });
-                }
-            }
-
-            const categoryDensities = densitiesSplitByMarking.filter((d: any) => d.x == category);
-            Log.green(LOG_CATEGORIES.Stats)(categoryDensities, categoryDensities.length);
-            const categoryDensitiesLength = categoryDensities.length;
-            // Now fill in the "gaps", where there are no data points for parts of the violin
-            for (let i = 1; i < categoryDensitiesLength; i++) {
-                const previous = (categoryDensities[i - 1] as any).densityPoints as any;
-                const current = categoryDensities[i].densityPoints as any;
-
-                const betweenDensities = densityPointsSorted.filter(
-                    (p: any) => p.x >= (previous[previous.length - 1] as any).x && p.x <= (current[0] as any).x
-                );
-                Log.green(LOG_CATEGORIES.Stats)("i, previous, current", i, previous, current, betweenDensities);
-                densitiesSplitByMarking.push({
-                    x: category,
-                    trellis: trellisNode.formattedPath(),
-                    densityPoints: betweenDensities,
-                    Marked: false,
-                    IsGap: true
-                });
-            }
-            
-            if (isAnyMarkedRecords) {
-                // Now add the bottom/top
-                // bottom (min):
-                densitiesSplitByMarking.push({
-                    x: category,
-                    trellis: trellisNode.formattedPath(),
-                    densityPoints: densityPointsSorted.filter((p: any) => p.x < thresholds[0].min),
-                    Marked: false,
-                    IsGap: true
-                });
-                // top (max):
-                densitiesSplitByMarking.push({
-                    x: category,
-                    trellis: trellisNode.formattedPath(),
-                    densityPoints: densityPointsSorted.filter((p: any) => p.x > thresholds[thresholds.length - 1].max),
-                    Marked: false,
-                    IsGap: true
-                });
-            }
-        }
+  // Check if the dataView has expired. Throw error if it has. Check several times during building of data
+  if (await dataView.hasExpired()) throw new Error("DataView Has expired");
+  /* Calculate P-value */
+  let pValue: any;
+  if (config.showPvalue.value()) {
+    /* function for calculating p-value */
+    function oneWayAnovaHelper(data: any[], classes: any[]): IAnovaResult {
+      return oneWay(data, classes, { alpha: 0.05 });
     }
 
-    // calculations for Tukey Kramer comparison circles
-    // df - degrees of freedom
-    // k - number of populations
-    // alpha -  (the Type I error rate, or the probability of rejecting a true null hypothesis)
-    const comparisonCirclesData: Map<any, any> = new Map();
-    let comparisonCirclesStats: any;
-
-    // Check if the dataView has expired. Throw error if it has. Check several times during building of data
-    if (await dataView.hasExpired()) throw new Error("DataView Has expired");
-
-    if (config.comparisonCirclesEnabled.value()) {
-        let sumAll: number = 0;
-
-        let df: number = 0;
-        let k: number = 0;
-
-        // degrees of freedom, k
-        sumStats.forEach((element: any) => {
-            const count = element.count;
-            if (count > 1 && !isNaN(element.stdDev)) {
-                sumAll += count * element.stdDev * element.stdDev;
-                df += count - 1;
-                k++;
-            }
-        });
-
-        let qTukey: number = NaN;
-
-        // studentized range (q) distribution
-        if (k >= 2 && df >= 3 && df > k) {
-            // Not sure why dividing by SQRT2, but this matches Spotfire implementation
-            qTukey = qtukey(1 - config.comparisonCirclesAlpha.value(), k, df) / Math.SQRT2;
+    const dataX = rowData.map((d) => d.category);
+    const dataY = rowData.map((d) => d.y);
+    let oneWayAnovaResult: IAnovaResult;
+    Log.green(LOG_CATEGORIES.Stats)(dataX);
+    Log.green(LOG_CATEGORIES.Stats)(dataX.length);
+    if (dataX.length > 0) {
+      const dataXSet = new Set(dataX);
+      Log.green(LOG_CATEGORIES.Stats)(dataXSet);
+      Log.green(LOG_CATEGORIES.Stats)(dataXSet.size);
+      if (dataXSet.size > 1) {
+        try {
+          pValue = oneWayAnovaHelper(dataY, dataX).pValue;
+        } catch (err) {
+          Log.green(LOG_CATEGORIES.Stats)(
+            "Error running oneWay - P-value will be NA. ",
+            err
+          );
+          pValue = "NA";
         }
 
-        let stdErr: number = NaN;
-        if (df != 0) {
-            stdErr = sumAll / df;
-        }
-
-        Log.green(LOG_CATEGORIES.ComparisonCircles)(df, sumAll, qTukey, stdErr);
-
-        for (const [key, element] of sumStats.entries()) {
-            Log.green(LOG_CATEGORIES.ComparisonCircles)(element);
-            const radius = qTukey * Math.sqrt(stdErr / element.count);
-            const y0 = element.avg;
-            Log.green(LOG_CATEGORIES.ComparisonCircles)(key, y0, radius);
-            comparisonCirclesData.set(key, { radius: radius, y0: y0, significantlyDifferent: false });
-        }
-
-        comparisonCirclesStats = {
-            alpha: config.comparisonCirclesAlpha.value(),
-            rootMse: stdErr,
-            q: qTukey
-        };
-
-        Log.green(LOG_CATEGORIES.ComparisonCircles)("comparisonCirclesStats", comparisonCirclesStats);
+        Log.green(LOG_CATEGORIES.Stats)(
+          oneWayAnovaResult,
+          oneWayAnovaResult?.pValue
+        );
+      } else {
+        Log.green(LOG_CATEGORIES.Stats)("dataXSet NA");
+        pValue = "NA"; // The number of unique values in x is less than 1
+      }
+    } else {
+      Log.green(LOG_CATEGORIES.Stats)("No data");
+      pValue = "NA"; // No data found
     }
+  }
 
-    // Check if the dataView has expired. Throw error if it has. Check several times during building of data
-    if (await dataView.hasExpired()) throw new Error("DataView Has expired");
-    /* Calculate P-value */
-    let pValue: any;
-    if (config.showPvalue.value()) {
-        /* function for calculating p-value */
-        function oneWayAnovaHelper(data: any[], classes: any[]): IAnovaResult {
-            return oneWay(data, classes, { alpha: 0.05 });
-        }
-
-        const dataX = rowData.map((d) => d.x);
-        const dataY = rowData.map((d) => d.y);
-        let oneWayAnovaRes: IAnovaResult;
-        Log.green(LOG_CATEGORIES.Stats)(dataX);
-        Log.green(LOG_CATEGORIES.Stats)(dataX.length);
-        if (dataX.length > 0) {
-            const dataXSet = new Set(dataX);
-            Log.green(LOG_CATEGORIES.Stats)(dataXSet);
-            Log.green(LOG_CATEGORIES.Stats)(dataXSet.size);
-            if (dataXSet.size > 1) {
-                try {
-                    pValue = oneWayAnovaHelper(dataY, dataX).pValue;
-                } catch (err) {
-                    Log.green(LOG_CATEGORIES.Stats)("Error running oneWay - P-value will be NA. ", err);
-                    pValue = "NA";
-                }
-
-                Log.green(LOG_CATEGORIES.Stats)(oneWayAnovaRes, oneWayAnovaRes?.pValue);
-            } else {
-                Log.green(LOG_CATEGORIES.Stats)("dataXSet NA");
-                pValue = "NA"; // The number of unique values in x is less than 1
-            }
-        } else {
-            Log.green(LOG_CATEGORIES.Stats)("No data");
-            pValue = "NA"; // No data found
-        }
-    }
-
+  if (config.includeViolin.value()) {
     Log.green(LOG_CATEGORIES.DebugLatestMarking)("maxKdeValue", maxKdeValue);
-    
-    Log.blue(LOG_CATEGORIES.DebugLatestMarking)("densities", densitiesAll, densitiesSplitByMarking, ...(Array.from(densitiesSplitByMarking.values()).map((d:any) => d.densityPoints)));
+
+    Log.blue(LOG_CATEGORIES.DebugLatestMarking)(
+      "densities",
+      densitiesAll,
+      densitiesSplitByMarking,
+      ...Array.from(densitiesSplitByMarking.values()).map(
+        (d: any) => d.densityPoints
+      )
+    );
 
     // Adjust min/max to include the full extents of the violin data
-    Array.from(densitiesSplitByMarking.values()).map((d:any) => d.densityPoints).forEach(element => {
-        Log.blue(LOG_CATEGORIES.DebugSingleRowMarking)("densityPoints", element, d3.max(element.map((e:any)=>e.x)));
+    Array.from(densitiesAll.values())
+      .map((d: any) => d.densityPoints)
+      .forEach((element) => {
+        Log.blue(LOG_CATEGORIES.DebugSingleRowMarking)(
+          "densityPoints",
+          element,
+          d3.max(element.map((e: any) => e.x))
+        );
         if (element.length != 0) {
-            maxY = Math.max(maxY, d3.max(element.map((e:any)=>e.x)));
-            minY = Math.min(minY, d3.min(element.map((e:any)=>e.x)));
-        }        
-    });
-
-    Log.green(LOG_CATEGORIES.DebugSingleRowMarking)("minY, maxY", minY, maxY);
-
-    return {
-        clearMarking: () => {
-            Log.green(LOG_CATEGORIES.General)("Clearing marking");
-            dataView.clearMarking();
-        },
-        yDataDomain: {
-            min: config.yAxisLog.value() && minY < LOG_Y_MIN ? LOG_Y_MIN : minY,
-            max: config.yAxisLog.value() && maxY < LOG_Y_MIN ? LOG_Y_MIN : maxY
-        },
-        xScale: categories,
-        dataPoints: rowData,
-        densitiesSplitByMarking: densitiesSplitByMarking,
-        densitiesAll: densitiesAll,
-        dataPointsGroupedByCat: dataPointsGroupedByCat,
-        dataPointsGroupedByCatAndMarking: dataPointsGroupedByCatAndMarking,
-        markingThresholds: markingThresholds,
-        markedYValues: markedYValues,
-        sumStats: sumStats,
-        categories: categories,
-        isAnyMarkedRecords: isAnyMarkedRecords,
-        maxKdeValue: maxKdeValue,
-        comparisonCirclesData: comparisonCirclesData,
-        comparisonCirclesStats: comparisonCirclesStats,
-        pValue: pValue,
-        mark: async (rows: DataViewRow[], markingOperation: MarkingOperation) => {
-            Log.green(LOG_CATEGORIES.General)(dataView, rows, markingOperation, await dataView.hasExpired());
-            if (await dataView.hasExpired()) throw "Error - dataView has expired!";
-            dataView.mark(rows, markingOperation);
+          maxY = Math.max(maxY, d3.max(element.map((e: any) => e.x)));
+          minY = Math.min(minY, d3.min(element.map((e: any) => e.x)));
         }
-    };
+      });
+  }
+
+  Log.green(LOG_CATEGORIES.DebugLogYAxis)("minY, maxY", minY, maxY);
+
+  return {
+    clearMarking: () => {
+      Log.green(LOG_CATEGORIES.General)("Clearing marking");
+      dataView.clearMarking();
+    },
+    yDataDomain: {
+      min: minY,
+      max: maxY,
+    },
+    xScale: categories,
+    rowData: rowData,
+    densitiesSplitByMarking: densitiesSplitByMarking,
+    densitiesAll: densitiesAll,
+    rowDataGroupedByCat: sortedRowDataGroupedByCat,
+    sumStats: sumStats,
+    categories: categories,
+    isAnyMarkedRecords: isAnyMarkedRecords,
+    maxKdeValue: maxKdeValue,
+    comparisonCirclesData: comparisonCirclesData,
+    comparisonCirclesStats: comparisonCirclesStats,
+    pValue: pValue,
+    mark: async (rows: DataViewRow[], markingOperation: MarkingOperation) => {
+      // Mark distinct rows
+      rows = [...new Set(rows)] as DataViewRow[];
+      Log.green(LOG_CATEGORIES.General)(
+        dataView,
+        rows,
+        markingOperation,
+        await dataView.hasExpired()
+      );
+      if (await dataView.hasExpired()) throw "Error - dataView has expired!";
+      dataView.mark(rows, markingOperation);
+    },
+  };
 }
 
 /**
  *  Get min/max for all enabled reference/trend lines for this xValue/category
  * */
-function getReferenceAndTrendLinesMinMax(sumStatsEntry: any, config: Partial<Options>) {
-    let max: number;
-    let min: number;
+function getReferenceAndTrendLinesMinMax(
+  sumStatsEntry: any,
+  config: Partial<Options>
+) {
+  let max: number;
+  let min: number;
 
-    Array.from(config.GetStatisticsConfigItems().values())
-        .filter((l: StatisticsConfig) => l.refEnabled === true)
-        .forEach((referenceLineSetting: StatisticsConfig) => {
-            const referenceLine = SumStatsConfig.find(
-                (config: SumStatsSettings) => config.name == referenceLineSetting.name
-            );
-            Log.green(LOG_CATEGORIES.DebugLatestMarking)(
-                "sumStatsEntry",
-                sumStatsEntry,
-                referenceLine.property
-            );
-            max = max ? Math.max(sumStatsEntry[referenceLine.property], max) : sumStatsEntry[referenceLine.property];
-            min = min ? Math.min(sumStatsEntry[referenceLine.property], max) : sumStatsEntry[referenceLine.property];
-        });
+  Array.from(config.GetStatisticsConfigItems().values())
+    .filter((l: StatisticsConfig) => l.refEnabled === true)
+    .forEach((referenceLineSetting: StatisticsConfig) => {
+      const referenceLine = SumStatsConfig.find(
+        (config: SumStatsSettings) => config.name == referenceLineSetting.name
+      );
 
-    Array.from(config.GetStatisticsConfigItems().values())
-        .filter((l: StatisticsConfig) => l.trendEnabled === true)
-        .forEach((trendLineSetting: StatisticsConfig) => {
-            const trendLine = SumStatsConfig.find((config: SumStatsSettings) => config.name == trendLineSetting.name);
-            max = max ? Math.max(sumStatsEntry[trendLine.property], max) : sumStatsEntry[trendLine.property];
-            min = min ? Math.min(sumStatsEntry[trendLine.property], max) : sumStatsEntry[trendLine.property];
-        });
-    Log.green(LOG_CATEGORIES.DebugShowAllXValues)(min, max);
-    return { min: min, max: max };
+      max = max
+        ? Math.max(sumStatsEntry[referenceLine.property], max)
+        : sumStatsEntry[referenceLine.property];
+      min = min
+        ? Math.min(sumStatsEntry[referenceLine.property], min)
+        : sumStatsEntry[referenceLine.property];
+
+      Log.green(LOG_CATEGORIES.DebugBigData)(
+        "sumStatsEntry",
+        sumStatsEntry,
+        referenceLine.property,
+        config.FormatNumber(min),
+        config.FormatNumber(max)
+      );
+    });
+
+  Array.from(config.GetStatisticsConfigItems().values())
+    .filter((l: StatisticsConfig) => l.trendEnabled === true)
+    .forEach((trendLineSetting: StatisticsConfig) => {
+      const trendLine = SumStatsConfig.find(
+        (config: SumStatsSettings) => config.name == trendLineSetting.name
+      );
+      max = max
+        ? Math.max(sumStatsEntry[trendLine.property], max)
+        : sumStatsEntry[trendLine.property];
+      min = min
+        ? Math.min(sumStatsEntry[trendLine.property], min)
+        : sumStatsEntry[trendLine.property];
+    });
+  Log.green(LOG_CATEGORIES.DebugBigData)(
+    "Overall min max",
+    config.FormatNumber(min),
+    config.FormatNumber(max)
+  );
+  return { min: min, max: max };
 }
 
-function buildSumStats(data: any, trellisName: string) {
-    /**
-     * Grouping data by the categories and calculating metrics for box plot
-     */
-    const sumstat: Map<any, any> = new d3.rollup(
-        data, // group function allows to group/nest the calculation per level of a factor
-        (d: any) => {
-            //calculate different metrics
-            const count: number = d3.count(
-                d.map(function (g: any) {
-                    //if(DEBUG) Log.green(LOG_CATEGORIES.General)(g.y);
-                    return g.y as any;
-                })
-            );
-            const stdDev: number = d3.deviation(
-                d.map(function (g: any) {
-                    //if(DEBUG) Log.green(LOG_CATEGORIES.General)(g.y);
-                    return g.y as any;
-                })
-            );
-            const avg: number = d3.mean(
-                d.map(function (g: any) {
-                    //if(DEBUG) Log.green(LOG_CATEGORIES.General)(g.y);
-                    return g.y as any;
-                })
-            );
-            const sum: number = d3.sum(
-                d.map(function (g: any) {
-                    //if(DEBUG) Log.green(LOG_CATEGORIES.General)(g.y);
-                    return g.y as any;
-                })
-            );
-            const q1: number = d3.quantile(
-                d
-                    .map(function (g: any) {
-                        return g.y as any;
-                    })
-                    .sort(d3.ascending),
-                0.25
-            );
-            const median: number = d3.quantile(
-                d
-                    .map(function (g: any) {
-                        return g.y as any;
-                    })
-                    .sort(d3.ascending),
-                0.5
-            );
-            const q3: number = d3.quantile(
-                d
-                    .map(function (g: any) {
-                        return g.y as any;
-                    })
-                    .sort(d3.ascending),
-                0.75
-            );
-            const interQuartileRange: number = q3! - q1!;
-            const min: number = d3.min(
-                d.map(function (g: any) {
-                    //if(DEBUG) Log.green(LOG_CATEGORIES.General)(g.y);
-                    return g.y as any;
-                })
-            );
+function buildSumStats(
+  config: Partial<Options>,
+  sortedRowDataGroupedByCat: Map<string, RowData[]>,
+  trellisName: string
+) {
+  const startTime = performance.now();
+  const sumstat: Map<string, any> = new Map();
 
-            const uif = q3 + 1.5 * interQuartileRange;
-            const lif = q1 - 1.5 * interQuartileRange;
+  /**
+   * Grouping data by the categories and calculating metrics for box plot
+   */
+  for (let [category, rowData] of sortedRowDataGroupedByCat) {
+    const yValues = rowData.map((r: RowData) => r.y);
 
-            const uof = q3 + 3 * interQuartileRange;
-            const lof = q1 - 3 * interQuartileRange;
+    let now = performance.now();
+    //calculate different metrics
+    let count: number;
+    if (config.IsStatisticsConfigItemEnabled("Count")) {
+      Log.green(LOG_CATEGORIES.DebugLogYAxis)("Calculating count");
+      count = d3.count(yValues);
+    }
 
-            const max: number = d3.max(
-                d.map(function (g: any) {
-                    //if(DEBUG) Log.green(LOG_CATEGORIES.General)(g.y);
-                    return g.y as any;
-                })
-            );
+    Log.blue(LOG_CATEGORIES.SumStatsPerformance)(
+      "count",
+      performance.now() - now
+    );
+    now = performance.now();
 
-            let lav: number = d3.min(
-                d.map((g: any) => {
-                    return g.y >= lif ? (g.y as any) : (max as any);
-                })
-            );
-            let uav: number = d3.max(
-                d.map((g: any) => {
-                    return g.y <= uif ? (g.y as any) : g.y ? (0 as any) : undefined;
-                })
-            );
+    let stdDev: number;
+    if (config.IsStatisticsConfigItemEnabled("StdDev")) {
+      stdDev = d3.deviation(yValues);
+    }
 
-            // constrain uav to be >= Q3
-            uav = uav < q3 ? q3 : uav;
+    Log.blue(LOG_CATEGORIES.SumStatsPerformance)(
+      "stdDev",
+      performance.now() - now
+    );
+    now = performance.now();
 
-            // constrain lav to be <= Q1
-            lav = lav > q1 ? q1 : lav;
+    let avg: number;
+    if (config.IsStatisticsConfigItemEnabled("Avg")) {
+      avg = d3.mean(yValues);
+    }
 
-            const outlierCount: number = d3.count(
-                d.map(function (g: any) {
-                    return g.y > uav ? g.y : null || g.y < lav ? g.y : null;
-                })
-            );
+    Log.blue(LOG_CATEGORIES.SumStatsPerformance)(
+      "avg",
+      performance.now() - now
+    );
+    now = performance.now();
 
-            Log.green(LOG_CATEGORIES.General)(outlierCount);
+    let sum: number;
+    if (config.IsStatisticsConfigItemEnabled("Sum")) {
+      sum = d3.sum(yValues);
+    }
 
-            return {
-                trellis: trellisName,
-                count: count,
-                avg: avg,
-                sum: sum,
-                stdDev: stdDev,
-                //density: density,
-                q1: q1,
-                median: median,
-                q3: q3,
-                interQuartileRange: interQuartileRange,
-                min: min,
-                max: max,
-                uav: uav,
-                lav: lav,
-                lif: lif,
-                uif: uif,
-                outlierCount: outlierCount,
-                outlierPct: outlierCount / count,
-                lof: lof,
-                uof: uof
-            } as any;
-        },
-        (k: any) => k.x
+    Log.blue(LOG_CATEGORIES.SumStatsPerformance)(
+      "sum",
+      performance.now() - now
+    );
+    now = performance.now();
+
+    // Function to manually calculate the quartiles - significantly outperforms d3.quartile
+    function quartile_r7(values: number[], count: number, q: number) {
+      var index = (count - 1) * q;
+      var base = Math.floor(index);
+      var rest = index - base;
+      if (values[base + 1] !== undefined) {
+        return values[base] + rest * (values[base + 1] - values[base]);
+      } else {
+        return values[base];
+      }
+    }
+
+    // d3 Median, q1, q3 are slow with d3.quantile - with 5M records, switching to manual calculation
+    // (typically) halves overall time to calculate sumstats  
+    let q1: number;
+    if (config.IsStatisticsConfigItemEnabled("Q1")) {
+      q1 = quartile_r7(
+        yValues,
+        count,
+        //.sort(d3.ascending),
+        0.25
+      );
+    }
+
+    Log.blue(LOG_CATEGORIES.SumStatsPerformance)("q1", performance.now() - now);
+    now = performance.now();
+
+    let median: number;
+    if (config.IsStatisticsConfigItemEnabled("Median")) {
+      median = count % 2 == 1? yValues[(count + 1) / 2 - 1]: d3.mean([yValues[(count / 2) - 1], yValues[(count / 2)]]);
+    }
+
+    Log.blue(LOG_CATEGORIES.SumStatsPerformance)(
+      "median",
+      performance.now() - now
+    );
+    now = performance.now();
+
+    let q3: number;
+    if (config.IsStatisticsConfigItemEnabled("Q3")) {
+      q3 = quartile_r7(
+        yValues,
+        count,
+        //.sort(d3.ascending),
+        0.75
+      );
+    }
+
+    Log.blue(LOG_CATEGORIES.SumStatsPerformance)("q3", performance.now() - now);
+    now = performance.now();
+
+    const interQuartileRange: number = q3! - q1!;
+    let min: number;
+    if (config.IsStatisticsConfigItemEnabled("Min")) {
+      // This is the first item in the array, as it's sorted
+      min = yValues[0];
+    }
+
+    Log.blue(LOG_CATEGORIES.SumStatsPerformance)(
+      "min",
+      performance.now() - now
+    );
+    now = performance.now();
+
+    const uif = q3 + 1.5 * interQuartileRange;
+    const lif = q1 - 1.5 * interQuartileRange;
+
+    const uof = q3 + 3 * interQuartileRange;
+    const lof = q1 - 3 * interQuartileRange;
+
+    let max: number;
+    if (config.IsStatisticsConfigItemEnabled("Max")) {
+      // This is the last item in the array, as it's sorted
+      max = yValues[yValues.length - 1];
+    }
+
+    Log.blue(LOG_CATEGORIES.SumStatsPerformance)(
+      "max",
+      performance.now() - now
+    );
+    now = performance.now();
+
+    let lav: number;
+    // todo: check this!
+    if (config.IsStatisticsConfigItemEnabled("LAV")) {
+      lav = Math.min(
+        yValues.find((y: number) => y >= lif),
+        max
+        //return g.y >= lif ? (g.y as number) : (max as number);
+      );
+
+      // constrain lav to be <= Q1
+      lav = lav > q1 ? q1 : lav;
+    }
+
+    Log.blue(LOG_CATEGORIES.SumStatsPerformance)(
+      "lav",
+      performance.now() - now
+    );
+    now = performance.now();
+
+    let uav: number;
+    if (config.IsStatisticsConfigItemEnabled("UAV")) {
+      uav = d3.max(yValues.filter((y) => y <= uif));
+      // constrain uav to be >= Q3
+      uav = uav < q3 ? q3 : uav;
+    }
+
+    Log.blue(LOG_CATEGORIES.SumStatsPerformance)(
+      "uav",
+      performance.now() - now
+    );
+    now = performance.now();
+
+    // 95% confidence interval of the mean
+    // 1.960 is the Confidence Level Z Value for 95%
+    const confidenceIntervalUpper = avg + 1.96 * (stdDev / Math.sqrt(count));
+    const confidenceIntervalLower = avg - 1.96 * (stdDev / Math.sqrt(count));
+
+    // todo: check!
+    let outlierCount: number;
+    if (config.IsStatisticsConfigItemEnabled("Outliers")) {
+      outlierCount = d3.count(
+        yValues.filter((y: any) => (y > uav ? y : null || y < lav ? y : null))
+      );
+    }
+
+    Log.blue(LOG_CATEGORIES.SumStatsPerformance)(
+      "outliers",
+      performance.now() - now
+    );
+    now = performance.now();
+
+    Log.green(LOG_CATEGORIES.SumStatsPerformance)(
+      "Build SumStats took " +
+        (performance.now() - startTime) / 1000 +
+        "seconds"
     );
 
-    return sumstat;
+    const stats = {
+      trellis: trellisName,
+      count: count,
+      avg: avg,
+      sum: sum,
+      stdDev: stdDev,
+      //density: density,
+      q1: q1,
+      median: median,
+      q3: q3,
+      interQuartileRange: interQuartileRange,
+      min: min,
+      max: max,
+      uav: uav,
+      lav: lav,
+      lif: lif,
+      uif: uif,
+      outlierCount: outlierCount,
+      outlierPct: outlierCount / count,
+      lof: lof,
+      uof: uof,
+      confidenceIntervalLower: confidenceIntervalLower,
+      confidenceIntervalUpper: confidenceIntervalUpper,
+    } as any;
+
+    sumstat.set(category, stats);
+  }
+
+  return sumstat;
 }
