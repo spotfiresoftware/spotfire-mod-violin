@@ -103,6 +103,7 @@ export enum LOG_CATEGORIES {
   SumStatsPerformance,
   ConfidenceIntervals,
   DebugViolinIndividualScalesMarking,
+  DebugBoxIssue,
 }
 
 /**
@@ -697,8 +698,8 @@ Spotfire.initialize(async (mod) => {
             config.includeBoxplot.value() &&
             config.show95pctConfidenceInterval.value()) ||
           (name == "Avg" && config.comparisonCirclesEnabled.value()) ||
-          (name == "Min" && config.includeViolin.value()) ||
-          (name == "Max" && config.includeViolin.value())
+          (name == "Min") ||
+          (name == "Max")
         );
       },
       FormatNumber(number: number) {

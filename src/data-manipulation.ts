@@ -1007,6 +1007,8 @@ function buildSumStats(
       confidenceIntervalUpper: confidenceIntervalUpper,
     } as any;
 
+    Log.green(LOG_CATEGORIES.DebugBoxIssue)(stats);
+
     sumstat.set(category, stats);
   }
 
