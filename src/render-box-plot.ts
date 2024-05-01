@@ -160,7 +160,7 @@ export function renderBoxplot(
       Log.green(LOG_CATEGORIES.DebugBigData)("d for Q3 to UAV", d);
       return yScale(d.uav) as number;
     })
-    .attr("height", (d: any) => yScale(d.q3) - yScale(d.uav))
+    .attr("height", (d: any) => {console.log(yScale.domain(), d.q3, d.uav, yScale(d.q3), yScale(d.uav)); return yScale(d.q3) - yScale(d.uav);})
     .attr("width", linesWidth)
     .attr("stroke", (d: any) => getBoxBorderColor(d.color))
     .attr("fill", (d: any) => d.color)

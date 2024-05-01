@@ -1,6 +1,9 @@
 // @ts-ignore
 import * as d3 from "d3";
 
+import log from "./logScale";
+import symlog from "./symLogScale"
+
 import {
   Size,
   Tooltip,
@@ -482,23 +485,21 @@ export async function render(
 
   // Symmetrical log
   if (config.yAxisScaleType.value() == "symlog") {
-    yScale = d3
-      .scaleSymlog()
+    yScale = symlog()
       .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
       .range([heightAvailable - padding.betweenPlotAndTable, 0])
-      .constant(1);
+      //.constant(1);
   }
 
   // Log
-  if (config.yAxisScaleType.value() == "log") {
-    yScale = d3
-      .scaleLog()
-      .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
-      .range([heightAvailable - padding.betweenPlotAndTable, 0]);
+  // if (config.yAxisScaleType.value() == "log") {
+  //  yScale = log()
+  //    .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
+  //    .range([heightAvailable - padding.betweenPlotAndTable, 0]);
 
     // Add a warning to the chart
-    svg.append;
-  }
+  //  svg.append;
+  //}
 
   // Keep track of the power labels so we can avoid hiding them later (for symlog scale)
   const powerLabels: string[] = [];
