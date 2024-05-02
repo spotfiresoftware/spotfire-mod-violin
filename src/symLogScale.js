@@ -3,16 +3,23 @@ import {linearish} from "../node_modules/d3-scale/src/linear.js";
 import {copy, transformer} from "../node_modules/d3-scale/src/continuous.js";
 import {initRange} from "../node_modules/d3-scale/src/init.js";
 
+// c is the constant for when x = 0;
 function transformSymlog(c) {
   return function(x) {
     // This was log1p - not sure why, but Math.log matches the d3 log scale
-    return Math.sign(x) * Math.log(Math.abs(x / c));
+    // Because it works with small numbers and doesn't give rise to
+    // errors
+    /*if (x == 0) {
+        return 0;
+    }*/
+    console.log(x, Math.sign(x) * Math.log(Math.abs(x / c), Math.sign(x) * Math.log1p(Math.abs(x / c))));
+    return Math.sign(x) * Math.log(1 + Math.abs(x / c));
   };
 }
 
 function transformSymexp(c) {
   return function(x) {
-    return Math.sign(x) * Math.expm1(Math.abs(x)) * c;
+    return Math.sign(x) * Math.exp(Math.abs(x) - 1) * c;
   };
 }
 
@@ -93,7 +100,7 @@ export default function symlog() {
       z = ticks(i, j, Math.min(j - i, n)).map(pows);
     }
     return r ? z.reverse() : z;
-  };
+  }; 
 
   //console.log("ticks", scale.ticks(10));
 

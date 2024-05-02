@@ -482,13 +482,20 @@ export async function render(
   let yScale = d3.scale;
   let ticks: number[];
   let allTicks: number[];
-
+  
   // Symmetrical log
   if (config.yAxisScaleType.value() == "symlog") {
+    Log.red(LOG_CATEGORIES.DebugCustomSymLog)("blah", [...plotData.sumStats.keys()]);
+    var result = [...plotData.sumStats.keys()].map(function (key) {
+      Log.blue(LOG_CATEGORIES.DebugCustomSymLog)("key",key);
+      return plotData.sumStats.get(key);
+   });
+   // Log.blue(LOG_CATEGORIES.DebugCustomSymLog)("stats", ...plotData.sumStats.values());
+   Log.blue(LOG_CATEGORIES.DebugCustomSymLog)("stats",result);
     yScale = symlog()
       .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
       .range([heightAvailable - padding.betweenPlotAndTable, 0])
-      //.constant(1);
+      .constant(d3.min(result.map((r:any)=> r.q1)));
   }
 
   // Log
@@ -1109,6 +1116,7 @@ export async function render(
       xScale,
       yScale,
       height,
+      margin,
       g,
       tooltip,
       xAxisSpotfire,

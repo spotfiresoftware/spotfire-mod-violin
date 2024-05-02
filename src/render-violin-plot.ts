@@ -17,6 +17,7 @@ export function renderViolin(
   xScale: d3.scaleBand,
   yScale: d3.scale,
   height: number,
+  margin: any,
   g: any,
   tooltip: Tooltip,
   xAxisSpotfire: Spotfire.Axis,
@@ -116,12 +117,13 @@ export function renderViolin(
         };
       });
       Log.green(LOG_CATEGORIES.DebugYNaN)("datum", datum);
-      return datum;
+      return datum.sort((a: any, b:any) => a.violinY - b.violinY || yScale(a.violinY) - yScale(b.violinY));
     }) // So now we are working bin per bin
     .attr(
       "d",
       d3
         .area()
+        .defined((d:any, i:number) => true)//{Log.green(LOG_CATEGORIES.DebugCustomSymLog)(d, yScale(d.violinY)); return true || d.violinY > 1 || d.violinY < -1;}) //&& !isNaN(Math.log(Math.abs(d.violinY)));})
         .x0(function (d: any) {
           return violinXscale(-d.violinX) as number;
         })
@@ -131,9 +133,9 @@ export function renderViolin(
           return violinXscale(d.violinX) as number;
         })
         .y(function (d: any) {
-          if (isNaN(yScale(d.violinY))) {
-            return 0;
-          }
+          //if (isNaN(yScale(d.violinY))) {
+          //  return 0;
+          //}
           Log.green(LOG_CATEGORIES.Rendering)(yScale(d[0]));
           return yScale(d.violinY) as number;
         })
@@ -215,7 +217,9 @@ export function renderViolin(
             ": " +
             d[0].category +
             "\ny: " +
-            config.FormatNumber(yScale.invert(event.y)) +
+            config.FormatNumber(yScale.invert(event.y - margin.top)) + 
+            "\nyScale: " +
+            config.FormatNumber(yScale(yScale.invert(event.y - margin.top))) + 
             "\nDensity: " +
             d3.format(".2e")(violinXscale.invert(event.x)) +
             "\nMin: " +
