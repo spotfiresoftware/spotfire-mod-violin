@@ -52,7 +52,10 @@ function pows(base, x) {
   return Math.pow(base, x);
 }
 
-// Need to check the case where lower is 0.1, and upper is 100000
+// Need to check the case where lower is 0.1, and upper is 100000 - looks good
+
+// This is wrong:
+// -10000 to 100000 - not keeping negative powers of 10, and min is overlapping
 
 export default function symlog() {
   var scale = symlogish(transformer());
@@ -79,36 +82,46 @@ export default function symlog() {
     let t;
     const n = count == null ? 10 : +count;
     let z = [];
+    
+    // Just add the minimum
+    z.push(min);
 
-    console.log("n, r, min, max", n, r, min, max);
-    console.log("i, j", i, j);
+    //console.log("n, r, min, max", n, r, min, max);
+    //console.log("i, j", i, j, j - i, !(base % 1) && j - i < n);
 
-    if (!(base % 1) && j - i < n) {
-      console.log("if");
-      (i = Math.floor(i)), (j = Math.ceil(j));
-      if (min > 0)
-        for (; i <= j; ++i) {
-          for (k = 1; k < base; ++k) {
-            t = i < 0 ? k / pows(base, -i) : k * pows(base, i);
-            if (t < min) continue;
-            if (t > max) break;
-            z.push(t);
-          }
+    (i = Math.floor(i)), (j = Math.ceil(j));
+
+    // Negative values
+    for (; i <= 0; ++i) {
+      for (k = -base; k < 0; ++k) {
+        t = k * Math.pow(base, Math.abs(i));
+        //console.log("i, j, k, t", i, j, k, t, !z.includes(t) && t < min);
+        if (t < min) continue;
+        if (t > max) break;        
+        if (!z.includes(t)) {        
+          z.push(t);
         }
-      else
-        for (; i <= j; ++i) {
-          for (k = base - 1; k >= 1; --k) {
-            t = i > 0 ? k / pows(base, -i) : k * pows(base, i);
-            if (t < min) continue;
-            if (t > max) break;
-            z.push(t);
-          }
-        }
-      if (z.length * 2 < n) z = ticks(min, max, n);
-    } else {
-      console.log("else");
-      z = ticks(i, j, Math.min(j - i, n)).map(pows);
+      }
     }
+    // console.log("positive");
+    // Positive values
+    for (i = 0; i < j; ++i) {
+      for (k = 0; k < base; ++k) {
+        t = k * Math.pow(base, i);
+        //console.log("i, j, k, t", i, j, k, t, !z.includes(t) && t < min);
+        if (t < min) continue;
+        if (t > max) break;
+        if (!z.includes(t)) {
+          z.push(t);
+        }
+      }
+    }
+    // Check under which conditions this occurs
+    if (z.length * 2 < n) {
+        console.log("!!!WARNING: using fallback ticks mechanism!!!!")
+        z = ticks(min, max, n);
+    }
+    z.sort((a, b) => a - b)
     return z;
   };
 

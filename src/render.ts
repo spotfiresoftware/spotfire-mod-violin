@@ -506,15 +506,14 @@ export async function render(
         .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
         .range([heightAvailable - padding.betweenPlotAndTable, 0]);
     } else {
-      // We use the symlog with q1 as the constant (slope at 0)
+      // We use the symlog with min(q1, 1) as the constant (slope at 0)
       var sumStatsAsArray = [...plotData.sumStats.keys()].map((key: string) =>
         plotData.sumStats.get(key)
       );
       yScale = symlog()
         .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
         .range([heightAvailable - padding.betweenPlotAndTable, 0])
-        .constant(Math.min(d3.min(sumStatsAsArray.map((r: any) => r.q1)), 1));
-        
+        .constant(Math.min(d3.mean(sumStatsAsArray.map((r: any) => r.lav)), 1));        
     }
   }
 
@@ -535,46 +534,39 @@ export async function render(
     config.yAxisScaleType.value() == "symlog" ||
     config.yAxisScaleType.value() == "log"
   ) {
-    let modulus =
-      20 - Math.floor((heightAvailable - padding.betweenPlotAndTable) / 40);
-    Log.blue(LOG_CATEGORIES.DebugYScaleTicks)(
-      "modulus",
-      modulus,
-      yScale.ticks()
-    );
-
     allTicks = yScale.ticks();
+    //allTicks = allTicks.concat(minZoom);
 
-    allTicks = allTicks.concat(minZoom);
+    Log.green(LOG_CATEGORIES.DebugInnovativeLogticks)("ticks", allTicks.map((t:number) => config.FormatNumber(t)));
 
-    Log.green(LOG_CATEGORIES.InnovativeLogTicks)("ticks", ticks);
+    let minPower = allTicks[0] == 0 ? 0 : Math.sign(allTicks[0]) * Math.floor(Math.log10(Math.abs(allTicks[0])));
+    let maxPower = Math.floor(Math.log10(Math.abs(allTicks[allTicks.length - 1])));
 
-    let currentPower = Math.floor(Math.log10(allTicks[0]));
-    ticks = allTicks.filter((t: number, i: number) => {
-      //i %
-      //  modulus ==
-      //0
-      let pow = Math.floor(Math.log10(t));
-      Log.blue(LOG_CATEGORIES.DebugYScaleTicks)(
-        "pow, currentPow, t",
-        pow,
-        currentPower,
-        t
-      );
-      if (pow != currentPower) {
-        Log.green(LOG_CATEGORIES.InnovativeLogTicks)("tick", i, t, pow);
-        currentPower = pow;
-        // Powers of 10 - don't remove them to avoid clashes later on!
-        powerLabels.push(config.FormatNumber(t));
-        return true;
-      }
-      const shallUse = i == 0 || i == allTicks.length - 1;
-      Log.green(LOG_CATEGORIES.InnovativeLogTicks)("shallUse", i, t, shallUse);
-      return shallUse;
-    });
+    Log.green(LOG_CATEGORIES.DebugInnovativeLogticks)("min, max", minPower, maxPower);
+
+    if (minPower > maxPower) {
+      const temp = minPower;
+      minPower = maxPower;
+      maxPower = temp;
+    }
+
+    // Negative
+    for (let i = minPower; i < 0; i++) {
+      powerLabels.push(config.FormatNumber(-1 * Math.pow(10, i)));
+    }
+
+    // Add the zero if we have a negative domain
+    if (powerLabels.length > 0 || allTicks[0] == 0) {
+      powerLabels.push(config.FormatNumber(0));
+    }
+
+    // Positive
+    for (let i = 0; i <= maxPower; i++) {
+      powerLabels.push(config.FormatNumber(Math.pow(10, i)));
+    }    
   }
 
-  Log.green(LOG_CATEGORIES.InnovativeLogTicks)("ticks", ticks);
+  Log.green(LOG_CATEGORIES.DebugInnovativeLogticks)("powerLabels", powerLabels);
 
   if (config.yAxisScaleType.value() == "linear") {
     yScale = d3
@@ -690,9 +682,10 @@ export async function render(
   function removeLabelClashes(
     axisLabelRects: AxisLabelRect[],
     powers: string[],
-    topToBottom: boolean
+    topToBottom: boolean,
+    removePowers: boolean = false
   ): boolean {
-    let didRemoveLabel = false;
+    let labelsClash = false;
     for (let i = 0; i < axisLabelRects.length; i++) {
       const axisLabelRect = axisLabelRects[i];
       if (topToBottom) {
@@ -716,12 +709,14 @@ export async function render(
         );
         if (
           nextLabelText != undefined &&
-          nextRectTop <= thisRectBottom &&
-          !powers.includes(nextLabelText)
+          nextRectTop <= thisRectBottom //&&
+          //!(powers.includes(nextLabelText) || removePowers)
         ) {
           Log.red(LOG_CATEGORIES.InnovativeLogTicks)("Removing", nextLabelText);
-          d3.select(axisLabelRects[i + 1]?.SvgTextElement).remove();
-          didRemoveLabel = true;
+          if (!powers.includes(nextLabelText) || removePowers) {
+            d3.select(axisLabelRects[i + 1]?.SvgTextElement).remove();
+          }
+          labelsClash = true;
           break;
         }
       } else {
@@ -745,36 +740,38 @@ export async function render(
         );
         if (
           nextLabelText != undefined &&
-          nextRectBottom >= thisRectTop &&
-          !powers.includes(nextLabelText)
+          nextRectBottom >= thisRectTop //&&
+          //!(powers.includes(nextLabelText) || removePowers)          
         ) {
+          labelsClash = true;
           Log.red(LOG_CATEGORIES.InnovativeLogTicks)("Removing", nextLabelText);
-          d3.select(axisLabelRects[i + 1]?.SvgTextElement).remove();
-          didRemoveLabel = true;
+          if (!powers.includes(nextLabelText) || removePowers) {
+            d3.select(axisLabelRects[i + 1]?.SvgTextElement).remove();
+          }          
           break;
         }
       }
     }
 
-    return didRemoveLabel;
+    return labelsClash;
   }
 
   // Now remove clashing labels iteratively
-  let areBottomUpClashingLabelsRemoved = false;
-  let areTopDownClashingLabelsRemoved = false;
+  let bottomUpLabelsClash = true;
+  let topDownLabelsClash = true;
 
   // Guard against too many iterations of the algorithm to remove clashing labels
   let iterations = 0;
 
-  while (
-    (!areBottomUpClashingLabelsRemoved || !areTopDownClashingLabelsRemoved) &&
+  while ( 
+    (bottomUpLabelsClash || topDownLabelsClash) &&
     iterations < allTicks.length * 2
   ) {
-    Log.red(LOG_CATEGORIES.InnovativeLogTicks)(
+    Log.red(LOG_CATEGORIES.DebugInnovativeLogticks)(
       "Iterating",
       iterations % 2 == 0 ? "TopDown" : "BottomUp",
-      areBottomUpClashingLabelsRemoved,
-      areTopDownClashingLabelsRemoved,
+      bottomUpLabelsClash,
+      topDownLabelsClash,
       iterations
     );
     const axisLabelRects: AxisLabelRect[] = [];
@@ -813,24 +810,27 @@ export async function render(
     );
 
     if (iterations % 2 == 0) {
-      areTopDownClashingLabelsRemoved = !removeLabelClashes(
+      topDownLabelsClash = removeLabelClashes(
         axisLabelRects,
         powerLabels,
-        true
+        true,
+        iterations > allTicks.length
       );
     } else {
-      areBottomUpClashingLabelsRemoved = !removeLabelClashes(
+      bottomUpLabelsClash = removeLabelClashes(
         axisLabelRects,
         powerLabels,
-        false
+        false,
+        iterations > allTicks.length
       );
     }
+
     iterations++;
     Log.red(LOG_CATEGORIES.InnovativeLogTicks)(
       "Done iteration",
       iterations % 2 == 0 ? "TopDown" : "BottomUp",
-      areBottomUpClashingLabelsRemoved,
-      areTopDownClashingLabelsRemoved,
+      bottomUpLabelsClash,
+      topDownLabelsClash,
       iterations
     );
   }
