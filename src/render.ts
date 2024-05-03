@@ -2,7 +2,7 @@
 import * as d3 from "d3";
 
 import log from "./logScale";
-import symlog from "./symLogScale"
+import symlog from "./symLogScale";
 
 import {
   Size,
@@ -165,7 +165,7 @@ export async function render(
     .attr("y", 0)
     .attr("width", patternSize)
     .attr("height", patternSize)
-    .style("fill", "darkgray")
+    .style("fill", "darkgray");
   pattern
     .append("rect")
     .attr("x", patternSize)
@@ -254,7 +254,9 @@ export async function render(
   let orderedCategories = plotData.categories;
   Log.red(LOG_CATEGORIES.DebugXaxisFiltering)(
     "orderedCategories before sort:",
-    orderedCategories, "trellis", trellisName
+    orderedCategories,
+    "trellis",
+    trellisName
   );
 
   let tempOrderedCategories: any = [];
@@ -283,7 +285,10 @@ export async function render(
       tempOrderedCategories.push({ key: i, value: el });
     });
 
-    Log.green(LOG_CATEGORIES.DebugXaxisFiltering)("tempOrderedCategories", tempOrderedCategories);
+    Log.green(LOG_CATEGORIES.DebugXaxisFiltering)(
+      "tempOrderedCategories",
+      tempOrderedCategories
+    );
 
     if (orderBySettings[1] == "ordered-right") {
       tempOrderedCategories = tempOrderedCategories.sort((a: any, b: any) =>
@@ -320,14 +325,14 @@ export async function render(
     }
 
     const allCategoriesCopy = [...orderedCategories];
-    orderedCategories = []; 
+    orderedCategories = [];
     tempOrderedCategories.forEach((el: any) => {
       orderedCategories.push(el.key);
     });
-    
+
     // Now copy across any categories missing from tempOrderedCategories
-    allCategoriesCopy.forEach(category => {
-      if (!orderedCategories.find((c:any) => c == category)) {
+    allCategoriesCopy.forEach((category) => {
+      if (!orderedCategories.find((c: any) => c == category)) {
         orderedCategories.push(category);
       }
     });
@@ -341,7 +346,9 @@ export async function render(
   // Draw x axis
   Log.red(LOG_CATEGORIES.DebugXaxisFiltering)(
     "orderedCategories before xScale:",
-    orderedCategories, "trellis", trellisName
+    orderedCategories,
+    "trellis",
+    trellisName
   );
   const xScale = d3
     .scaleBand()
@@ -482,20 +489,33 @@ export async function render(
   let yScale = d3.scale;
   let ticks: number[];
   let allTicks: number[];
-  
+
   // Symmetrical log
   if (config.yAxisScaleType.value() == "symlog") {
-    Log.red(LOG_CATEGORIES.DebugCustomSymLog)("blah", [...plotData.sumStats.keys()]);
-    var result = [...plotData.sumStats.keys()].map(function (key) {
-      Log.blue(LOG_CATEGORIES.DebugCustomSymLog)("key",key);
-      return plotData.sumStats.get(key);
-   });
-   // Log.blue(LOG_CATEGORIES.DebugCustomSymLog)("stats", ...plotData.sumStats.values());
-   Log.blue(LOG_CATEGORIES.DebugCustomSymLog)("stats",result);
-    yScale = symlog()
-      .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
-      .range([heightAvailable - padding.betweenPlotAndTable, 0])
-      .constant(d3.min(result.map((r:any)=> r.q1)));
+    Log.red(LOG_CATEGORIES.DebugCustomSymLog)("blah", [
+      ...plotData.sumStats.keys(),
+    ]);
+
+    // Log.blue(LOG_CATEGORIES.DebugCustomSymLog)("stats", ...plotData.sumStats.values());
+    Log.blue(LOG_CATEGORIES.DebugCustomSymLog)("stats", sumStatsAsArray);
+
+    // If domain is all positive, or all negative then we can use standard d3 log
+    if (plotData.yDataDomain.min > 0 || plotData.yDataDomain.min < 0 && plotData.yDataDomain.max < 0) {
+      yScale = d3
+        .scaleLog()
+        .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
+        .range([heightAvailable - padding.betweenPlotAndTable, 0]);
+    } else {
+      // We use the symlog with q1 as the constant (slope at 0)
+      var sumStatsAsArray = [...plotData.sumStats.keys()].map((key: string) =>
+        plotData.sumStats.get(key)
+      );
+      yScale = symlog()
+        .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
+        .range([heightAvailable - padding.betweenPlotAndTable, 0])
+        .constant(Math.min(d3.min(sumStatsAsArray.map((r: any) => r.q1)), 1));
+        
+    }
   }
 
   // Log
@@ -504,7 +524,7 @@ export async function render(
   //    .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
   //    .range([heightAvailable - padding.betweenPlotAndTable, 0]);
 
-    // Add a warning to the chart
+  // Add a warning to the chart
   //  svg.append;
   //}
 
@@ -548,7 +568,7 @@ export async function render(
         powerLabels.push(config.FormatNumber(t));
         return true;
       }
-      const shallUse = true || i == 0 || i == allTicks.length - 1;
+      const shallUse = i == 0 || i == allTicks.length - 1;
       Log.green(LOG_CATEGORIES.InnovativeLogTicks)("shallUse", i, t, shallUse);
       return shallUse;
     });
@@ -578,7 +598,7 @@ export async function render(
   if (config.includeYAxisGrid.value() && styling.scales.line.stroke != "none") {
     Log.green(LOG_CATEGORIES.DebugYScaleTicks)(ticks);
     g.selectAll("line.horizontalGrid")
-      .data(config.yAxisScaleType.value() == "linear" ? ticks : ticks)
+      .data(config.yAxisScaleType.value() == "linear" ? ticks : allTicks)
       .enter()
       .append("line")
       .attr("class", "horizontal-grid")
@@ -591,7 +611,7 @@ export async function render(
     //.attr("stroke", styling.scales.line.stroke)
 
     g.selectAll("line.horizontal-grid-hover")
-      .data(config.yAxisScaleType.value() == "linear" ? ticks : yScale.ticks)
+      .data(config.yAxisScaleType.value() == "linear" ? ticks : allTicks)
       .enter()
       .append("line")
       .attr("class", "horizontal-grid-hover")
@@ -1164,7 +1184,9 @@ export async function render(
       animationSpeed,
       config
     );
-    Log.green(LOG_CATEGORIES.DebugBigData)("Box plot rendering took: " + (performance.now() - start) + " ms");
+    Log.green(LOG_CATEGORIES.DebugBigData)(
+      "Box plot rendering took: " + (performance.now() - start) + " ms"
+    );
   }
 
   /**
@@ -1369,7 +1391,9 @@ export async function render(
       selectionBoxX -= 12;
     }
 
-    Log.blue(LOG_CATEGORIES.DebugViolinIndividualScalesMarking)(d3.selectAll(".violin-path-markable"));
+    Log.blue(LOG_CATEGORIES.DebugViolinIndividualScalesMarking)(
+      d3.selectAll(".violin-path-markable")
+    );
 
     /**
      *

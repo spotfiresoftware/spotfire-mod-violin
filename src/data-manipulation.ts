@@ -324,7 +324,7 @@ export async function buildDataForTrellisPanel(
             {
               size: config.violinSmoothness.value(),
               bandwidth: bandwidth,
-              extent: config.violinLimitToExtents.value()
+              extent: config.violinLimitToExtents.value() || config.yAxisScaleType.value() == "symlog"
                 ? [categorySumStats.min, categorySumStats.max]
                 : null,
             }
