@@ -1,7 +1,6 @@
 // @ts-ignore
 import * as d3 from "d3";
 
-import log from "./logScale";
 import symlog from "./symLogScale";
 
 import {
@@ -501,7 +500,10 @@ export async function render(
     Log.blue(LOG_CATEGORIES.DebugCustomSymLog)("stats", sumStatsAsArray);
 
     // If domain is all positive, or all negative then we can use standard d3 log
-    if (plotData.yDataDomain.min > 0 || plotData.yDataDomain.min < 0 && plotData.yDataDomain.max < 0) {
+    if (
+      plotData.yDataDomain.min > 0 ||
+      (plotData.yDataDomain.min < 0 && plotData.yDataDomain.max < 0)
+    ) {
       yScale = d3
         .scaleLog()
         .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
@@ -511,11 +513,29 @@ export async function render(
       var sumStatsAsArray = [...plotData.sumStats.keys()].map((key: string) =>
         plotData.sumStats.get(key)
       );
+
+      const linearPortion = d3.mean(
+        sumStatsAsArray.map((r: SummaryStatistics) => {
+          const pow = Math.min(
+            Math.log10(Math.abs(r.max)),
+            Math.log10(Math.abs(r.min))
+          );
+          return Math.pow(10, pow);
+        })
+      );
+
       yScale = symlog()
         .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
         .range([heightAvailable - padding.betweenPlotAndTable, 0])
-        //.constant(1);
-        .constant(Math.min(d3.mean(sumStatsAsArray.map((r: SummaryStatistics) => r.slopeAtZero)), 1));        
+        .constant(Math.min(linearPortion, 1));
+      /*.constant(
+          Math.min(
+            d3.mean(
+              sumStatsAsArray.map((r: SummaryStatistics) => r.slopeAtZero)
+            ),
+            1
+          )
+        );*/
     }
   }
 
@@ -539,12 +559,25 @@ export async function render(
     allTicks = yScale.ticks();
     //allTicks = allTicks.concat(minZoom);
 
-    Log.green(LOG_CATEGORIES.DebugInnovativeLogticks)("ticks", allTicks.map((t:number) => config.FormatNumber(t)));
+    Log.green(LOG_CATEGORIES.DebugInnovativeLogticks)(
+      "ticks",
+      allTicks.map((t: number) => config.FormatNumber(t))
+    );
 
-    let minPower = allTicks[0] == 0 ? 0 : Math.sign(allTicks[0]) * Math.floor(Math.log10(Math.abs(allTicks[0])));
-    let maxPower = Math.floor(Math.log10(Math.abs(allTicks[allTicks.length - 1])));
+    let minPower =
+      allTicks[0] == 0
+        ? 0
+        : Math.sign(allTicks[0]) *
+          Math.floor(Math.log10(Math.abs(allTicks[0])));
+    let maxPower = Math.floor(
+      Math.log10(Math.abs(allTicks[allTicks.length - 1]))
+    );
 
-    Log.green(LOG_CATEGORIES.DebugInnovativeLogticks)("min, max", minPower, maxPower);
+    Log.green(LOG_CATEGORIES.DebugInnovativeLogticks)(
+      "min, max",
+      minPower,
+      maxPower
+    );
 
     if (minPower > maxPower) {
       const temp = minPower;
@@ -565,7 +598,7 @@ export async function render(
     // Positive
     for (let i = 0; i <= maxPower; i++) {
       powerLabels.push(config.FormatNumber(Math.pow(10, i)));
-    }    
+    }
   }
 
   Log.green(LOG_CATEGORIES.DebugInnovativeLogticks)("powerLabels", powerLabels);
@@ -743,13 +776,13 @@ export async function render(
         if (
           nextLabelText != undefined &&
           nextRectBottom >= thisRectTop //&&
-          //!(powers.includes(nextLabelText) || removePowers)          
+          //!(powers.includes(nextLabelText) || removePowers)
         ) {
           labelsClash = true;
           Log.red(LOG_CATEGORIES.InnovativeLogTicks)("Removing", nextLabelText);
           if (!powers.includes(nextLabelText) || removePowers) {
             d3.select(axisLabelRects[i + 1]?.SvgTextElement).remove();
-          }          
+          }
           break;
         }
       }
@@ -765,7 +798,7 @@ export async function render(
   // Guard against too many iterations of the algorithm to remove clashing labels
   let iterations = 0;
 
-  while ( 
+  while (
     (bottomUpLabelsClash || topDownLabelsClash) &&
     iterations < allTicks.length * 4
   ) {

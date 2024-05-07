@@ -13,25 +13,7 @@ function transformSymlog(c) {
        // console.log("Returning", Math.log(Math.abs(c)));
        //return 0; //Math.log(Math.abs(c));
     }
-
-    return Math.asinh(x / 0.5);
-
-
-    let y = x;
-
-    if (Math.abs(x) > 0.1) {
-        y = Math.sign(x) * Math.log(Math.abs(x));
-    }
-    
-    console.log("x,y", x, y);
-
-    /*console.log(
-      x,
-      Math.sign(x) *
-        Math.log(Math.abs(x / c), Math.sign(x) * Math.log1p(Math.abs(x / c)))
-    );*/
-    return y;
-    return Math.sign(x) * Math.log(1 + Math.abs(x / c));
+    return Math.asinh(x / c);
   };
 }
 
