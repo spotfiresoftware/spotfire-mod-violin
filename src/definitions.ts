@@ -43,6 +43,32 @@ export interface RowData {
     row: DataViewRow;
 }
 
+export interface SummaryStatistics {
+    trellis: string;
+      count: number;
+      avg: number;
+      sum: number;
+      stdDev: number;
+      //density: density;
+      q1: number;
+      median: number;
+      q3: number;
+      interQuartileRange: number;
+      min: number;
+      max: number;
+      uav: number;
+      lav: number;
+      lif: number;
+      uif: number;
+      outlierCount: number;
+      outlierPct: number;
+      lof: number;
+      uof: number;
+      confidenceIntervalLower: number;
+      confidenceIntervalUpper: number;
+      slopeAtZero: number;
+}
+
 export enum SumStatReferenceType {
     Point,
     Line

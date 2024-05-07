@@ -26,6 +26,7 @@ import {
   RowData,
   StatisticsConfig,
   SumStatsSettings,
+  SummaryStatistics,
 } from "./definitions";
 import { Log, LOG_CATEGORIES } from "./index";
 import { SumStatsConfig } from "./sumstatsconfig";
@@ -324,9 +325,11 @@ export async function buildDataForTrellisPanel(
             {
               size: config.violinSmoothness.value(),
               bandwidth: bandwidth,
-              extent: config.violinLimitToExtents.value() || config.yAxisScaleType.value() == "symlog"
-                ? [categorySumStats.min, categorySumStats.max]
-                : null,
+              extent:
+                config.violinLimitToExtents.value() ||
+                config.yAxisScaleType.value() == "symlog"
+                  ? [categorySumStats.min, categorySumStats.max]
+                  : null,
             }
           )
           .points()
@@ -334,7 +337,24 @@ export async function buildDataForTrellisPanel(
         .filter((p: any) => !isNaN(p.y))
         .sort((a: any, b: any) => d3.ascending(a.x, b.x));
 
-      Log.green(LOG_CATEGORIES.DebugYNaN)(densityPointsSorted);
+      Log.green(LOG_CATEGORIES.CalculateSlopeAtZero)(densityPointsSorted);
+
+      // Calculate the slope at closest value zero
+      // Closest value to zero      
+      const zeroCrossingValue = d3.min(
+        densityPointsSorted.map((p: any) => Math.abs(p.x))
+      );
+      const zeroCrossingIndex = densityPointsSorted.findIndex((p : any) => Math.abs(p.x) == zeroCrossingValue);
+      Log.blue(LOG_CATEGORIES.CalculateSlopeAtZero)(zeroCrossingValue, "Index", zeroCrossingIndex);
+
+      const slope =
+        (densityPointsSorted[zeroCrossingIndex + 1].x -
+          densityPointsSorted[zeroCrossingIndex].x) /
+        (densityPointsSorted[zeroCrossingIndex + 1].y -
+          densityPointsSorted[zeroCrossingIndex].y);   
+
+      sumStats.get(category).slopeAtZero = slope;
+      Log.blue(LOG_CATEGORIES.CalculateSlopeAtZero)("Slope", slope);
 
       // Now need a data structure where data points are grouped by marking
       const pointsGroupedByMarking = d3.rollup(
@@ -786,9 +806,9 @@ function buildSumStats(
   config: Partial<Options>,
   sortedRowDataGroupedByCat: Map<string, RowData[]>,
   trellisName: string
-) {
+): Map<string, SummaryStatistics> {
   const startTime = performance.now();
-  const sumstat: Map<string, any> = new Map();
+  const sumstat: Map<string, SummaryStatistics> = new Map();
 
   /**
    * Grouping data by the categories and calculating metrics for box plot
@@ -856,7 +876,7 @@ function buildSumStats(
     }
 
     // d3 Median, q1, q3 are slow with d3.quantile - with 5M records, switching to manual calculation
-    // (typically) halves overall time to calculate sumstats  
+    // (typically) halves overall time to calculate sumstats
     let q1: number;
     if (config.IsStatisticsConfigItemEnabled("Q1")) {
       q1 = quartile_r7(
@@ -872,7 +892,10 @@ function buildSumStats(
 
     let median: number;
     if (config.IsStatisticsConfigItemEnabled("Median")) {
-      median = count % 2 == 1? yValues[(count + 1) / 2 - 1]: d3.mean([yValues[(count / 2) - 1], yValues[(count / 2)]]);
+      median =
+        count % 2 == 1
+          ? yValues[(count + 1) / 2 - 1]
+          : d3.mean([yValues[count / 2 - 1], yValues[count / 2]]);
     }
 
     Log.blue(LOG_CATEGORIES.SumStatsPerformance)(
@@ -1005,7 +1028,8 @@ function buildSumStats(
       uof: uof,
       confidenceIntervalLower: confidenceIntervalLower,
       confidenceIntervalUpper: confidenceIntervalUpper,
-    } as any;
+      slopeAtZero: 0,
+    } as SummaryStatistics;
 
     Log.green(LOG_CATEGORIES.DebugBoxIssue)(stats);
 

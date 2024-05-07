@@ -35,6 +35,7 @@ import {
   SumStatsSettings,
   StatisticsConfig,
   TrellisZoomConfig,
+  SummaryStatistics,
 } from "./definitions";
 import { renderBoxplot } from "./render-box-plot";
 import { renderViolin } from "./render-violin-plot";
@@ -513,7 +514,8 @@ export async function render(
       yScale = symlog()
         .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
         .range([heightAvailable - padding.betweenPlotAndTable, 0])
-        .constant(Math.min(d3.mean(sumStatsAsArray.map((r: any) => r.lav)), 1));        
+        //.constant(1);
+        .constant(Math.min(d3.mean(sumStatsAsArray.map((r: SummaryStatistics) => r.slopeAtZero)), 1));        
     }
   }
 
@@ -765,7 +767,7 @@ export async function render(
 
   while ( 
     (bottomUpLabelsClash || topDownLabelsClash) &&
-    iterations < allTicks.length * 2
+    iterations < allTicks.length * 4
   ) {
     Log.red(LOG_CATEGORIES.DebugInnovativeLogticks)(
       "Iterating",
@@ -814,14 +816,14 @@ export async function render(
         axisLabelRects,
         powerLabels,
         true,
-        iterations > allTicks.length
+        iterations > allTicks.length * 2
       );
     } else {
       bottomUpLabelsClash = removeLabelClashes(
         axisLabelRects,
         powerLabels,
         false,
-        iterations > allTicks.length
+        iterations > allTicks.length * 2
       );
     }
 

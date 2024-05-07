@@ -10,13 +10,27 @@ function transformSymlog(c) {
     // Because it works with small numbers and doesn't give rise to
     // errors
     if (x == 0) {
-      return 0;
+       // console.log("Returning", Math.log(Math.abs(c)));
+       //return 0; //Math.log(Math.abs(c));
     }
+
+    return Math.asinh(x / 0.5);
+
+
+    let y = x;
+
+    if (Math.abs(x) > 0.1) {
+        y = Math.sign(x) * Math.log(Math.abs(x));
+    }
+    
+    console.log("x,y", x, y);
+
     /*console.log(
       x,
       Math.sign(x) *
         Math.log(Math.abs(x / c), Math.sign(x) * Math.log1p(Math.abs(x / c)))
     );*/
+    return y;
     return Math.sign(x) * Math.log(1 + Math.abs(x / c));
   };
 }
@@ -74,54 +88,60 @@ export default function symlog() {
     let max = d[d.length - 1];
     const r = max < min;
 
-    //if (r) [u, v] = [v, u];
+    //if (r) [min, max] = [max, min];
 
-    let i = Math.sign(min) * Math.log10(Math.abs(min));
-    let j = Math.sign(max) * Math.log10(Math.abs(max));
+    // We have an issue here - Math.log10(Math.abs(min) is negative - this is the power
+    // - we need to iterate over these
+    console.log("Math.log10(Math.abs(min))", Math.log10(Math.abs(min)));
+
+    let i = Math.log10(Math.abs(min));
+    let j = Math.log10(Math.abs(max));
     let k;
     let t;
     const n = count == null ? 10 : +count;
     let z = [];
-    
+
     // Just add the minimum
     z.push(min);
 
-    //console.log("n, r, min, max", n, r, min, max);
-    //console.log("i, j", i, j, j - i, !(base % 1) && j - i < n);
+    console.log("n, r, min, max", n, r, min, max);
+    console.log("i, j", i, j, j - i, !(base % 1) && j - i < n);
 
     (i = Math.floor(i)), (j = Math.ceil(j));
 
     // Negative values
     for (; i <= 0; ++i) {
       for (k = -base; k < 0; ++k) {
-        t = k * Math.pow(base, Math.abs(i));
-        //console.log("i, j, k, t", i, j, k, t, !z.includes(t) && t < min);
+        t = k * Math.pow(base, i);
+        console.log("i, j, k, t", i, j, k, t, !z.includes(t) && t < min, t < min);
         if (t < min) continue;
-        if (t > max) break;        
-        if (!z.includes(t)) {        
+        if (t > max) break;
+        if (!z.includes(t)) {
+          console.log("pushing");
           z.push(t);
         }
       }
     }
-    // console.log("positive");
+    console.log("positive");
     // Positive values
     for (i = 0; i < j; ++i) {
       for (k = 0; k < base; ++k) {
         t = k * Math.pow(base, i);
-        //console.log("i, j, k, t", i, j, k, t, !z.includes(t) && t < min);
+        console.log("i, j, k, t", i, j, k, t, !z.includes(t) && t < min);
         if (t < min) continue;
         if (t > max) break;
         if (!z.includes(t)) {
+            console.log("pushing");
           z.push(t);
         }
       }
     }
     // Check under which conditions this occurs
     if (z.length * 2 < n) {
-        console.log("!!!WARNING: using fallback ticks mechanism!!!!")
-        z = ticks(min, max, n);
+      console.log("!!!WARNING: using fallback ticks mechanism!!!!");
+      //z = ticks(min, max, n);
     }
-    z.sort((a, b) => a - b)
+    z.sort((a, b) => a - b);
     return z;
   };
 
