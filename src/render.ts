@@ -1,7 +1,7 @@
 // @ts-ignore
 import * as d3 from "d3";
 
-import symlog from "./symLogScale";
+import { scaleAsinh } from "./asinhScale";
 
 import {
   Size,
@@ -216,7 +216,7 @@ export async function render(
     bottom: isTrellis ? 40 : 15,
     left: calculatedLeftMargin,
   };
-  const padding = { violinX: 20, betweenPlotAndTable: 5 };
+  const padding = { violinX: 20, betweenPlotAndTable: 20 };
   const width = containerSize.width - margin.left;
   const height = containerSize.height;
 
@@ -492,15 +492,12 @@ export async function render(
 
   // Symmetrical log
   if (config.yAxisScaleType.value() == "symlog") {
-    Log.red(LOG_CATEGORIES.DebugCustomSymLog)("blah", [
-      ...plotData.sumStats.keys(),
-    ]);
-
+    
     // Log.blue(LOG_CATEGORIES.DebugCustomSymLog)("stats", ...plotData.sumStats.values());
     Log.blue(LOG_CATEGORIES.DebugCustomSymLog)("stats", sumStatsAsArray);
 
     // If domain is all positive, or all negative then we can use standard d3 log
-    if (
+    if ( false &&
       plotData.yDataDomain.min > 0 ||
       (plotData.yDataDomain.min < 0 && plotData.yDataDomain.max < 0)
     ) {
@@ -524,18 +521,12 @@ export async function render(
         })
       );
 
-      yScale = symlog()
+      Log.red(LOG_CATEGORIES.AsinhScale)("LinearPortion", linearPortion);
+
+      yScale = scaleAsinh()
         .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
         .range([heightAvailable - padding.betweenPlotAndTable, 0])
-        .constant(Math.min(linearPortion, 1));
-      /*.constant(
-          Math.min(
-            d3.mean(
-              sumStatsAsArray.map((r: SummaryStatistics) => r.slopeAtZero)
-            ),
-            1
-          )
-        );*/
+        .linearPortion(Math.min(linearPortion, 1));
     }
   }
 
@@ -800,7 +791,7 @@ export async function render(
 
   while (
     (bottomUpLabelsClash || topDownLabelsClash) &&
-    iterations < allTicks.length * 4
+    iterations < allTicks.length * 6
   ) {
     Log.red(LOG_CATEGORIES.DebugInnovativeLogticks)(
       "Iterating",
@@ -849,14 +840,14 @@ export async function render(
         axisLabelRects,
         powerLabels,
         true,
-        iterations > allTicks.length * 2
+        iterations > allTicks.length * 3
       );
     } else {
       bottomUpLabelsClash = removeLabelClashes(
         axisLabelRects,
         powerLabels,
         false,
-        iterations > allTicks.length * 2
+        iterations > allTicks.length * 3
       );
     }
 
@@ -878,15 +869,16 @@ export async function render(
 
   //Log.green(LOG_CATEGORIES.InnovativeLogTicks)("boundingBoxes",  boundingBoxes);
 
+  console.log(yScale);
   /**
    * Zoom slider
    */
-  const verticalSlider = sliderLeft()
-    .min(plotData.yDataDomain.min)
-    .max(plotData.yDataDomain.max)
-    .height(heightAvailable - padding.betweenPlotAndTable - 30)
-    .step((plotData.yDataDomain.max - plotData.yDataDomain.min) / yAxis.ticks())
-    .ticks(1)
+  const verticalSlider = sliderLeft(yScale.copy().domain([plotData.yDataDomain.min, plotData.yDataDomain.max]))
+    //.min(plotData.yDataDomain.min)
+    //.max(plotData.yDataDomain.max)
+    //.height(heightAvailable - padding.betweenPlotAndTable - 30)
+    //.step((plotData.yDataDomain.max - plotData.yDataDomain.min) / yAxis.ticks())
+    //.ticks(1)
     .default([minZoom, maxZoom])
     .on("end ", (val: any) => {
       state.disableAnimation = true;
@@ -1000,7 +992,7 @@ export async function render(
     sliderSvg
       .append("g")
       .attr("class", "vertical-zoom-slider")
-      .attr("transform", "translate(10, " + margin.top + ")")
+      .attr("transform", "translate(10, " + (margin.top / 2) + ")")
       .call(verticalSlider);
   } else if (config.showZoomSliders.value() && !isTrellisWithIndividualYscale) {
     // Show global zoom slider - zoom sliders are enabled, and a single y scale is selected
@@ -1234,6 +1226,7 @@ export async function render(
       xScale,
       yScale,
       height,
+      margin,
       g,
       tooltip,
       xAxisSpotfire,

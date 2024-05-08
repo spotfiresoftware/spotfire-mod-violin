@@ -101,8 +101,12 @@ export function renderBoxplot(
           : 0
       )
       .attr("width", Math.max(linesWidth / 2, 4))
-      .attr("stroke", (d: any) => getContrastingColor(styling.generalStylingInfo.backgroundColor))
-      .attr("fill", (d: any) => getContrastingColor(styling.generalStylingInfo.backgroundColor))
+      .attr("stroke", (d: any) =>
+        getContrastingColor(styling.generalStylingInfo.backgroundColor)
+      )
+      .attr("fill", (d: any) =>
+        getContrastingColor(styling.generalStylingInfo.backgroundColor)
+      )
       .style("opacity", config.boxOpacity)
       .classed("not-marked", (d: any) => notMarked(d))
       .on("mouseover", function (event: d3.event, d: any) {
@@ -160,7 +164,7 @@ export function renderBoxplot(
       Log.green(LOG_CATEGORIES.DebugBigData)("d for Q3 to UAV", d);
       return yScale(d.uav) as number;
     })
-    .attr("height", (d: any) => {console.log(yScale.domain(), d.q3, d.uav, yScale(d.q3), yScale(d.uav)); return yScale(d.q3) - yScale(d.uav);})
+    .attr("height", (d: any) => yScale(d.q3) - yScale(d.uav))
     .attr("width", linesWidth)
     .attr("stroke", (d: any) => getBoxBorderColor(d.color))
     .attr("fill", (d: any) => d.color)
