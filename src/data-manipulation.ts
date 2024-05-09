@@ -316,6 +316,15 @@ export async function buildDataForTrellisPanel(
 
       Log.green(LOG_CATEGORIES.InnovativeLogTicks)("bandWidth", bandwidth);
 
+      Log.blue(LOG_CATEGORIES.DebugLatestMarking)(
+        "RowData",
+        categoryRowData.map((d: RowData) => d.y)
+      );
+      Log.blue(LOG_CATEGORIES.DebugLatestMarking)(
+        "RowData",
+        categorySumStats.min,
+        categorySumStats.max
+      );
       // Calculate the densities - note - in the result, x is the y axis in the plot; y is the width of the violin at
       // that point.
       let densityPointsSorted = Array.from(
@@ -338,8 +347,6 @@ export async function buildDataForTrellisPanel(
         .sort((a: any, b: any) => d3.ascending(a.x, b.x)) as [
         { x: number; y: number }
       ];
-
-      Log.green(LOG_CATEGORIES.AsinhScale)(densityPointsSorted);
 
       // Calculate the slope at closest value zero
       // Closest value to zero - not currently used, but kept for reference in case it's needed
@@ -373,10 +380,13 @@ export async function buildDataForTrellisPanel(
         d3.max(rowsGroupedByMarking.keys())
       );
 
+      Log.blue(LOG_CATEGORIES.DebugLatestMarking)(
+        "densityPointsSorted",
+        densityPointsSorted
+      );
+
       // Thresholds is the thresholds of each block (group) of marked/unmarked data
       const thresholds: any = [];
-      let prevMin = densityPointsSorted[0].x;
-      let prevMax = prevMin;
 
       let currentPointIndex = 0;
 
@@ -384,41 +394,65 @@ export async function buildDataForTrellisPanel(
         const rows = rowsGroupedByMarking.get(i);
 
         Log.blue(LOG_CATEGORIES.DebugLatestMarking)(
+          "i",
+          i,
           "rows",
           rows,
-          rows.length,
-          rows.length > 0
+          "max",
+          d3.max(rows.map((d: RowData) => d.y))
         );
-        const min = d3.min(rows.map((d: RowData) => d.y));
-        const max = d3.max(rows.map((d: RowData) => d.y));
 
-        const points = densityPointsSorted.filter(
-          (p: any) => p.x >= min && p.x <= max
+        // are there always rows? I think so...
+        const points = densityPointsSorted.filter((p: any) =>
+          i == 0
+            ? p.x <= rows[rows.length - 1].y
+            : p.x >= rows[0].y && p.x <= rows[rows.length - 1].y
         );
+
+        Log.blue(LOG_CATEGORIES.DebugLatestMarking)("filtered points", points);
+
+        
+        // Make sure we have an even number of points
+        if (
+          points.length % 2 == 1 &&
+          currentPointIndex < densityPointsSorted.length - 2
+        ) {
+          //Log.blue(LOG_CATEGORIES.DebugLatestMarking)("Adding extra point to make even");
+          //points.push(points[points.length - 1]);
+        }
+
+        if (points.length == 1) {
+          let point = densityPointsSorted.find((p: any) => p.x > rows[0].y);
+          points.push({ x: rows[rows.length - 1].y, y: point.y });
+        }
+
+        if (points.length == 0) {
+          // Just find a reasonable point to use
+          let point = densityPointsSorted.find((p: any) => p.x > rows[0].y);
+          points.push({ x: rows[0].y, y: point.y });
+          points.push({ x: rows[rows.length - 1].y, y: point.y });
+          Log.red(LOG_CATEGORIES.DebugLatestMarking)("Added points", points);
+        }
+
+        Log.blue(LOG_CATEGORIES.DebugLatestMarking)("points", points);
 
         const pointsLength = points.length;
 
-        const threshold: any = {
-          min: d3.min(rows.map((d: RowData) => d.y)),
-          max: d3.max(rows.map((d: RowData) => d.y)),
-          marked: rows.some((d: RowData) => d.Marked),
-          rows: rows,
-          densityPoints: densityPointsSorted.filter(
-            (p: any) => p.x >= min && p.x <= max
-          ),
-        };
+        Log.green(LOG_CATEGORIES.DebugLatestMarking)(
+          "currentPointIndex",
+          currentPointIndex,
+          "pointsLength",
+          pointsLength
+        );
 
-        thresholds.push(threshold);
+        if (pointsLength > 0) {
+          const min = points[0].x;
+          const max = points[pointsLength - 1].x;
 
-        if (prevMax < min) {
-          const gapPoints = densityPointsSorted.slice(
-            currentPointIndex - 1,
-            pointsLength
-          );
-          const gapPointsLength = gapPoints.length;
           densitiesSplitByMarking.push({
-            min: prevMax,
-            max: min,
+            i: i,
+            min: min,
+            max: max,
             category: category,
             color: config.useFixedViolinColor.value()
               ? config.violinColor.value()
@@ -426,253 +460,65 @@ export async function buildDataForTrellisPanel(
                   .get(category)
                   .find((r: RowData) => r.y > min)?.Color,
             trellis: trellisNode.formattedPath(),
-            densityPoints: gapPoints,
-            pointsLength: gapPointsLength,
-            Marked: false,
-            IsGap: true,
-            count: 0,
+            densityPoints: points,
+            Marked: rows.some((d: RowData) => d.Marked),
+            rows: rows,
+            IsGap: rows.length == 0,
+            count: rows.length,
+            type: "notgap",
           });
-        }
-
-        densitiesSplitByMarking.push({
-          min: min,
-          max: max,
-          category: category,
-          color: config.useFixedViolinColor.value()
-            ? config.violinColor.value()
-            : sortedRowDataGroupedByCat
-                .get(category)
-                .find((r: RowData) => r.y > min)?.Color,
-          trellis: trellisNode.formattedPath(),
-          densityPoints: densityPointsSorted.filter(
-            (p: any) => p.x >= min && p.x <= max
-          ),
-          Marked: rows.some((d: RowData) => d.Marked),
-          rows: rows,
-          IsGap: rows.length == 0,
-          count: rows.length,
-        });
-        if (pointsLength > 0) {
-          prevMin = points[0].x;
-          prevMax = points[points.length - 1].x;
-          currentPointIndex += pointsLength;
         }
       }
 
       Log.blue(LOG_CATEGORIES.DebugLatestMarking)(
+        "densitiesSplitByMarking before gaps",
+        densitiesSplitByMarking
+      );
+
+      // Now fill in the gaps
+      let prevMax = densityPointsSorted[0].x;
+
+      const densitiesSplitByMarkingLength = densitiesSplitByMarking.length;
+
+      for (let i = 0; i < densitiesSplitByMarkingLength; i++) {
+        const currentDensities = densitiesSplitByMarking[i];
+        const gapPoints = densityPointsSorted.filter(
+          (p: any) => p.x >= prevMax && p.x <= currentDensities.min
+        );
+        Log.green(LOG_CATEGORIES.DebugLatestMarking)("i", i, "length", densitiesSplitByMarkingLength, "gapPoints", gapPoints);
+        if (gapPoints.length > 0) {
+          densitiesSplitByMarking.push({
+            i: i + 100,
+            min: gapPoints[0].x,
+            max: gapPoints[gapPoints.length - 1].x,
+            category: category,
+            color: config.useFixedViolinColor.value()
+              ? config.violinColor.value()
+              : sortedRowDataGroupedByCat
+                  .get(category)
+                  .find((r: RowData) => r.y > gapPoints[0].x)?.Color,
+            trellis: trellisNode.formattedPath(),
+            densityPoints: gapPoints,
+            pointsLength: gapPoints.length,
+            Marked: false,
+            IsGap: true,
+            count: 0,
+            type: "gap",
+          });
+          prevMax = gapPoints[gapPoints.length - 1].x;
+        }
+      }
+
+      /*Log.blue(LOG_CATEGORIES.DebugLatestMarking)(
         "densityPointsSorted x values",
         densityPointsSorted.map((p: any) => p.x)
-      );
+      );*/
 
       densitiesAll.push({
         category: category,
         trellis: trellisNode.formattedPath(),
         densityPoints: densityPointsSorted,
       });
-
-      Log.green(LOG_CATEGORIES.DebugLatestMarking)(
-        "densityPoints",
-        densityPointsSorted.map((p: any) => p.x),
-        densityPointsSorted.map((p: any) => p.y)
-      );
-
-      Log.green(LOG_CATEGORIES.DebugLatestMarking)(
-        "thresholds",
-        category,
-        thresholds,
-        minY
-      );
-      if (false) {
-        thresholds.forEach((threshold: any) => {
-          let min = threshold.min;
-          let max = threshold.max;
-
-          if (min == max) {
-            // The threshold covers a single row of data
-            // Adjust the thresholds slightly so we capture some marked stuff
-            const adjustmentFactor = (maxY - minY) / 200;
-            Log.red(LOG_CATEGORIES.DebugSingleRowMarking)(
-              "adjustmentFactor",
-              adjustmentFactor
-            );
-            min = min - adjustmentFactor;
-            max = max + adjustmentFactor;
-          }
-
-          const filteredPoints = isAnyMarkedRowsInThisCategory
-            ? densityPointsSorted.filter((p: any) => p.x >= min && p.x <= max)
-            : densityPointsSorted;
-
-          Log.green(LOG_CATEGORIES.DebugLatestMarking)(
-            "threshold min, max",
-            min,
-            max,
-            "filteredPoints",
-            filteredPoints
-          );
-
-          if (filteredPoints.length > 0) {
-            // if (i == thresholds.length - 1) {
-            //     // Extend the density points to cover to the extent of the marked/not marked data - to thresholds
-            //     // that matches the y value of the marked data.
-
-            //     const firstItem =
-            //     {
-            //         x: threshold.min,
-            //         y: (points[0] as any).y
-            //     };
-            //     points = [firstItem, ...points]; // prepend the first item
-
-            //     points.push(
-            //         {
-            //             category: threshold.max,
-            //             y: (points[points.length - 1] as any).y
-            //         }
-            //     )
-            // }
-
-            Log.green(LOG_CATEGORIES.Stats)(
-              "augmented, filtered points",
-              filteredPoints
-            );
-
-            maxKdeValue = Math.max(
-              maxKdeValue,
-              d3.max(filteredPoints.map((p: any) => p.y))
-            );
-
-            densitiesSplitByMarking.push({
-              min: d3.min(filteredPoints.map((p: any) => p.x)),
-              max: d3.max(filteredPoints.map((p: any) => p.x)),
-              category: category,
-              color: config.useFixedViolinColor.value()
-                ? config.violinColor.value()
-                : sortedRowDataGroupedByCat
-                    .get(category)
-                    .find((r: RowData) => r.y > min)?.Color,
-              trellis: trellisNode.formattedPath(),
-              densityPoints: filteredPoints,
-              Marked: threshold.marked,
-              IsGap: false,
-              count: sortedRowDataGroupedByCat
-                .get(category)
-                .filter((d: any) => {
-                  return d.y >= threshold.min && d.y <= threshold.max;
-                }).length,
-            });
-            Log.blue(LOG_CATEGORIES.DebugLogYAxis)(
-              "densitiesSplitByMarking",
-              densitiesSplitByMarking
-            );
-          }
-        });
-      }
-
-      // Now fill in the "gaps", where there are no data points for parts of the violin
-      if (false && isAnyMarkedRowsInThisCategory) {
-        // bottom (min):
-        Log.red(LOG_CATEGORIES.DebugLatestMarking)(
-          "min density",
-          d3.min(
-            densitiesSplitByMarking.map((d: any) =>
-              d3.min(d.densityPoints.map((p2: any) => p2.x))
-            )
-          )
-        );
-        // Find the first point that's just greater than thresholds[0].min
-        const minDensity = d3.min(
-          densitiesSplitByMarking.map((d: any) => d3.min(d.densityPoints))
-        );
-        const maxIndex =
-          Math.min(
-            densityPointsSorted.findIndex((p: any) => p.x > minDensity),
-            densityPointsSorted.length - 1
-          ) + 1;
-
-        const gapPoints = densityPointsSorted.filter(
-          (p: any, i: number) => i < maxIndex
-        );
-
-        Log.red(LOG_CATEGORIES.DebugLatestMarking)("gapPoints", gapPoints);
-
-        if (gapPoints.length > 0) {
-          densitiesSplitByMarking.push({
-            category: category,
-            trellis: trellisNode.formattedPath(),
-            densityPoints: gapPoints,
-            Marked: false,
-            IsGap: true,
-          });
-          Log.red(LOG_CATEGORIES.DebugLatestMarking)(
-            "pushed",
-            densitiesSplitByMarking[densitiesSplitByMarking.length - 1]
-          );
-        }
-
-        thresholds.forEach((threshold: any, i: number) => {
-          const densityPointsReversed =
-            Array.from(densityPointsSorted).reverse();
-
-          // Get index of densityPoint that's just greater than min of next threshold
-          let maxIndex = Math.min(
-            densityPointsSorted.findIndex(
-              (p: any) => p.x > thresholds[i + 1]?.min
-            ),
-            densityPointsSorted.length - 1
-          );
-
-          //Log.blue(LOG_CATEGORIES.DebugLogYAxis)(
-          //  "thresholds maxIndex", maxIndex, densityPointsSorted);
-
-          if (maxIndex == undefined) {
-            maxIndex = (densityPointsSorted.length - 1) as number;
-          }
-
-          // Get index of densityPoint that's just less than max of this threshold
-          const maxDensity = d3.max(
-            densitiesSplitByMarking.map((d: any) => d3.max(d.densityPoints))
-          );
-          const minIndex =
-            densityPointsSorted.length -
-            densityPointsReversed.findIndex((p: any) => p.x < maxDensity) -
-            1;
-
-          const gapPoints = densityPointsSorted.filter(
-            (p: any, i: number) => i >= minIndex && i <= maxIndex //p.x >= threshold.max && p.x <= thresholds[i + 1]?.min
-          );
-
-          densitiesSplitByMarking.push({
-            category: category,
-            trellis: trellisNode.formattedPath(),
-            densityPoints: gapPoints,
-            Marked: false,
-            IsGap: true,
-          });
-
-          Log.blue(LOG_CATEGORIES.DebugLogYAxis)(
-            "Adding from thresholds",
-            minIndex,
-            maxIndex,
-            threshold.max,
-            thresholds[i + 1]?.min,
-            densityPointsSorted[minIndex],
-            densityPointsSorted[maxIndex],
-            gapPoints,
-            densityPointsSorted
-          );
-        });
-
-        // top (max):
-        densitiesSplitByMarking.push({
-          category: category,
-          trellis: trellisNode.formattedPath(),
-          densityPoints: densityPointsSorted.filter(
-            (p: any) => p.x > thresholds[thresholds.length - 1].max
-          ),
-          Marked: false,
-          IsGap: true,
-        });
-      }
     }
   }
 
@@ -804,7 +650,7 @@ export async function buildDataForTrellisPanel(
       )
     );
 
-    // Adjust min/max to include the full extents of the violin data
+    // Adjust min/max y scale to include the full extents of the violin data
     Array.from(densitiesAll.values())
       .map((d: any) => d.densityPoints)
       .forEach((element) => {
@@ -822,10 +668,7 @@ export async function buildDataForTrellisPanel(
 
   Log.green(LOG_CATEGORIES.DebugLogYAxis)("minY, maxY", minY, maxY);
 
-  Log.blue(LOG_CATEGORIES.DebugLatestMarking)(
-    "densitiesSplitByMarking",
-    densitiesSplitByMarking
-  );
+
 
   return {
     clearMarking: () => {

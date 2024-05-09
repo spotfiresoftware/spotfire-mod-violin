@@ -88,7 +88,7 @@ export function renderViolin(
     // Segments for the violin - marked/unmarked
     g.selectAll(".violin-path-" + violinIndex)
       // This is all violins that will be displayed, including category
-      .data(densitiesSplitByMarking)
+      .data(densitiesSplitByMarking.sort((a:any, b:any) => b.IsGap - a.IsGap))
       .enter()
       .append("g")
       .attr("transform", function (d: any) {
@@ -136,7 +136,7 @@ export function renderViolin(
             count: d.count,
           };
         });
-        Log.green(LOG_CATEGORIES.DebugYNaN)("datum", datum);
+        Log.green(LOG_CATEGORIES.DebugLatestMarking)("datum", datum);
         return datum.sort(
           (a: any, b: any) =>
             a.violinY - b.violinY || yScale(a.violinY) - yScale(b.violinY)
@@ -173,6 +173,8 @@ export function renderViolin(
                 ? xAxisSpotfire.parts[0]?.displayName + ": "
                 : "") +
               d[0].category +
+              "i:" +
+              d.i +
               "\nY min: " +
               d3.min(d.map((p: any) => config.FormatNumber(p.violinY))) +
               "\nY max: " +
@@ -250,9 +252,9 @@ export function renderViolin(
               "\nDensity: " +
               d3.format(".2e")(violinXscale.invert(event.x)) +
               "\nMin: " +
-              config.FormatNumber(d[0].sumStats.min) +
+              d3.min(d.map((p: any) => config.FormatNumber(p.violinY))) +
               "\nMax: " +
-              config.FormatNumber(d[0].sumStats.max) +
+              d3.max(d.map((p: any) => config.FormatNumber(p.violinY))) +
               "\nUAV: " +
               config.FormatNumber(d[0].sumStats.uav) +
               "\nQ3: " +
