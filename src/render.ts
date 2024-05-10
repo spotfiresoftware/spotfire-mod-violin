@@ -134,7 +134,7 @@ export async function render(
     styling.generalStylingInfo.backgroundColor
   );
 
-   // IMPORTANT - use these to determine if is individual zoom slider!
+  // IMPORTANT - use these to determine if is individual zoom slider!
   // - it's so easy to forget to check both conditions and get into a nasty mess...
   const isTrellisWithIndividualZoom =
     isTrellis &&
@@ -149,8 +149,6 @@ export async function render(
     .append("svg")
     .attr("xmlns", "http://www.w3.org/2000/svg")
     .attr("classed", "main-svg-container");
-
-  //svg.attr("transform", "rotate(90 0 0)");
 
   const patternSize = 2;
 
@@ -924,15 +922,6 @@ export async function render(
     );
   }
 
-  /*each((tick:any) => {
-    const t = tick.append('text');
-    Log.red(LOG_CATEGORIES.InnovativeLogTicks)("tick", d3.select(tick));
-    //boundingBoxes.push(t.node().getBBox()); //.getBBox());
-  })*/
-
-  //Log.green(LOG_CATEGORIES.InnovativeLogTicks)("boundingBoxes",  boundingBoxes);
-
-  console.log(yScale);
   /**
    * Zoom slider
    */

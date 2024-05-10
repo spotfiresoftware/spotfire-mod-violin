@@ -359,7 +359,7 @@ export async function buildDataForTrellisPanel(
      
       // Now need a data structure where data points are grouped by marking
       const rowsGroupedByMarking = d3.rollup(
-        categoryRowData,
+        sortedRowDataGroupedByCat.get(category),
         (d: any) => d,
         (d: any) => d.markingGroupId
       );
@@ -412,8 +412,11 @@ export async function buildDataForTrellisPanel(
         }
 
         if (points.length == 1) {
+          // Add another point to make sure we can repesent an enclosed area
           let point = densityPointsSorted.find((p: any) => p.x > rows[0].y);
-          points.push({ x: rows[rows.length - 1].y, y: point.y });
+          if (point) {
+            points.push({ x: rows[rows.length - 1].y, y: point.y });
+          }
         }
 
         if (points.length == 0) {
