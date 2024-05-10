@@ -17,6 +17,7 @@ import {
   LOG_CATEGORIES,
   Log,
   GenerateRoundedRectSvg,
+  getContrastingColor,
 } from "./index";
 
 // @ts-ignore
@@ -133,7 +134,7 @@ export async function render(
     styling.generalStylingInfo.backgroundColor
   );
 
-  // IMPORTANT - use these to determine if is individual zoom slider!
+   // IMPORTANT - use these to determine if is individual zoom slider!
   // - it's so easy to forget to check both conditions and get into a nasty mess...
   const isTrellisWithIndividualZoom =
     isTrellis &&
@@ -149,9 +150,11 @@ export async function render(
     .attr("xmlns", "http://www.w3.org/2000/svg")
     .attr("classed", "main-svg-container");
 
+  //svg.attr("transform", "rotate(90 0 0)");
+
   const patternSize = 2;
 
-  const pattern = svg
+  const noDataPattern = svg
     .append("pattern")
     .attr("id", "no-data")
     .attr("x", 1)
@@ -159,20 +162,49 @@ export async function render(
     .attr("width", patternSize * 2)
     .attr("height", patternSize * 2)
     .attr("patternUnits", "userSpaceOnUse");
-  pattern
+  noDataPattern
     .append("rect")
     .attr("x", 0)
     .attr("y", 0)
     .attr("width", patternSize)
     .attr("height", patternSize)
-    .style("fill", "darkgray");
-  pattern
+    .style(
+      "fill",
+      getContrastingColor(styling.generalStylingInfo.backgroundColor)
+    );
+  noDataPattern
     .append("rect")
     .attr("x", patternSize)
     .attr("y", patternSize)
     .attr("width", patternSize)
     .attr("height", patternSize)
-    .style("fill", "darkgray");
+    .style(
+      "fill",
+      getContrastingColor(styling.generalStylingInfo.backgroundColor)
+    );
+
+  const linearPortionPattern = svg
+    .append("pattern")
+    .attr("id", "linear-portion")
+    .attr("x", 1)
+    .attr("y", 1)
+    .attr("width", patternSize * 2)
+    .attr("height", patternSize * 2)
+    .attr("patternUnits", "userSpaceOnUse");
+  linearPortionPattern
+    .append("rect")
+    .attr("x", 0)
+    .attr("y", 0)
+    .attr("width", patternSize)
+    .attr("height", patternSize)
+    .style("fill", "red");
+  linearPortionPattern
+    .append("rect")
+    .attr("x", patternSize)
+    .attr("y", patternSize)
+    .attr("width", patternSize)
+    .attr("height", patternSize)
+    .style("fill", "red");
 
   // const animationSpeed = state.disableAnimation ? 0 : 500;
   const animationSpeed = 0; // consider doing something more clever with animation in v2.0?
@@ -490,15 +522,30 @@ export async function render(
   let ticks: number[];
   let allTicks: number[];
 
+  var sumStatsAsArray = [...plotData.sumStats.keys()].map((key: string) =>
+    plotData.sumStats.get(key)
+  );
+  // linear portion of the symlog scale
+  const linearPortion = d3.mean(
+    sumStatsAsArray.map((r: SummaryStatistics) => {
+      Log.red(LOG_CATEGORIES.AsinhScale)(
+        "ZeroCrossingValue",
+        r.zeroCrossingValue
+      );
+      const pow = Math.log10(Math.abs(r.zeroCrossingValue));
+      Log.red(LOG_CATEGORIES.AsinhScale)("Pow", pow);
+      return Math.pow(10, pow);
+    })
+  );
+
   // Symmetrical log
   if (config.yAxisScaleType.value() == "symlog") {
-    
     // Log.blue(LOG_CATEGORIES.DebugCustomSymLog)("stats", ...plotData.sumStats.values());
     Log.blue(LOG_CATEGORIES.DebugCustomSymLog)("stats", sumStatsAsArray);
 
     // If domain is all positive, or all negative then we can use standard d3 log
-    if ( false &&
-      plotData.yDataDomain.min > 0 ||
+    if (
+      (false && plotData.yDataDomain.min > 0) ||
       (plotData.yDataDomain.min < 0 && plotData.yDataDomain.max < 0)
     ) {
       yScale = d3
@@ -506,21 +553,6 @@ export async function render(
         .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
         .range([heightAvailable - padding.betweenPlotAndTable, 0]);
     } else {
-      // We use the symlog with min(q1, 1) as the constant (slope at 0)
-      var sumStatsAsArray = [...plotData.sumStats.keys()].map((key: string) =>
-        plotData.sumStats.get(key)
-      );
-
-      const linearPortion = d3.mean(
-        sumStatsAsArray.map((r: SummaryStatistics) => {
-          const pow = Math.min(
-            Math.log10(Math.abs(r.max)),
-            Math.log10(Math.abs(r.min))
-          );
-          return Math.pow(10, pow);
-        })
-      );
-
       Log.red(LOG_CATEGORIES.AsinhScale)("LinearPortion", linearPortion);
 
       yScale = scaleAsinh()
@@ -669,6 +701,37 @@ export async function render(
     .on("drag", () => {
       Log.green(LOG_CATEGORIES.Rendering)("drag");
     });
+
+  // Symmetrical log - indicate the linear portion
+  if (config.yAxisScaleType.value() == "symlog") {
+    g.append("line")
+      .style("stroke", "url(#linear-portion)")
+      .style("stroke-width", 10)
+      .attr("x1", 0)
+      .attr("x2", 0)
+      .attr(
+        "y1",
+        yScale(
+          plotData.yDataDomain.min < 0
+            ? -1 * linearPortion
+            : plotData.yDataDomain.min
+        )
+      )
+      .attr("y2", yScale(linearPortion))
+      .on("mousemove", () => {
+        tooltip.show(
+          "Linear portion:\n" +
+            config.FormatNumber(
+              plotData.yDataDomain.min < 0
+                ? -1 * linearPortion
+                : plotData.yDataDomain.min
+            ) +
+            " to: " +
+            config.FormatNumber(linearPortion)
+        );
+      })
+      .on("mouseout", () => tooltip.hide());
+  }
 
   Log.green(LOG_CATEGORIES.Rendering)(
     "slider",
@@ -873,7 +936,9 @@ export async function render(
   /**
    * Zoom slider
    */
-  const verticalSlider = sliderLeft(yScale.copy().domain([plotData.yDataDomain.min, plotData.yDataDomain.max]))
+  const verticalSlider = sliderLeft(
+    yScale.copy().domain([plotData.yDataDomain.min, plotData.yDataDomain.max])
+  )
     //.min(plotData.yDataDomain.min)
     //.max(plotData.yDataDomain.max)
     //.height(heightAvailable - padding.betweenPlotAndTable - 30)
@@ -992,7 +1057,7 @@ export async function render(
     sliderSvg
       .append("g")
       .attr("class", "vertical-zoom-slider")
-      .attr("transform", "translate(10, " + (margin.top / 2) + ")")
+      .attr("transform", "translate(10, " + margin.top / 2 + ")")
       .call(verticalSlider);
   } else if (config.showZoomSliders.value() && !isTrellisWithIndividualYscale) {
     // Show global zoom slider - zoom sliders are enabled, and a single y scale is selected

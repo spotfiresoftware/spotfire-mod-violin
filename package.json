@@ -15,6 +15,7 @@
     "devDependencies": {
         "@tibco/spotfire-mods-dev-server": "^1.0.0",
         "@types/bootstrap": "^5.2.6",
+        "@types/d3-array": "^3.2.1",
         "@types/jest": "^28.1.4",
         "@types/node": "^16.18.11",
         "@uwdata/kde": "^0.0.2",
@@ -47,9 +48,9 @@
         "d3-lasso": "0.0.5",
         "d3-selection": "^3.0.0",
         "d3-simple-slider": "^2.0.0",
+        "glob-parent": "^5.1.2",
         "lib-r-math.js": "^1.0.89",
         "style-loader": "^3.3.1",
-        "glob-parent": "^5.1.2",
         "ts-transformer-keys": "^0.4.3"
     }
 }

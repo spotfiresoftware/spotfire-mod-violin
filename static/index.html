@@ -86,15 +86,20 @@
       <div class="warning-info-text">
         <p class="warning-info-para">
           The symmetrical log y axis is Experimental. The statistical measures
-          for the box Plot and the Violin are calculated on the raw data, and
-          displayed on a symmetrical log Y axis. Log10(y &lt;= 0) is undefined,
-          so this axis is reflected around y = 0, in order that negative y
-          values can be displayed. Where y = 0, a slope value of 1 is set
-          (imagine a line chart where the slope is 1), in order that the y-axis
-          can be continuous. You can
-          <a class="warning-info-para" href="">dismiss this warning</a>, or
-          leave it here. It will return if you change the y-axis from linear to
-          log.
+          for the box Plot and the Violin are calculated on the raw data,
+          including positive and negative values. Log10(y &lt;= 0) is undefined,
+          so if the domain of the data crosses zero, this axis is reflected
+          around y = 0, in order that both positive and negative y values can be
+          displayed.<br />
+          The axis transformation used is y = asinh(x + linearPortion).<br />
+          The linearPortion is defined as a small portion of the axis that is
+          linear both sides of zero. It is calculated based on the domain of the
+          data and is always less than 1.<br />
+          Asinh behaves logarithmically for values |x| | 1 while it is linear in
+          the interval −1 < x < 1. <br />
+          You may <a class="warning-info-para" href="">dismiss this warning</a>,
+          or leave it here. It will return if you change the y-axis from linear
+          to symmetrical log.
         </p>
       </div>
     </div>

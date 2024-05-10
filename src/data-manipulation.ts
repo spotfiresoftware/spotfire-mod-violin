@@ -351,22 +351,12 @@ export async function buildDataForTrellisPanel(
       // Calculate the slope at closest value zero
       // Closest value to zero - not currently used, but kept for reference in case it's needed
       // in future
-      /*const zeroCrossingValue = d3.min(
-        densityPointsSorted.map((p: any) => Math.abs(p.x))
+      const zeroCrossingValue = d3.min(
+        rowData.filter((r:RowData) => r.y != 0).map((r: RowData) => Math.abs(r.y))
       );
-      const zeroCrossingIndex = densityPointsSorted.findIndex((p : any) => Math.abs(p.x) == zeroCrossingValue);
-      Log.blue(LOG_CATEGORIES.CalculateSlopeAtZero)(zeroCrossingValue, "Index", zeroCrossingIndex);
-
-      const slope =
-        (densityPointsSorted[zeroCrossingIndex + 1].x -
-          densityPointsSorted[zeroCrossingIndex].x) /
-        (densityPointsSorted[zeroCrossingIndex + 1].y -
-          densityPointsSorted[zeroCrossingIndex].y);   
-
-      sumStats.get(category).slopeAtZero = slope;
-      Log.blue(LOG_CATEGORIES.CalculateSlopeAtZero)("Slope", slope);
-      */
-
+     
+      sumStats.get(category).zeroCrossingValue = zeroCrossingValue;
+     
       // Now need a data structure where data points are grouped by marking
       const rowsGroupedByMarking = d3.rollup(
         categoryRowData,
@@ -986,7 +976,7 @@ function buildSumStats(
       uof: uof,
       confidenceIntervalLower: confidenceIntervalLower,
       confidenceIntervalUpper: confidenceIntervalUpper,
-      slopeAtZero: 0,
+      zeroCrossingValue: 0,
     } as SummaryStatistics;
 
     Log.green(LOG_CATEGORIES.DebugBoxIssue)(stats);

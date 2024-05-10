@@ -192,23 +192,13 @@ export function renderViolin(
               : "") +
               d[0].category +
               "\ny: " +
-              config.FormatNumber(yScale.invert(event.y)) +
+              config.FormatNumber(yScale.invert(event.y - margin.top)) +
               "\nDensity: " +
               config.FormatNumber(violinXscale.invert(event.x)) +
-              "\nMin: " +
-              config.FormatNumber(d[0].sumStats.min) +
-              "\nMax: " +
-              config.FormatNumber(d[0].sumStats.max) +
-              "\nUAV: " +
-              config.FormatNumber(d[0].sumStats.uav) +
-              "\nQ3: " +
-              config.FormatNumber(d[0].sumStats.q3) +
-              "\nMedian: " +
-              config.FormatNumber(d[0].sumStats.median) +
-              "\nQ1: " +
-              config.FormatNumber(d[0].sumStats.q1) +
-              "\nLAV: " +
-              config.FormatNumber(d[0].sumStats.lav) +
+              "\nY min: " +
+              d3.min(d.map((p: any) => config.FormatNumber(p.violinY))) +
+              "\nY max: " +
+              d3.max(d.map((p: any) => config.FormatNumber(p.violinY))) +
               "\nCount: " +
               d[0].count
           );
@@ -246,25 +236,13 @@ export function renderViolin(
               : "") +
               d[0].category +
               "\ny: " +
-              config.FormatNumber(yScale.invert(event.y - margin.top)) +
-              "\nyScale: " +
-              config.FormatNumber(yScale(yScale.invert(event.y - margin.top))) +
+              config.FormatNumber(yScale.invert(event.y - margin.top)) +              
               "\nDensity: " +
               d3.format(".2e")(violinXscale.invert(event.x)) +
-              "\nMin: " +
+              "\nY min: " +
               d3.min(d.map((p: any) => config.FormatNumber(p.violinY))) +
-              "\nMax: " +
-              d3.max(d.map((p: any) => config.FormatNumber(p.violinY))) +
-              "\nUAV: " +
-              config.FormatNumber(d[0].sumStats.uav) +
-              "\nQ3: " +
-              config.FormatNumber(d[0].sumStats.q3) +
-              "\nMedian: " +
-              config.FormatNumber(d[0].sumStats.median) +
-              "\nQ1: " +
-              config.FormatNumber(d[0].sumStats.q1) +
-              "\nLAV: " +
-              config.FormatNumber(d[0].sumStats.lav) +
+              "\nY max: " +
+              d3.max(d.map((p: any) => config.FormatNumber(p.violinY))) +              
               "\nCount: " +
               d[0].count
           );

@@ -66,7 +66,7 @@ export interface SummaryStatistics {
       uof: number;
       confidenceIntervalLower: number;
       confidenceIntervalUpper: number;
-      slopeAtZero: number;
+      zeroCrossingValue: number;
 }
 
 export enum SumStatReferenceType {
