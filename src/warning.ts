@@ -1,4 +1,10 @@
-import { Axis, FontInfo, ModProperty } from "spotfire-api";
+/*
+* Copyright © 2024. Cloud Software Group, Inc.
+* This file is subject to the license terms contained
+* in the license file that is distributed with this file.
+*/
+
+import { FontInfo, ModProperty } from "spotfire-api";
 import { getContrastingColor } from "./index";
 
 /**

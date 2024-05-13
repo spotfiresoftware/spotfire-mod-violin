@@ -278,6 +278,14 @@ export async function buildDataForTrellisPanel(
 
   Log.blue(LOG_CATEGORIES.DebugLogYAxis)("minY, maxY", minY, maxY);
 
+  function getClosestDensityPoint(densityPoints: any, yValue: number) {
+    return densityPoints.find(
+      (p: any, i: number) =>
+        i === densityPoints.length - 1 ||
+        Math.abs(yValue - p.x) < Math.abs(yValue - densityPoints[i + 1].x)
+    );
+  }
+
   const densitiesSplitByMarking: any = [];
 
   // Calculate densities if violin is enabled
@@ -348,15 +356,15 @@ export async function buildDataForTrellisPanel(
         { x: number; y: number }
       ];
 
-      // Calculate the slope at closest value zero
-      // Closest value to zero - not currently used, but kept for reference in case it's needed
-      // in future
+      // Closest value to zero
       const zeroCrossingValue = d3.min(
-        rowData.filter((r:RowData) => r.y != 0).map((r: RowData) => Math.abs(r.y))
+        rowData
+          .filter((r: RowData) => r.y != 0)
+          .map((r: RowData) => Math.abs(r.y))
       );
-     
+
       sumStats.get(category).zeroCrossingValue = zeroCrossingValue;
-     
+
       // Now need a data structure where data points are grouped by marking
       const rowsGroupedByMarking = d3.rollup(
         sortedRowDataGroupedByCat.get(category),
@@ -381,7 +389,7 @@ export async function buildDataForTrellisPanel(
       let currentPointIndex = 0;
 
       for (let i = 0; i <= d3.max(rowsGroupedByMarking.keys()); i++) {
-        const rows = rowsGroupedByMarking.get(i);
+        const rows = rowsGroupedByMarking.get(i) as RowData[];
 
         Log.blue(LOG_CATEGORIES.DebugLatestMarking)(
           "i",
@@ -392,6 +400,22 @@ export async function buildDataForTrellisPanel(
           d3.max(rows.map((d: RowData) => d.y))
         );
 
+        const minClosestDensity = getClosestDensityPoint(
+          densityPointsSorted,
+          rows[0].y
+        );
+        const maxClosestDensity = getClosestDensityPoint(
+          densityPointsSorted,
+          rows[rows.length - 1].y
+        );
+
+        Log.red(LOG_CATEGORIES.DebugLatestMarking)(
+          "y",
+          rows[0].y,
+          "minClosestDensity",
+          minClosestDensity
+        );
+
         // are there always rows? I think so...
         const points = densityPointsSorted.filter((p: any) =>
           i == 0
@@ -399,33 +423,8 @@ export async function buildDataForTrellisPanel(
             : p.x >= rows[0].y && p.x <= rows[rows.length - 1].y
         );
 
-        Log.blue(LOG_CATEGORIES.DebugLatestMarking)("filtered points", points);
-
-        
-        // Make sure we have an even number of points
-        if (
-          points.length % 2 == 1 &&
-          currentPointIndex < densityPointsSorted.length - 2
-        ) {
-          //Log.blue(LOG_CATEGORIES.DebugLatestMarking)("Adding extra point to make even");
-          //points.push(points[points.length - 1]);
-        }
-
-        if (points.length == 1) {
-          // Add another point to make sure we can repesent an enclosed area
-          let point = densityPointsSorted.find((p: any) => p.x > rows[0].y);
-          if (point) {
-            points.push({ x: rows[rows.length - 1].y, y: point.y });
-          }
-        }
-
-        if (points.length == 0) {
-          // Just find a reasonable point to use
-          let point = densityPointsSorted.find((p: any) => p.x > rows[0].y);
-          points.push({ x: rows[0].y, y: point.y });
-          points.push({ x: rows[rows.length - 1].y, y: point.y });
-          Log.red(LOG_CATEGORIES.DebugLatestMarking)("Added points", points);
-        }
+        points.unshift({ x: rows[0].y, y: minClosestDensity.y });
+        points.push({ x: rows[rows.length - 1].y, y: maxClosestDensity.y });
 
         Log.blue(LOG_CATEGORIES.DebugLatestMarking)("points", points);
 
@@ -439,8 +438,11 @@ export async function buildDataForTrellisPanel(
         );
 
         if (pointsLength > 0) {
-          const min = points[0].x;
-          const max = points[pointsLength - 1].x;
+          // At this point, min and max will be the same as for the rows
+          const min = points[0].y;
+          const max = points[points.length - 1].y;
+
+          const marked = rows.some((d: RowData) => d.Marked);
 
           densitiesSplitByMarking.push({
             i: i,
@@ -451,10 +453,12 @@ export async function buildDataForTrellisPanel(
               ? config.violinColor.value()
               : sortedRowDataGroupedByCat
                   .get(category)
-                  .find((r: RowData) => r.y > min)?.Color,
+                  .find((r: RowData) =>
+                    marked ? r.Marked : !r.Marked
+                  )?.Color,
             trellis: trellisNode.formattedPath(),
             densityPoints: points,
-            Marked: rows.some((d: RowData) => d.Marked),
+            Marked: marked,
             rows: rows,
             IsGap: rows.length == 0,
             count: rows.length,
@@ -473,12 +477,31 @@ export async function buildDataForTrellisPanel(
 
       const densitiesSplitByMarkingLength = densitiesSplitByMarking.length;
 
-      for (let i = 0; i < densitiesSplitByMarkingLength; i++) {
+      for (let i = 0; i < densitiesSplitByMarkingLength - 1; i++) {
         const currentDensities = densitiesSplitByMarking[i];
+        const nextDensities = densitiesSplitByMarking[i + 1];
+
+        const minPoint =
+          currentDensities.densityPoints[
+            currentDensities.densityPoints.length - 1
+          ];
+        const maxPoint = nextDensities.densityPoints[0];
+
         const gapPoints = densityPointsSorted.filter(
           (p: any) => p.x >= prevMax && p.x <= currentDensities.min
         );
-        Log.green(LOG_CATEGORIES.DebugLatestMarking)("i", i, "length", densitiesSplitByMarkingLength, "gapPoints", gapPoints);
+
+        gapPoints.unshift(minPoint);
+        gapPoints.push(maxPoint);
+
+        Log.green(LOG_CATEGORIES.DebugLatestMarking)(
+          "i",
+          i,
+          "length",
+          densitiesSplitByMarkingLength,
+          "gapPoints",
+          gapPoints
+        );
         if (gapPoints.length > 0) {
           densitiesSplitByMarking.push({
             i: i + 100,
@@ -501,11 +524,6 @@ export async function buildDataForTrellisPanel(
           prevMax = gapPoints[gapPoints.length - 1].x;
         }
       }
-
-      /*Log.blue(LOG_CATEGORIES.DebugLatestMarking)(
-        "densityPointsSorted x values",
-        densityPointsSorted.map((p: any) => p.x)
-      );*/
 
       densitiesAll.push({
         category: category,
@@ -660,8 +678,6 @@ export async function buildDataForTrellisPanel(
   }
 
   Log.green(LOG_CATEGORIES.DebugLogYAxis)("minY, maxY", minY, maxY);
-
-
 
   return {
     clearMarking: () => {

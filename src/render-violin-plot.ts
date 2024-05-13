@@ -1,6 +1,6 @@
 // @ts-ignore
 import * as d3 from "d3";
-import { Data, Options, RenderState } from "./definitions";
+import { Data, Options, RenderState, RowData } from "./definitions";
 import { LOG_CATEGORIES, Log, getBoxBorderColor } from "./index";
 import { Tooltip, DataViewRow, GeneralStylingInfo } from "spotfire-api";
 import {
@@ -127,6 +127,7 @@ export function renderViolin(
         // ... so swap them round
         const datum = d.densityPoints.map(function (point: any) {
           return {
+            rows: d.rows,
             isGap: d.IsGap,
             violinX: point.y,
             violinY: point.x,
@@ -273,7 +274,7 @@ export function renderViolin(
         );
       })
       .on("click", (event: MouseEvent, d: any) => {
-        Log.green(LOG_CATEGORIES.DebugLogYAxis)("clicked violin", d);
+        Log.green(LOG_CATEGORIES.DebugLatestMarking)("clicked violin", d[0].rows);
         if (d[0].isGap || d[1].isGap) return; // Don't attempt to do anything if the user clicks a gap!
         const dataPoints = plotData.rowData.filter((r: any) => {
           if (d[0].category == "(None)") return true;
@@ -282,7 +283,7 @@ export function renderViolin(
         state.disableAnimation = true;
 
         plotData.mark(
-          dataPoints.map((r: any) => r.row) as DataViewRow[],
+          d[0].rows.map((r:RowData) => r.row) as DataViewRow[],
           event.ctrlKey ? "ToggleOrAdd" : "Replace"
         );
       });
