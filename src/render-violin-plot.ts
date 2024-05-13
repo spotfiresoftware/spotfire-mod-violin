@@ -176,9 +176,9 @@ export function renderViolin(
               "i:" +
               d.i +
               "\nY min: " +
-              d3.min(d.map((p: any) => config.FormatNumber(p.violinY))) +
+              config.FormatNumber(d3.min(d.map((p: any) => p.violinY))) +
               "\nY max: " +
-              d3.max(d.map((p: any) => config.FormatNumber(p.violinY)))
+              config.FormatNumber(d3.max(d.map((p: any) => p.violinY)))
           );
         } else {
           Log.green(LOG_CATEGORIES.DebugLatestMarking)(
@@ -196,9 +196,9 @@ export function renderViolin(
               "\nDensity: " +
               config.FormatNumber(violinXscale.invert(event.x)) +
               "\nY min: " +
-              d3.min(d.map((p: any) => config.FormatNumber(p.violinY))) +
+              config.FormatNumber(d3.min(d.map((p: any) => p.violinY))) +
               "\nY max: " +
-              d3.max(d.map((p: any) => config.FormatNumber(p.violinY))) +
+              config.FormatNumber(d3.max(d.map((p: any) => p.violinY))) +
               "\nCount: " +
               d[0].count
           );
@@ -225,9 +225,9 @@ export function renderViolin(
                 : "") +
               d[0].category +
               "\nY min: " +
-              d3.min(d.map((p: any) => config.FormatNumber(p.violinY))) +
+              config.FormatNumber(d3.min(d.map((p: any) => p.violinY))) +
               "\nY max: " +
-              d3.max(d.map((p: any) => config.FormatNumber(p.violinY)))
+              config.FormatNumber(d3.max(d.map((p: any) => p.violinY)))
           );
         } else {
           tooltip.show(
@@ -240,9 +240,9 @@ export function renderViolin(
               "\nDensity: " +
               d3.format(".2e")(violinXscale.invert(event.x)) +
               "\nY min: " +
-              d3.min(d.map((p: any) => config.FormatNumber(p.violinY))) +
+              config.FormatNumber(d3.min(d.map((p: any) => p.violinY))) +
               "\nY max: " +
-              d3.max(d.map((p: any) => config.FormatNumber(p.violinY))) +              
+              config.FormatNumber(d3.max(d.map((p: any) => p.violinY))) +              
               "\nCount: " +
               d[0].count
           );
