@@ -72,7 +72,7 @@ export interface SummaryStatistics {
       uof: number;
       confidenceIntervalLower: number;
       confidenceIntervalUpper: number;
-      zeroCrossingValue: number;
+      closestValueToZero: number;
 }
 
 export enum SumStatReferenceType {
@@ -109,7 +109,7 @@ export interface Data {
     clearMarking(): void;
     rowData: RowData[];
     rowDataGroupedByCat: Map<any, any>;
-    densitiesSplitByMarking: any[];
+    densitiesSplitByMarkingAndCategory: any[];
     densitiesAll: any[];
     sumStats: Map<any, any>;
     categories: string[];

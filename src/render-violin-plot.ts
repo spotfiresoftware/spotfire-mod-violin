@@ -43,14 +43,14 @@ export function renderViolin(
   );
   Log.green(LOG_CATEGORIES.ViolinIndividualScales)(
     "plotData.densitiesSplitByMarking",
-    plotData.densitiesSplitByMarking
+    plotData.densitiesSplitByMarkingAndCategory
   );
 
   orderedCategories.forEach((category: string, violinIndex: number) => {
     const densitiesAll = plotData.densitiesAll.filter(
       (d: any) => d.category == category
     );
-    const densitiesSplitByMarking = plotData.densitiesSplitByMarking.filter(
+    const densitiesSplitByMarking = plotData.densitiesSplitByMarkingAndCategory.filter(
       (d: any) => d.category == category
     );
     Log.green(LOG_CATEGORIES.ViolinIndividualScales)(

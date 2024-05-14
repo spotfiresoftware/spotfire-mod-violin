@@ -1,8 +1,8 @@
 /*
-* Copyright © 2024. Cloud Software Group, Inc.
-* This file is subject to the license terms contained
-* in the license file that is distributed with this file.
-*/
+ * Copyright © 2024. Cloud Software Group, Inc.
+ * This file is subject to the license terms contained
+ * in the license file that is distributed with this file.
+ */
 
 // @ts-ignore
 import * as d3 from "d3";
@@ -530,16 +530,19 @@ export async function render(
     plotData.sumStats.get(key)
   );
   // linear portion of the symlog scale
-  const linearPortion = d3.mean(
-    sumStatsAsArray.map((r: SummaryStatistics) => {
-      Log.red(LOG_CATEGORIES.AsinhScale)(
-        "ZeroCrossingValue",
-        r.zeroCrossingValue
-      );
-      const pow = Math.log10(Math.abs(r.zeroCrossingValue));
-      Log.red(LOG_CATEGORIES.AsinhScale)("Pow", pow);
-      return Math.pow(10, pow);
-    })
+  const linearPortion = Math.min(
+    1,
+    d3.mean(
+      sumStatsAsArray.map((r: SummaryStatistics) => {
+        Log.red(LOG_CATEGORIES.AsinhScale)(
+          "ZeroCrossingValue",
+          r.closestValueToZero
+        );
+        const pow = Math.log10(Math.abs(r.closestValueToZero));
+        Log.red(LOG_CATEGORIES.AsinhScale)("Pow", pow);
+        return Math.pow(10, pow);
+      })
+    )
   );
 
   // Symmetrical log
@@ -707,7 +710,11 @@ export async function render(
     });
 
   // Symmetrical log - indicate the linear portion
-  if (config.yAxisScaleType.value() == "symlog") {
+  if (
+    config.yAxisScaleType.value() == "symlog" &&
+    plotData.yDataDomain.min <= 0 &&
+    plotData.yDataDomain.max > 0
+  ) {
     g.append("line")
       .style("stroke", "url(#linear-portion)")
       .style("stroke-width", 10)
@@ -716,12 +723,19 @@ export async function render(
       .attr(
         "y1",
         yScale(
-          plotData.yDataDomain.min < 0
+          plotData.yDataDomain.min < -1 * linearPortion
             ? -1 * linearPortion
             : plotData.yDataDomain.min
         )
       )
-      .attr("y2", yScale(linearPortion))
+      .attr(
+        "y2",
+        yScale(
+          plotData.yDataDomain.max > linearPortion
+            ? linearPortion
+            : plotData.yDataDomain.max
+        )
+      )
       .on("mousemove", () => {
         tooltip.show(
           "Linear portion:\n" +

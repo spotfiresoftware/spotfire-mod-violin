@@ -292,25 +292,25 @@ export async function buildDataForTrellisPanel(
     );
   }
 
-  const densitiesSplitByMarking: any = [];
+  const densitiesSplitByMarkingAndCategory: any = [];
 
   // Calculate densities if violin is enabled
   if (config.includeViolin.value()) {
     // Group the data manually into bins of marked/not marked
-    for (let [category, categoryRowData] of sortedRowDataGroupedByCat) {
+    for (let [category, sortedCategoryRowData] of sortedRowDataGroupedByCat) {
       // Are there any marked rows (in this category?)
-      const isAnyMarkedRowsInThisCategory = categoryRowData.some(
+      const isAnyMarkedRowsInThisCategory = sortedCategoryRowData.some(
         (r: RowData) => r.Marked
       );
 
       if (config.yAxisScaleType.value() == "log") {
-        categoryRowData = categoryRowData.filter((r: RowData) => r.y > 0);
+        sortedCategoryRowData = sortedCategoryRowData.filter((r: RowData) => r.y > 0);
       }
 
       let markingGroupId = 0;
 
-      let previousRow = categoryRowData[0];
-      categoryRowData.forEach((row: RowData) => {
+      let previousRow = sortedCategoryRowData[0];
+      sortedCategoryRowData.forEach((row: RowData) => {
         if (row.Marked != previousRow.Marked) {
           markingGroupId++;
         }
@@ -332,7 +332,7 @@ export async function buildDataForTrellisPanel(
 
       Log.blue(LOG_CATEGORIES.DebugLatestMarking)(
         "RowData",
-        categoryRowData.map((d: RowData) => d.y)
+        sortedCategoryRowData.map((d: RowData) => d.y)
       );
       Log.blue(LOG_CATEGORIES.DebugLatestMarking)(
         "RowData",
@@ -344,7 +344,7 @@ export async function buildDataForTrellisPanel(
       let densityPointsSorted = Array.from(
         kde_pkg
           .density1d(
-            categoryRowData.map((d: RowData) => d.y),
+            sortedCategoryRowData.map((d: RowData) => d.y),
             {
               size: config.violinSmoothness.value(),
               bandwidth: bandwidth,
@@ -361,15 +361,19 @@ export async function buildDataForTrellisPanel(
         .sort((a: any, b: any) => d3.ascending(a.x, b.x)) as [
         { x: number; y: number }
       ];
+      
+      function getClosestValueToZero(rows: RowData[]) {
+        return Math.abs(rows.find(
+          (r: RowData, i: number) =>  {                   
+            return i === rows.length - 1 ||
+            Math.abs(r.y) < Math.abs(rows[i + 1].y) && r.y != 0;}
+        ).y);
+      }
 
-      // Closest value to zero
-      const zeroCrossingValue = d3.min(
-        rowData
-          .filter((r: RowData) => r.y != 0)
-          .map((r: RowData) => Math.abs(r.y))
-      );
+      // Closest value to zero      
+      const closestValueToZero = getClosestValueToZero(sortedCategoryRowData);
 
-      sumStats.get(category).zeroCrossingValue = zeroCrossingValue;
+      sumStats.get(category).closestValueToZero = closestValueToZero;
 
       // Now need a data structure where data points are grouped by marking
       const rowsGroupedByMarking = d3.rollup(
@@ -388,11 +392,6 @@ export async function buildDataForTrellisPanel(
         "densityPointsSorted",
         densityPointsSorted
       );
-
-      // Thresholds is the thresholds of each block (group) of marked/unmarked data
-      const thresholds: any = [];
-
-      let currentPointIndex = 0;
 
       for (let i = 0; i <= d3.max(rowsGroupedByMarking.keys()); i++) {
         const rows = rowsGroupedByMarking.get(i) as RowData[];
@@ -436,13 +435,6 @@ export async function buildDataForTrellisPanel(
 
         const pointsLength = points.length;
 
-        Log.green(LOG_CATEGORIES.DebugLatestMarking)(
-          "currentPointIndex",
-          currentPointIndex,
-          "pointsLength",
-          pointsLength
-        );
-
         if (pointsLength > 0) {
           // At this point, min and max will be the same as for the rows
           const min = points[0].y;
@@ -450,7 +442,7 @@ export async function buildDataForTrellisPanel(
 
           const marked = rows.some((d: RowData) => d.Marked);
 
-          densitiesSplitByMarking.push({
+          densitiesSplitByMarkingAndCategory.push({
             i: i,
             min: min,
             max: max,
@@ -471,30 +463,34 @@ export async function buildDataForTrellisPanel(
             type: "notgap",
           });
         }
-      }
+      } // End of iteration over marking groups
 
       Log.blue(LOG_CATEGORIES.DebugLatestMarking)(
-        "densitiesSplitByMarking before gaps",
-        densitiesSplitByMarking
+        "densitiesSplitByMarkingAndCategory before gaps",
+        densitiesSplitByMarkingAndCategory
       );
 
       // Now fill in the gaps
       let prevMax = densityPointsSorted[0].x;
+      
+      // Filter to just this category
+      const categoryDensitiesSplitByMarking = densitiesSplitByMarkingAndCategory.filter((d:any) => d.category == category);
 
-      const densitiesSplitByMarkingLength = densitiesSplitByMarking.length;
+      for (let i = 0; i < categoryDensitiesSplitByMarking.length - 1; i++) {
+        const currentDensities = categoryDensitiesSplitByMarking[i];
+        const nextDensities = categoryDensitiesSplitByMarking[i + 1];
 
-      for (let i = 0; i < densitiesSplitByMarkingLength - 1; i++) {
-        const currentDensities = densitiesSplitByMarking[i];
-        const nextDensities = densitiesSplitByMarking[i + 1];
-
+        // Min of the gap is the max of the current
         const minPoint =
           currentDensities.densityPoints[
             currentDensities.densityPoints.length - 1
           ];
+        
+        // Max of the gap is the min of next
         const maxPoint = nextDensities.densityPoints[0];
 
         const gapPoints = densityPointsSorted.filter(
-          (p: any) => p.x >= prevMax && p.x <= currentDensities.min
+          (p: any) => p.x >= minPoint.x && p.x <= maxPoint.x
         );
 
         gapPoints.unshift(minPoint);
@@ -504,12 +500,12 @@ export async function buildDataForTrellisPanel(
           "i",
           i,
           "length",
-          densitiesSplitByMarkingLength,
+          categoryDensitiesSplitByMarking.length,
           "gapPoints",
           gapPoints
         );
         if (gapPoints.length > 0) {
-          densitiesSplitByMarking.push({
+          densitiesSplitByMarkingAndCategory.push({
             i: i + 100,
             min: gapPoints[0].x,
             max: gapPoints[gapPoints.length - 1].x,
@@ -536,7 +532,7 @@ export async function buildDataForTrellisPanel(
         trellis: trellisNode.formattedPath(),
         densityPoints: densityPointsSorted,
       });
-    }
+    } // end of iterating over categories
   }
 
   // calculations for Tukey Kramer comparison circles
@@ -660,9 +656,9 @@ export async function buildDataForTrellisPanel(
     Log.green(LOG_CATEGORIES.DebugLatestMarking)("maxKdeValue", maxKdeValue);
 
     Log.blue(LOG_CATEGORIES.DebugLatestMarking)(
-      "densitiesSplitByMarking",
-      densitiesSplitByMarking,
-      ...Array.from(densitiesSplitByMarking.values()).map(
+      "densitiesSplitByMarkingAndCategory",
+      densitiesSplitByMarkingAndCategory,
+      ...Array.from(densitiesSplitByMarkingAndCategory.values()).map(
         (d: any) => d.densityPoints
       )
     );
@@ -696,7 +692,7 @@ export async function buildDataForTrellisPanel(
     },
     xScale: categories,
     rowData: rowData,
-    densitiesSplitByMarking: densitiesSplitByMarking,
+    densitiesSplitByMarkingAndCategory: densitiesSplitByMarkingAndCategory,
     densitiesAll: densitiesAll,
     rowDataGroupedByCat: sortedRowDataGroupedByCat,
     sumStats: sumStats,
@@ -1001,7 +997,7 @@ function buildSumStats(
       uof: uof,
       confidenceIntervalLower: confidenceIntervalLower,
       confidenceIntervalUpper: confidenceIntervalUpper,
-      zeroCrossingValue: 0,
+      closestValueToZero: 0,
     } as SummaryStatistics;
 
     Log.green(LOG_CATEGORIES.DebugBoxIssue)(stats);

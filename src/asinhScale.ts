@@ -55,11 +55,6 @@ export function scaleAsinh() {
     let max = d[d.length - 1];
     const r = max < min;
 
-    //if (r) [min, max] = [max, min];
-
-    // We have an issue here - Math.log10(Math.abs(min) is negative - this is the power
-    // - we need to iterate over these
-
     let powMin = Math.log10(Math.abs(min));
     let powMax = Math.log10(Math.abs(max));
     let k;
@@ -68,8 +63,8 @@ export function scaleAsinh() {
     let z = [];
 
     // Make sure we cover the max and min
-    z.push(Math.sign(min) * Math.pow(10, (Math.log10(Math.abs(min)))));
-    z.push(Math.sign(max) * Math.pow(10, (Math.ceil(Math.log10(Math.abs(max))))));
+    z.push(min);
+    z.push(max);
 
     Log.green(LOG_CATEGORIES.AsinhScale)("n, r, min, max", n, r, min, max);
 
