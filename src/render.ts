@@ -1,5 +1,13 @@
+/*
+ * Copyright © 2024. Cloud Software Group, Inc.
+ * This file is subject to the license terms contained
+ * in the license file that is distributed with this file.
+ */
+
 // @ts-ignore
 import * as d3 from "d3";
+
+import { scaleAsinh } from "./asinhScale";
 
 import {
   Size,
@@ -15,6 +23,7 @@ import {
   LOG_CATEGORIES,
   Log,
   GenerateRoundedRectSvg,
+  getContrastingColor,
 } from "./index";
 
 // @ts-ignore
@@ -32,6 +41,7 @@ import {
   SumStatsSettings,
   StatisticsConfig,
   TrellisZoomConfig,
+  SummaryStatistics,
 } from "./definitions";
 import { renderBoxplot } from "./render-box-plot";
 import { renderViolin } from "./render-violin-plot";
@@ -148,7 +158,7 @@ export async function render(
 
   const patternSize = 2;
 
-  const pattern = svg
+  const noDataPattern = svg
     .append("pattern")
     .attr("id", "no-data")
     .attr("x", 1)
@@ -156,20 +166,49 @@ export async function render(
     .attr("width", patternSize * 2)
     .attr("height", patternSize * 2)
     .attr("patternUnits", "userSpaceOnUse");
-  pattern
+  noDataPattern
     .append("rect")
     .attr("x", 0)
     .attr("y", 0)
     .attr("width", patternSize)
     .attr("height", patternSize)
-    .style("fill", "darkgray")
-  pattern
+    .style(
+      "fill",
+      getContrastingColor(styling.generalStylingInfo.backgroundColor)
+    );
+  noDataPattern
     .append("rect")
     .attr("x", patternSize)
     .attr("y", patternSize)
     .attr("width", patternSize)
     .attr("height", patternSize)
-    .style("fill", "darkgray");
+    .style(
+      "fill",
+      getContrastingColor(styling.generalStylingInfo.backgroundColor)
+    );
+
+  const linearPortionPattern = svg
+    .append("pattern")
+    .attr("id", "linear-portion")
+    .attr("x", 1)
+    .attr("y", 1)
+    .attr("width", patternSize * 2)
+    .attr("height", patternSize * 2)
+    .attr("patternUnits", "userSpaceOnUse");
+  linearPortionPattern
+    .append("rect")
+    .attr("x", 0)
+    .attr("y", 0)
+    .attr("width", patternSize)
+    .attr("height", patternSize)
+    .style("fill", "red");
+  linearPortionPattern
+    .append("rect")
+    .attr("x", patternSize)
+    .attr("y", patternSize)
+    .attr("width", patternSize)
+    .attr("height", patternSize)
+    .style("fill", "red");
 
   // const animationSpeed = state.disableAnimation ? 0 : 500;
   const animationSpeed = 0; // consider doing something more clever with animation in v2.0?
@@ -213,7 +252,7 @@ export async function render(
     bottom: isTrellis ? 40 : 15,
     left: calculatedLeftMargin,
   };
-  const padding = { violinX: 20, betweenPlotAndTable: 5 };
+  const padding = { violinX: 20, betweenPlotAndTable: 20 };
   const width = containerSize.width - margin.left;
   const height = containerSize.height;
 
@@ -251,7 +290,9 @@ export async function render(
   let orderedCategories = plotData.categories;
   Log.red(LOG_CATEGORIES.DebugXaxisFiltering)(
     "orderedCategories before sort:",
-    orderedCategories, "trellis", trellisName
+    orderedCategories,
+    "trellis",
+    trellisName
   );
 
   let tempOrderedCategories: any = [];
@@ -280,7 +321,10 @@ export async function render(
       tempOrderedCategories.push({ key: i, value: el });
     });
 
-    Log.green(LOG_CATEGORIES.DebugXaxisFiltering)("tempOrderedCategories", tempOrderedCategories);
+    Log.green(LOG_CATEGORIES.DebugXaxisFiltering)(
+      "tempOrderedCategories",
+      tempOrderedCategories
+    );
 
     if (orderBySettings[1] == "ordered-right") {
       tempOrderedCategories = tempOrderedCategories.sort((a: any, b: any) =>
@@ -317,14 +361,14 @@ export async function render(
     }
 
     const allCategoriesCopy = [...orderedCategories];
-    orderedCategories = []; 
+    orderedCategories = [];
     tempOrderedCategories.forEach((el: any) => {
       orderedCategories.push(el.key);
     });
-    
+
     // Now copy across any categories missing from tempOrderedCategories
-    allCategoriesCopy.forEach(category => {
-      if (!orderedCategories.find((c:any) => c == category)) {
+    allCategoriesCopy.forEach((category) => {
+      if (!orderedCategories.find((c: any) => c == category)) {
         orderedCategories.push(category);
       }
     });
@@ -338,7 +382,9 @@ export async function render(
   // Draw x axis
   Log.red(LOG_CATEGORIES.DebugXaxisFiltering)(
     "orderedCategories before xScale:",
-    orderedCategories, "trellis", trellisName
+    orderedCategories,
+    "trellis",
+    trellisName
   );
   const xScale = d3
     .scaleBand()
@@ -480,25 +526,58 @@ export async function render(
   let ticks: number[];
   let allTicks: number[];
 
+  var sumStatsAsArray = [...plotData.sumStats.keys()].map((key: string) =>
+    plotData.sumStats.get(key)
+  );
+  // linear portion of the symlog scale
+  const linearPortion = Math.min(
+    1,
+    d3.mean(
+      sumStatsAsArray.map((r: SummaryStatistics) => {
+        Log.red(LOG_CATEGORIES.AsinhScale)(
+          "ZeroCrossingValue",
+          r.closestValueToZero
+        );
+        const pow = Math.log10(Math.abs(r.closestValueToZero));
+        Log.red(LOG_CATEGORIES.AsinhScale)("Pow", pow);
+        return Math.pow(10, pow);
+      })
+    )
+  );
+
   // Symmetrical log
   if (config.yAxisScaleType.value() == "symlog") {
-    yScale = d3
-      .scaleSymlog()
-      .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
-      .range([heightAvailable - padding.betweenPlotAndTable, 0])
-      .constant(1);
+    // Log.blue(LOG_CATEGORIES.DebugCustomSymLog)("stats", ...plotData.sumStats.values());
+    Log.blue(LOG_CATEGORIES.DebugCustomSymLog)("stats", sumStatsAsArray);
+
+    // If domain is all positive, or all negative then we can use standard d3 log
+    if (
+      (false && plotData.yDataDomain.min > 0) ||
+      (plotData.yDataDomain.min < 0 && plotData.yDataDomain.max < 0)
+    ) {
+      yScale = d3
+        .scaleLog()
+        .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
+        .range([heightAvailable - padding.betweenPlotAndTable, 0]);
+    } else {
+      Log.red(LOG_CATEGORIES.AsinhScale)("LinearPortion", linearPortion);
+
+      yScale = scaleAsinh()
+        .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
+        .range([heightAvailable - padding.betweenPlotAndTable, 0])
+        .linearPortion(Math.min(linearPortion, 1));
+    }
   }
 
   // Log
-  if (config.yAxisScaleType.value() == "log") {
-    yScale = d3
-      .scaleLog()
-      .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
-      .range([heightAvailable - padding.betweenPlotAndTable, 0]);
+  // if (config.yAxisScaleType.value() == "log") {
+  //  yScale = log()
+  //    .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
+  //    .range([heightAvailable - padding.betweenPlotAndTable, 0]);
 
-    // Add a warning to the chart
-    svg.append;
-  }
+  // Add a warning to the chart
+  //  svg.append;
+  //}
 
   // Keep track of the power labels so we can avoid hiding them later (for symlog scale)
   const powerLabels: string[] = [];
@@ -507,46 +586,52 @@ export async function render(
     config.yAxisScaleType.value() == "symlog" ||
     config.yAxisScaleType.value() == "log"
   ) {
-    let modulus =
-      20 - Math.floor((heightAvailable - padding.betweenPlotAndTable) / 40);
-    Log.blue(LOG_CATEGORIES.DebugYScaleTicks)(
-      "modulus",
-      modulus,
-      yScale.ticks()
+    allTicks = yScale.ticks();
+    //allTicks = allTicks.concat(minZoom);
+
+    Log.green(LOG_CATEGORIES.DebugInnovativeLogticks)(
+      "ticks",
+      allTicks.map((t: number) => config.FormatNumber(t))
     );
 
-    allTicks = yScale.ticks();
+    let minPower =
+      allTicks[0] == 0
+        ? 0
+        : Math.sign(allTicks[0]) *
+          Math.floor(Math.log10(Math.abs(allTicks[0])));
+    let maxPower = Math.floor(
+      Math.log10(Math.abs(allTicks[allTicks.length - 1]))
+    );
 
-    allTicks = allTicks.concat(minZoom);
+    Log.green(LOG_CATEGORIES.DebugInnovativeLogticks)(
+      "min, max",
+      minPower,
+      maxPower
+    );
 
-    Log.green(LOG_CATEGORIES.InnovativeLogTicks)("ticks", ticks);
+    if (minPower > maxPower) {
+      const temp = minPower;
+      minPower = maxPower;
+      maxPower = temp;
+    }
 
-    let currentPower = Math.floor(Math.log10(allTicks[0]));
-    ticks = allTicks.filter((t: number, i: number) => {
-      //i %
-      //  modulus ==
-      //0
-      let pow = Math.floor(Math.log10(t));
-      Log.blue(LOG_CATEGORIES.DebugYScaleTicks)(
-        "pow, currentPow, t",
-        pow,
-        currentPower,
-        t
-      );
-      if (pow != currentPower) {
-        Log.green(LOG_CATEGORIES.InnovativeLogTicks)("tick", i, t, pow);
-        currentPower = pow;
-        // Powers of 10 - don't remove them to avoid clashes later on!
-        powerLabels.push(config.FormatNumber(t));
-        return true;
-      }
-      const shallUse = true || i == 0 || i == allTicks.length - 1;
-      Log.green(LOG_CATEGORIES.InnovativeLogTicks)("shallUse", i, t, shallUse);
-      return shallUse;
-    });
+    // Negative
+    for (let i = minPower; i < 0; i++) {
+      powerLabels.push(config.FormatNumber(-1 * Math.pow(10, i)));
+    }
+
+    // Add the zero if we have a negative domain
+    if (powerLabels.length > 0 || allTicks[0] == 0) {
+      powerLabels.push(config.FormatNumber(0));
+    }
+
+    // Positive
+    for (let i = 0; i <= maxPower; i++) {
+      powerLabels.push(config.FormatNumber(Math.pow(10, i)));
+    }
   }
 
-  Log.green(LOG_CATEGORIES.InnovativeLogTicks)("ticks", ticks);
+  Log.green(LOG_CATEGORIES.DebugInnovativeLogticks)("powerLabels", powerLabels);
 
   if (config.yAxisScaleType.value() == "linear") {
     yScale = d3
@@ -570,7 +655,7 @@ export async function render(
   if (config.includeYAxisGrid.value() && styling.scales.line.stroke != "none") {
     Log.green(LOG_CATEGORIES.DebugYScaleTicks)(ticks);
     g.selectAll("line.horizontalGrid")
-      .data(config.yAxisScaleType.value() == "linear" ? ticks : ticks)
+      .data(config.yAxisScaleType.value() == "linear" ? ticks : allTicks)
       .enter()
       .append("line")
       .attr("class", "horizontal-grid")
@@ -583,7 +668,7 @@ export async function render(
     //.attr("stroke", styling.scales.line.stroke)
 
     g.selectAll("line.horizontal-grid-hover")
-      .data(config.yAxisScaleType.value() == "linear" ? ticks : yScale.ticks)
+      .data(config.yAxisScaleType.value() == "linear" ? ticks : allTicks)
       .enter()
       .append("line")
       .attr("class", "horizontal-grid-hover")
@@ -624,6 +709,48 @@ export async function render(
       Log.green(LOG_CATEGORIES.Rendering)("drag");
     });
 
+  // Symmetrical log - indicate the linear portion
+  if (
+    config.yAxisScaleType.value() == "symlog" &&
+    plotData.yDataDomain.min <= 0 &&
+    plotData.yDataDomain.max > 0
+  ) {
+    g.append("line")
+      .style("stroke", "url(#linear-portion)")
+      .style("stroke-width", 10)
+      .attr("x1", 0)
+      .attr("x2", 0)
+      .attr(
+        "y1",
+        yScale(
+          plotData.yDataDomain.min < -1 * linearPortion
+            ? -1 * linearPortion
+            : plotData.yDataDomain.min
+        )
+      )
+      .attr(
+        "y2",
+        yScale(
+          plotData.yDataDomain.max > linearPortion
+            ? linearPortion
+            : plotData.yDataDomain.max
+        )
+      )
+      .on("mousemove", () => {
+        tooltip.show(
+          "Linear portion:\n" +
+            config.FormatNumber(
+              plotData.yDataDomain.min < 0
+                ? -1 * linearPortion
+                : plotData.yDataDomain.min
+            ) +
+            " to: " +
+            config.FormatNumber(linearPortion)
+        );
+      })
+      .on("mouseout", () => tooltip.hide());
+  }
+
   Log.green(LOG_CATEGORIES.Rendering)(
     "slider",
     yScale(2.0),
@@ -662,9 +789,10 @@ export async function render(
   function removeLabelClashes(
     axisLabelRects: AxisLabelRect[],
     powers: string[],
-    topToBottom: boolean
+    topToBottom: boolean,
+    removePowers: boolean = false
   ): boolean {
-    let didRemoveLabel = false;
+    let labelsClash = false;
     for (let i = 0; i < axisLabelRects.length; i++) {
       const axisLabelRect = axisLabelRects[i];
       if (topToBottom) {
@@ -688,12 +816,14 @@ export async function render(
         );
         if (
           nextLabelText != undefined &&
-          nextRectTop <= thisRectBottom &&
-          !powers.includes(nextLabelText)
+          nextRectTop <= thisRectBottom //&&
+          //!(powers.includes(nextLabelText) || removePowers)
         ) {
           Log.red(LOG_CATEGORIES.InnovativeLogTicks)("Removing", nextLabelText);
-          d3.select(axisLabelRects[i + 1]?.SvgTextElement).remove();
-          didRemoveLabel = true;
+          if (!powers.includes(nextLabelText) || removePowers) {
+            d3.select(axisLabelRects[i + 1]?.SvgTextElement).remove();
+          }
+          labelsClash = true;
           break;
         }
       } else {
@@ -717,36 +847,38 @@ export async function render(
         );
         if (
           nextLabelText != undefined &&
-          nextRectBottom >= thisRectTop &&
-          !powers.includes(nextLabelText)
+          nextRectBottom >= thisRectTop //&&
+          //!(powers.includes(nextLabelText) || removePowers)
         ) {
+          labelsClash = true;
           Log.red(LOG_CATEGORIES.InnovativeLogTicks)("Removing", nextLabelText);
-          d3.select(axisLabelRects[i + 1]?.SvgTextElement).remove();
-          didRemoveLabel = true;
+          if (!powers.includes(nextLabelText) || removePowers) {
+            d3.select(axisLabelRects[i + 1]?.SvgTextElement).remove();
+          }
           break;
         }
       }
     }
 
-    return didRemoveLabel;
+    return labelsClash;
   }
 
   // Now remove clashing labels iteratively
-  let areBottomUpClashingLabelsRemoved = false;
-  let areTopDownClashingLabelsRemoved = false;
+  let bottomUpLabelsClash = true;
+  let topDownLabelsClash = true;
 
   // Guard against too many iterations of the algorithm to remove clashing labels
   let iterations = 0;
 
   while (
-    (!areBottomUpClashingLabelsRemoved || !areTopDownClashingLabelsRemoved) &&
-    iterations < allTicks.length * 2
+    (bottomUpLabelsClash || topDownLabelsClash) &&
+    iterations < allTicks.length * 6
   ) {
-    Log.red(LOG_CATEGORIES.InnovativeLogTicks)(
+    Log.red(LOG_CATEGORIES.DebugInnovativeLogticks)(
       "Iterating",
       iterations % 2 == 0 ? "TopDown" : "BottomUp",
-      areBottomUpClashingLabelsRemoved,
-      areTopDownClashingLabelsRemoved,
+      bottomUpLabelsClash,
+      topDownLabelsClash,
       iterations
     );
     const axisLabelRects: AxisLabelRect[] = [];
@@ -785,45 +917,42 @@ export async function render(
     );
 
     if (iterations % 2 == 0) {
-      areTopDownClashingLabelsRemoved = !removeLabelClashes(
+      topDownLabelsClash = removeLabelClashes(
         axisLabelRects,
         powerLabels,
-        true
+        true,
+        iterations > allTicks.length * 3
       );
     } else {
-      areBottomUpClashingLabelsRemoved = !removeLabelClashes(
+      bottomUpLabelsClash = removeLabelClashes(
         axisLabelRects,
         powerLabels,
-        false
+        false,
+        iterations > allTicks.length * 3
       );
     }
+
     iterations++;
     Log.red(LOG_CATEGORIES.InnovativeLogTicks)(
       "Done iteration",
       iterations % 2 == 0 ? "TopDown" : "BottomUp",
-      areBottomUpClashingLabelsRemoved,
-      areTopDownClashingLabelsRemoved,
+      bottomUpLabelsClash,
+      topDownLabelsClash,
       iterations
     );
   }
 
-  /*each((tick:any) => {
-    const t = tick.append('text');
-    Log.red(LOG_CATEGORIES.InnovativeLogTicks)("tick", d3.select(tick));
-    //boundingBoxes.push(t.node().getBBox()); //.getBBox());
-  })*/
-
-  //Log.green(LOG_CATEGORIES.InnovativeLogTicks)("boundingBoxes",  boundingBoxes);
-
   /**
    * Zoom slider
    */
-  const verticalSlider = sliderLeft()
-    .min(plotData.yDataDomain.min)
-    .max(plotData.yDataDomain.max)
-    .height(heightAvailable - padding.betweenPlotAndTable - 30)
-    .step((plotData.yDataDomain.max - plotData.yDataDomain.min) / yAxis.ticks())
-    .ticks(1)
+  const verticalSlider = sliderLeft(
+    yScale.copy().domain([plotData.yDataDomain.min, plotData.yDataDomain.max])
+  )
+    //.min(plotData.yDataDomain.min)
+    //.max(plotData.yDataDomain.max)
+    //.height(heightAvailable - padding.betweenPlotAndTable - 30)
+    //.step((plotData.yDataDomain.max - plotData.yDataDomain.min) / yAxis.ticks())
+    //.ticks(1)
     .default([minZoom, maxZoom])
     .on("end ", (val: any) => {
       state.disableAnimation = true;
@@ -937,7 +1066,7 @@ export async function render(
     sliderSvg
       .append("g")
       .attr("class", "vertical-zoom-slider")
-      .attr("transform", "translate(10, " + margin.top + ")")
+      .attr("transform", "translate(10, " + margin.top / 2 + ")")
       .call(verticalSlider);
   } else if (config.showZoomSliders.value() && !isTrellisWithIndividualYscale) {
     // Show global zoom slider - zoom sliders are enabled, and a single y scale is selected
@@ -1108,6 +1237,7 @@ export async function render(
       xScale,
       yScale,
       height,
+      margin,
       g,
       tooltip,
       xAxisSpotfire,
@@ -1155,7 +1285,9 @@ export async function render(
       animationSpeed,
       config
     );
-    Log.green(LOG_CATEGORIES.DebugBigData)("Box plot rendering took: " + (performance.now() - start) + " ms");
+    Log.green(LOG_CATEGORIES.DebugBigData)(
+      "Box plot rendering took: " + (performance.now() - start) + " ms"
+    );
   }
 
   /**
@@ -1168,6 +1300,7 @@ export async function render(
       xScale,
       yScale,
       height,
+      margin,
       g,
       tooltip,
       xAxisSpotfire,
@@ -1360,7 +1493,9 @@ export async function render(
       selectionBoxX -= 12;
     }
 
-    Log.blue(LOG_CATEGORIES.DebugViolinIndividualScalesMarking)(d3.selectAll(".violin-path-markable"));
+    Log.blue(LOG_CATEGORIES.DebugViolinIndividualScalesMarking)(
+      d3.selectAll(".violin-path-markable")
+    );
 
     /**
      *

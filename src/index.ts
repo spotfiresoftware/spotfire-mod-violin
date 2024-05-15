@@ -1,3 +1,9 @@
+/*
+* Copyright © 2024. Cloud Software Group, Inc.
+* This file is subject to the license terms contained
+* in the license file that is distributed with this file.
+*/
+
 import { render } from "./render";
 
 import {
@@ -103,6 +109,10 @@ export enum LOG_CATEGORIES {
   SumStatsPerformance,
   ConfidenceIntervals,
   DebugViolinIndividualScalesMarking,
+  DebugBoxIssue,
+  DebugCustomSymLog,
+  DebugInnovativeLogticks,
+  AsinhScale
 }
 
 /**
@@ -697,8 +707,8 @@ Spotfire.initialize(async (mod) => {
             config.includeBoxplot.value() &&
             config.show95pctConfidenceInterval.value()) ||
           (name == "Avg" && config.comparisonCirclesEnabled.value()) ||
-          (name == "Min" && config.includeViolin.value()) ||
-          (name == "Max" && config.includeViolin.value())
+          (name == "Min") ||
+          (name == "Max")
         );
       },
       FormatNumber(number: number) {
