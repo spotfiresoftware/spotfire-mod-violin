@@ -34,7 +34,7 @@ export function renderStatisticsTable(
     bandwidth: number,
     tooltip: Tooltip
 ) {
-
+    
     Log.red(LOG_CATEGORIES.DebugShowingStatsTable)("in renderstatisticstable");
     const tableContainer: D3_SELECTION = container.append("div")
         .classed("table-container", true);

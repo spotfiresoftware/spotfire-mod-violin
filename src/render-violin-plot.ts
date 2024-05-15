@@ -22,7 +22,6 @@ export function renderViolin(
   orderedCategories: string[],
   xScale: d3.scaleBand,
   yScale: d3.scale,
-  height: number,
   margin: any,
   g: any,
   tooltip: Tooltip,

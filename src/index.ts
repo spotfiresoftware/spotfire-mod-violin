@@ -112,13 +112,14 @@ export enum LOG_CATEGORIES {
   DebugBoxIssue,
   DebugCustomSymLog,
   DebugInnovativeLogticks,
-  AsinhScale
+  AsinhScale,
+  Rotation
 }
 
 /**
  * Set this array to any number of categories, or None to hide all logging
  */
-const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.None];
+const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.Rotation];
 
 /**
  * Log helper - pass the log category as the first argument, then any number of args as you would with console.log
@@ -758,7 +759,7 @@ Spotfire.initialize(async (mod) => {
 
     mod.controls.errorOverlay.hide();
 
-    Log.red(LOG_CATEGORIES.DebugResize)("windowSize", windowSize);
+    Log.red(LOG_CATEGORIES.Rotation)("windowSize", windowSize);
 
     Log.red(LOG_CATEGORIES.DebugWebPlayerIssue)("config", config);
 
@@ -1637,8 +1638,8 @@ Spotfire.initialize(async (mod) => {
           const zoommargin =
             !config.yScalePerTrellisPanel.value() || !isTrellis ? 40 : 0;
           const containerSize: Size = {
-            height: windowSize.height,
-            width: windowSize.width - zoommargin,
+            width: windowSize.width,
+            height: windowSize.height - zoommargin,
           };
           rootContainer
             .attr("style", "width:" + windowSize.width + "px;")

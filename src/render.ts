@@ -150,7 +150,6 @@ export async function render(
   const isTrellisWithIndividualYscale =
     isTrellis && config.yScalePerTrellisPanel.value();
 
-  //d3.select("#mod-container")
   const svg = container
     .append("svg")
     .attr("xmlns", "http://www.w3.org/2000/svg")
@@ -268,7 +267,7 @@ export async function render(
 
   Log.green(LOG_CATEGORIES.Rendering)(container.node().getBoundingClientRect());
 
-  Log.green(LOG_CATEGORIES.Rendering)(
+  Log.green(LOG_CATEGORIES.Rotation)(
     "Show chart size:",
     containerSize,
     width,
@@ -282,7 +281,8 @@ export async function render(
   const g = svg
     .append("g")
     // .attr("id", "dragcont")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    // Rotation - adjust this!
+    //.attr("transform", "translate(" + (0) + "," + (height/2) + ")");
 
   /**
    * Order categories, build plotData.sumStats (summary statistics)
@@ -388,7 +388,7 @@ export async function render(
   );
   const xScale = d3
     .scaleBand()
-    .range([0, width])
+    .range([0, height])
     .domain(orderedCategories) //earlier we extracted the unique categories into an array
     .paddingInner(0) // This is important: it is the space between 2 groups. 0 means no padding. 1 is the maximum.
     // Originally, the padding was set to 0.2 but this led to problems aligning the summary table cells accurately,
@@ -400,7 +400,7 @@ export async function render(
   //summary columns
 
   // Render the summary statistics table
-  const tableContainer: D3_SELECTION = renderStatisticsTable(
+  /*const tableContainer: D3_SELECTION = renderStatisticsTable(
     config,
     styling,
     container,
@@ -421,7 +421,7 @@ export async function render(
       tableContainer.node().getBoundingClientRect().height -
       margin.top -
       margin.bottom
-  );
+  ); 
 
   Log.green(LOG_CATEGORIES.Rendering)(
     "height, heightAvailable",
@@ -434,6 +434,9 @@ export async function render(
   );
   //tableContainer.attr("style", "top:" + heightAvailable + "px");
   Log.green(LOG_CATEGORIES.Rendering)(tableContainer.node());
+  */
+
+  const heightAvailable = height;
 
   /**
    * Set the width and height of svg and translate it
@@ -447,6 +450,25 @@ export async function render(
       (heightAvailable + 30) +
       "px;"
   );
+
+  // Rotate using css ;-)
+  svg.classed("rotate", true);
+
+  //svg.attr("transform", "translate(10, 10)")
+  
+
+  // Rotate
+  //svg.attr("transform", "rotate(90)"); //, " + (containerSize.width / 2) + "," + (containerSize.height / 2) + ")");
+  svg.attr(
+    "style",
+    "width:" +
+      (heightAvailable + 30) +
+      "px; " +
+      "height:" +
+      (width + margin.left) +
+      "px;"
+  );
+
 
   const xAxis = d3.axisBottom(xScale);
 
@@ -558,13 +580,13 @@ export async function render(
       yScale = d3
         .scaleLog()
         .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
-        .range([heightAvailable - padding.betweenPlotAndTable, 0]);
+        .range([width - padding.betweenPlotAndTable, 0]);
     } else {
       Log.red(LOG_CATEGORIES.AsinhScale)("LinearPortion", linearPortion);
 
       yScale = scaleAsinh()
         .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
-        .range([heightAvailable - padding.betweenPlotAndTable, 0])
+        .range([width - padding.betweenPlotAndTable, 0])
         .linearPortion(Math.min(linearPortion, 1));
     }
   }
@@ -638,15 +660,17 @@ export async function render(
       .scaleLinear()
       .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
       //.domain([0,50])
-      .range([heightAvailable - padding.betweenPlotAndTable, 0]); //.nice();
-    ticks = yScale.ticks((heightAvailable - padding.betweenPlotAndTable) / 40);
+      .range([width - padding.betweenPlotAndTable, 0]); //.nice();
+    ticks = yScale.ticks((width - padding.betweenPlotAndTable) / 40);
     allTicks = ticks;
   }
 
+  Log.green(LOG_CATEGORIES.Rotation)("ticks", ticks);
+  
   const yAxis = d3
-    .axisLeft()
+    .axisBottom()
     .scale(yScale)
-    .tickValues(ticks)
+    //.tickValues(ticks)
     .tickFormat((d: any) => config.FormatNumber(d));
 
   /**
@@ -700,6 +724,7 @@ export async function render(
   const yAxisRendered = g
     .append("g")
     .attr("class", "axis")
+    .attr("transform", "translate(" + (width - margin.left) + ", " + (heightAvailable - margin.top) + ") rotate(-90)")
     .style("font-family", styling.scales.font.fontFamily)
     .style("font-weight", styling.scales.font.fontWeight)
     .style("font-size", styling.scales.font.fontSize + "px")
@@ -870,7 +895,7 @@ export async function render(
   // Guard against too many iterations of the algorithm to remove clashing labels
   let iterations = 0;
 
-  while (
+  while ( false && 
     (bottomUpLabelsClash || topDownLabelsClash) &&
     iterations < allTicks.length * 6
   ) {
@@ -1235,15 +1260,14 @@ export async function render(
       plotData,
       orderedCategories,
       xScale,
-      yScale,
-      height,
+      yScale,      
       margin,
       g,
       tooltip,
       xAxisSpotfire,
       state,
       animationSpeed,
-      heightAvailable,
+      width,
       config,
       styling.generalStylingInfo
     );
@@ -1277,7 +1301,7 @@ export async function render(
       plotData,
       xScale,
       yScale,
-      height,
+      width,
       g,
       tooltip,
       xAxisSpotfire,
@@ -1299,8 +1323,7 @@ export async function render(
       orderedCategories,
       xScale,
       yScale,
-      height,
-      margin,
+      margin,      
       g,
       tooltip,
       xAxisSpotfire,
@@ -1455,7 +1478,7 @@ export async function render(
       rectMark(trellisName, x, y, width, height, ctrlKey);
     },
   };
-
+ 
   return renderedPanel;
 
   /**

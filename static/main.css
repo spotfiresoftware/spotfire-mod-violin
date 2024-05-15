@@ -32,6 +32,8 @@
 .container-offset-right {
   position: absolute;
   left: 0px;
+  border-width: 10px;
+  border-color: #3399ff;
   /*left: 40px;*/
 }
 
@@ -73,6 +75,12 @@
 .median-line {
   stroke-width: 2px;
   opacity: 1;
+}
+
+.rotate {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: rotate(90deg);
 }
 
 .table-container {
@@ -144,7 +152,9 @@ table {
 }
 
 #mod-container {
-  overflow-x: hidden;
+  /*overflow-x: hidden;*/
+  border-width: 10px;
+  border-color: #3399ff;
 }
 
 #global-zoom-container {
@@ -157,12 +167,16 @@ table {
 .root-container-trellis-with-global-zoom-slider {
   position: absolute;
   top: 0px;
+  border-width: 10px;
+  border-color: #3399ff;
 }
 
 .root-container-trellis-with-individual-zoom-slider {
   position: absolute;
   top: 0px;
   left: 0px;
+  border-width: 10px;
+  border-color: #3399ff;
 }
 
 #zoom-slider {
