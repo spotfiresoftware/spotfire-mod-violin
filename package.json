@@ -1,6 +1,6 @@
 {
     "name": "violin-plot",
-    "version": "2.4.0",
+    "version": "2.6.0",
     "description": "A visual representation of data distribution, combining the advantages of both box plots and kernel density plots, simultaneously displaying summary statistics and underlying data density.",
     "main": "index.js",
     "scripts": {
@@ -15,6 +15,7 @@
     "devDependencies": {
         "@tibco/spotfire-mods-dev-server": "^1.0.0",
         "@types/bootstrap": "^5.2.6",
+        "@types/d3-array": "^3.2.1",
         "@types/jest": "^28.1.4",
         "@types/node": "^16.18.11",
         "@uwdata/kde": "^0.0.2",

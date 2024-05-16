@@ -1,3 +1,9 @@
+/*
+* Copyright © 2024. Cloud Software Group, Inc.
+* This file is subject to the license terms contained
+* in the license file that is distributed with this file.
+*/
+
 //@ts-ignore
 import * as d3 from "d3";
 
@@ -101,8 +107,12 @@ export function renderBoxplot(
           : 0
       )
       .attr("width", Math.max(linesWidth / 2, 4))
-      .attr("stroke", (d: any) => getContrastingColor(styling.generalStylingInfo.backgroundColor))
-      .attr("fill", (d: any) => getContrastingColor(styling.generalStylingInfo.backgroundColor))
+      .attr("stroke", (d: any) =>
+        getContrastingColor(styling.generalStylingInfo.backgroundColor)
+      )
+      .attr("fill", (d: any) =>
+        getContrastingColor(styling.generalStylingInfo.backgroundColor)
+      )
       .style("opacity", config.boxOpacity)
       .classed("not-marked", (d: any) => notMarked(d))
       .on("mouseover", function (event: d3.event, d: any) {
