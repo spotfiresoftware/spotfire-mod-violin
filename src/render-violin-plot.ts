@@ -87,9 +87,13 @@ export function renderViolin(
       densitiesAll.length
     );
 
-    /**
-     * Add the violin to the svg
-     */
+  /**
+   * violinXscale is used for the correct placing of violin area
+   */
+  const violinXscale = d3
+    .scaleLinear()
+    .range([1, xScale.bandwidth() - padding.violinX])
+    .domain([-maxKdeValue, maxKdeValue]);
 
     // Segments for the violin - marked/unmarked
     g.selectAll(".violin-path-" + violinIndex)
@@ -277,6 +281,7 @@ export function renderViolin(
           config,
           plotData,
           generalStylingInfo.backgroundColor
+
         );
       })
       .on("click", (event: MouseEvent, d: any) => {

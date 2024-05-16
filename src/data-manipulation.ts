@@ -532,7 +532,7 @@ export async function buildDataForTrellisPanel(
         trellis: trellisNode.formattedPath(),
         densityPoints: densityPointsSorted,
       });
-    } // end of iterating over categories
+    } // end of iterating over categories   
   }
 
   // calculations for Tukey Kramer comparison circles

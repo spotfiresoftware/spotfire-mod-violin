@@ -871,7 +871,6 @@ Spotfire.initialize(async (mod) => {
     }
 
     previousCountAxisExpression = countAxisExpression;
-
     if (previousColorAxisExpression == "") {
       previousColorAxisExpression = colorAxisExpression;
     }
@@ -914,6 +913,7 @@ Spotfire.initialize(async (mod) => {
     } else {
       clearWarning(MOD_CONTAINER);
     }
+
 
     previousColorAxisExpression = colorAxisExpression;
 
@@ -1715,6 +1715,7 @@ Spotfire.initialize(async (mod) => {
         throw error;
       }
     }
+
 
     /**
      * This will add rectangle selection elements to DOM.

@@ -48,9 +48,9 @@
         "d3-lasso": "0.0.5",
         "d3-selection": "^3.0.0",
         "d3-simple-slider": "^2.0.0",
-        "glob-parent": "^5.1.2",
         "lib-r-math.js": "^1.0.89",
         "style-loader": "^3.3.1",
+        "glob-parent": "^5.1.2",
         "ts-transformer-keys": "^0.4.3"
     }
 }

@@ -158,6 +158,7 @@ export async function render(
 
   const patternSize = 2;
 
+
   const noDataPattern = svg
     .append("pattern")
     .attr("id", "no-data")
@@ -166,6 +167,7 @@ export async function render(
     .attr("width", patternSize * 2)
     .attr("height", patternSize * 2)
     .attr("patternUnits", "userSpaceOnUse");
+
   noDataPattern
     .append("rect")
     .attr("x", 0)
@@ -177,6 +179,7 @@ export async function render(
       getContrastingColor(styling.generalStylingInfo.backgroundColor)
     );
   noDataPattern
+
     .append("rect")
     .attr("x", patternSize)
     .attr("y", patternSize)
@@ -209,6 +212,7 @@ export async function render(
     .attr("width", patternSize)
     .attr("height", patternSize)
     .style("fill", "red");
+
 
   // const animationSpeed = state.disableAnimation ? 0 : 500;
   const animationSpeed = 0; // consider doing something more clever with animation in v2.0?
@@ -614,6 +618,66 @@ export async function render(
       minPower = maxPower;
       maxPower = temp;
     }
+  } else {
+    Log.green(LOG_CATEGORIES.DebugResetGlobalZoom)(
+      "Getting min/max zoom from config if set",
+      config.yZoomMaxUnset.value()
+    );
+    minZoom = config.yZoomMinUnset.value()
+      ? plotData.yDataDomain.min
+      : config.yZoomMin.value();
+    maxZoom = config.yZoomMaxUnset.value()
+      ? plotData.yDataDomain.max
+      : config.yZoomMax.value();
+  }
+
+  Log.green(LOG_CATEGORIES.Rendering)(
+    "config zoom",
+    config.yZoomMin.value(),
+    config.yZoomMax.value(),
+    config.yZoomMinUnset.value(),
+    config.yZoomMaxUnset.value()
+  );
+  Log.green(LOG_CATEGORIES.DebugLogYAxis)("minZoom, maxZoom", minZoom, maxZoom);
+
+  let yScale = d3.scale;
+  let ticks: number[];
+  let allTicks: number[];
+
+  // Symmetrical log
+  if (config.yAxisScaleType.value() == "symlog") {
+    yScale = d3
+      .scaleSymlog()
+      .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
+      .range([heightAvailable - padding.betweenPlotAndTable, 0])
+      .constant(1);
+  }
+
+  // Log
+  if (config.yAxisScaleType.value() == "log") {
+    yScale = d3
+      .scaleLog()
+      .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
+      .range([heightAvailable - padding.betweenPlotAndTable, 0]);
+
+    // Add a warning to the chart
+    svg.append;
+  }
+
+  // Keep track of the power labels so we can avoid hiding them later (for symlog scale)
+  const powerLabels: string[] = [];
+  // Settings common to both symmetrical log and log
+  if (
+    config.yAxisScaleType.value() == "symlog" ||
+    config.yAxisScaleType.value() == "log"
+  ) {
+    let modulus =
+      20 - Math.floor((heightAvailable - padding.betweenPlotAndTable) / 40);
+    Log.blue(LOG_CATEGORIES.DebugYScaleTicks)(
+      "modulus",
+      modulus,
+      yScale.ticks()
+    );
 
     // Negative
     for (let i = minPower; i < 0; i++) {
@@ -750,7 +814,6 @@ export async function render(
       })
       .on("mouseout", () => tooltip.hide());
   }
-
   Log.green(LOG_CATEGORIES.Rendering)(
     "slider",
     yScale(2.0),
@@ -915,6 +978,33 @@ export async function render(
       "powerLabels",
       powerLabels
     );
+    const axisLabelRects: AxisLabelRect[] = [];
+
+    yAxisRendered
+      .selectAll("g.tick")
+      .selectAll("text")
+      .each((t: any, i: number, g: NodeList) => {
+        //getAttribute("transform"));
+        axisLabelRects.push({
+          SvgTextElement: g.item(i),
+          BoundingClientRect: (
+            g.item(i) as HTMLElement
+          ).getBoundingClientRect(),
+        });
+      });
+    if (iterations % 2 == 0) {
+      // Sort the rects from top to bottom
+      axisLabelRects.sort(
+        (r1: AxisLabelRect, r2: AxisLabelRect) =>
+          r1.BoundingClientRect.top - r2.BoundingClientRect.top
+      );
+    } else {
+      // Sort the rects from bottom to top
+      axisLabelRects.sort(
+        (r1: AxisLabelRect, r2: AxisLabelRect) =>
+          r2.BoundingClientRect.top - r1.BoundingClientRect.top
+      );
+    }
 
     if (iterations % 2 == 0) {
       topDownLabelsClash = removeLabelClashes(
@@ -1285,6 +1375,7 @@ export async function render(
       animationSpeed,
       config
     );
+    
     Log.green(LOG_CATEGORIES.DebugBigData)(
       "Box plot rendering took: " + (performance.now() - start) + " ms"
     );
