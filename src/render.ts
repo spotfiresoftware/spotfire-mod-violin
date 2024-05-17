@@ -46,6 +46,7 @@ import {
 import { renderBoxplot } from "./render-box-plot";
 import { renderViolin } from "./render-violin-plot";
 import { renderComparisonCircles } from "./render-comparison-circles";
+import { renderStatisticsTableHorizontal } from "./render-stats-table-horizontal";
 
 /*
  * Adapted from:
@@ -267,7 +268,7 @@ export async function render(
 
   Log.green(LOG_CATEGORIES.Rendering)(container.node().getBoundingClientRect());
 
-  Log.green(LOG_CATEGORIES.Rotation)(
+  Log.green(LOG_CATEGORIES.Horizontal)(
     "Show chart size:",
     containerSize,
     width,
@@ -400,7 +401,7 @@ export async function render(
   //summary columns
 
   // Render the summary statistics table
-  /*const tableContainer: D3_SELECTION = renderStatisticsTable(
+  const tableContainer: D3_SELECTION = renderStatisticsTableHorizontal(
     config,
     styling,
     container,
@@ -415,18 +416,16 @@ export async function render(
   Log.green(LOG_CATEGORIES.Rendering)(
     tableContainer.node().getBoundingClientRect()
   );
-  const heightAvailable = Math.max(
+  const widthAvailable = Math.max(
     0,
-    height -
-      tableContainer.node().getBoundingClientRect().height -
-      margin.top -
-      margin.bottom
+    width -
+      tableContainer.node().getBoundingClientRect().width
   ); 
 
   Log.green(LOG_CATEGORIES.Rendering)(
     "height, heightAvailable",
     height,
-    heightAvailable,
+    widthAvailable,
     "containerSize",
     containerSize,
     tableContainer.node().getBoundingClientRect(),
@@ -434,8 +433,7 @@ export async function render(
   );
   //tableContainer.attr("style", "top:" + heightAvailable + "px");
   Log.green(LOG_CATEGORIES.Rendering)(tableContainer.node());
-  */
-
+  
   const heightAvailable = height;
 
   /**
@@ -444,7 +442,7 @@ export async function render(
   svg.attr(
     "style",
     "width:" +
-      (width + margin.left) +
+      (widthAvailable + margin.left) +
       "px; " +
       "height:" +
       (heightAvailable + 30) +
@@ -452,25 +450,16 @@ export async function render(
   );
 
   // Rotate using css ;-)
-  svg.classed("rotate", true);
+  //svg.classed("rotate", true);
 
-  //svg.attr("transform", "translate(10, 10)")
+  svg.attr("transform", "translate(" + (width - widthAvailable) + ", 0)")
   
 
   // Rotate
   //svg.attr("transform", "rotate(90)"); //, " + (containerSize.width / 2) + "," + (containerSize.height / 2) + ")");
-  svg.attr(
-    "style",
-    "width:" +
-      (heightAvailable + 30) +
-      "px; " +
-      "height:" +
-      (width + margin.left) +
-      "px;"
-  );
 
 
-  const xAxis = d3.axisBottom(xScale);
+  const xAxis = d3.axisLeft(xScale);
 
   // Render the x axis
   g.append("g")
@@ -580,13 +569,13 @@ export async function render(
       yScale = d3
         .scaleLog()
         .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
-        .range([width - padding.betweenPlotAndTable, 0]);
+        .range([widthAvailable - padding.betweenPlotAndTable, 0]);
     } else {
       Log.red(LOG_CATEGORIES.AsinhScale)("LinearPortion", linearPortion);
 
       yScale = scaleAsinh()
         .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
-        .range([width - padding.betweenPlotAndTable, 0])
+        .range([widthAvailable - padding.betweenPlotAndTable, 0])
         .linearPortion(Math.min(linearPortion, 1));
     }
   }
@@ -660,17 +649,17 @@ export async function render(
       .scaleLinear()
       .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
       //.domain([0,50])
-      .range([width - padding.betweenPlotAndTable, 0]); //.nice();
-    ticks = yScale.ticks((width - padding.betweenPlotAndTable) / 40);
+      .range([0, widthAvailable - padding.betweenPlotAndTable]); //.nice();
+    ticks = yScale.ticks((widthAvailable - padding.betweenPlotAndTable) / 40);
     allTicks = ticks;
   }
 
-  Log.green(LOG_CATEGORIES.Rotation)("ticks", ticks);
+  Log.green(LOG_CATEGORIES.Horizontal)("ticks", ticks);
   
   const yAxis = d3
     .axisBottom()
     .scale(yScale)
-    //.tickValues(ticks)
+    .tickValues(ticks)
     .tickFormat((d: any) => config.FormatNumber(d));
 
   /**
@@ -684,7 +673,7 @@ export async function render(
       .append("line")
       .attr("class", "horizontal-grid")
       .attr("x1", 0)
-      .attr("x2", width)
+      .attr("x2", widthAvailable)
       .attr("y1", (d: number) => yScale(d) + 0.5)
       .attr("y2", (d: number) => yScale(d) + 0.5)
       .attr("stroke", styling.scales.line.stroke)
@@ -698,7 +687,7 @@ export async function render(
       .attr("class", "horizontal-grid-hover")
       .attr("style", "opacity:0;")
       .attr("x1", 0)
-      .attr("x2", width)
+      .attr("x2", widthAvailable)
       .attr("y1", (d: number) => yScale(d))
       .attr("y2", (d: number) => yScale(d))
       .attr("stroke", styling.scales.line.stroke)
@@ -724,7 +713,7 @@ export async function render(
   const yAxisRendered = g
     .append("g")
     .attr("class", "axis")
-    .attr("transform", "translate(" + (width - margin.left) + ", " + (heightAvailable - margin.top) + ") rotate(-90)")
+    .attr("transform", "translate(" + (0) + ", " + (heightAvailable) + ")")
     .style("font-family", styling.scales.font.fontFamily)
     .style("font-weight", styling.scales.font.fontWeight)
     .style("font-size", styling.scales.font.fontSize + "px")
@@ -1267,7 +1256,7 @@ export async function render(
       xAxisSpotfire,
       state,
       animationSpeed,
-      width,
+      widthAvailable,
       config,
       styling.generalStylingInfo
     );
@@ -1301,7 +1290,7 @@ export async function render(
       plotData,
       xScale,
       yScale,
-      width,
+      widthAvailable,
       g,
       tooltip,
       xAxisSpotfire,

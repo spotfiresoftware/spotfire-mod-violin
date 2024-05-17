@@ -99,10 +99,10 @@ export function renderViolin(
       .attr("transform", function (d: any) {
         Log.green(LOG_CATEGORIES.ViolinIndividualScales)("violin d", d);
         return (
-          "translate(" +
+          "translate(0, " + 
           ((xScale(d.category) ? xScale(d.category) : 0) +
             padding.violinX / 2) +
-          " ,0)"
+          ")"
         );
       })
       .style("stroke", (d: any) =>
@@ -153,15 +153,15 @@ export function renderViolin(
         d3
           .area()
           .defined((d: any, i: number) => true) //{Log.green(LOG_CATEGORIES.DebugCustomSymLog)(d, yScale(d.violinY)); return true || d.violinY > 1 || d.violinY < -1;}) //&& !isNaN(Math.log(Math.abs(d.violinY)));})
-          .x0(function (d: any) {
+          .y0(function (d: any) {
             return violinXscale(-d.violinX) as number;
           })
-          .x1(function (d: any) {
+          .y1(function (d: any) {
             Log.green(LOG_CATEGORIES.Rendering)(d);
             Log.green(LOG_CATEGORIES.Rendering)(d[1]);
             return violinXscale(d.violinX) as number;
           })
-          .y(function (d: any) {
+          .x(function (d: any) {
             //if (isNaN(yScale(d.violinY))) {
             //  return 0;
             //}
@@ -308,10 +308,10 @@ export function renderViolin(
           xScale(d.category)
         );
         return (
-          "translate(" +
+          "translate(0, " +
           ((xScale(d.category) ? xScale(d.category) : 0) +
             padding.violinX / 2) +
-          " ,0)"
+          ")"
         );
       }) // Translation on the right to be at the group position
       .style("fill", "none")
@@ -335,7 +335,7 @@ export function renderViolin(
         "d",
         d3
           .area()
-          .x0(function (d: any) {
+          .y0(function (d: any) {
             if (isNaN(violinXscale(-d.violinX))) {
               Log.green(LOG_CATEGORIES.DebugYNaN)(
                 d.category,
@@ -346,10 +346,10 @@ export function renderViolin(
             }
             return violinXscale(-d.violinX) as number;
           })
-          .x1(function (d: any) {
+          .y1(function (d: any) {
             return violinXscale(d.violinX) as number;
           })
-          .y(function (d: any) {
+          .x(function (d: any) {
             if (isNaN(yScale(d.violinY))) {
               return 0;
             }

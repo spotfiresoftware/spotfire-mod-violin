@@ -37,6 +37,10 @@
   /*left: 40px;*/
 }
 
+.statistics-table-entry {
+  overflow:hidden;
+}
+
 #dropdown-menu-button-1 {
   cursor: pointer;
 }
@@ -85,6 +89,18 @@
 
 .table-container {
   position: relative;
+  overflow: hidden;
+}
+
+.table-container-horizontal {
+  table-layout: fixed;
+  position: fixed;
+  top:0px;
+  left:0px;
+  overflow: hidden;
+}
+
+.stats-table-entry-container {
   overflow: hidden;
 }
 
