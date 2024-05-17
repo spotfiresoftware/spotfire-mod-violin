@@ -401,7 +401,7 @@ export async function render(
   //summary columns
 
   // Render the summary statistics table
-  const tableContainer: D3_SELECTION = renderStatisticsTableHorizontal(
+  const tableContainerSpecs: {headerRowHeight:number, tableContainer: D3_SELECTION} = renderStatisticsTableHorizontal(
     config,
     styling,
     container,
@@ -412,14 +412,11 @@ export async function render(
     xScale.bandwidth(),
     tooltip
   );
-
-  Log.green(LOG_CATEGORIES.Rendering)(
-    tableContainer.node().getBoundingClientRect()
-  );
+  
   const widthAvailable = Math.max(
     0,
     width -
-      tableContainer.node().getBoundingClientRect().width
+      tableContainerSpecs.tableContainer.node().getBoundingClientRect().width
   ); 
 
   Log.green(LOG_CATEGORIES.Rendering)(
@@ -428,13 +425,13 @@ export async function render(
     widthAvailable,
     "containerSize",
     containerSize,
-    tableContainer.node().getBoundingClientRect(),
-    tableContainer.node().clientHeight
+    tableContainerSpecs.tableContainer.node().getBoundingClientRect(),
+    tableContainerSpecs.tableContainer.node().clientHeight
   );
   //tableContainer.attr("style", "top:" + heightAvailable + "px");
-  Log.green(LOG_CATEGORIES.Rendering)(tableContainer.node());
+  Log.green(LOG_CATEGORIES.Rendering)(tableContainerSpecs.tableContainer.node());
   
-  const heightAvailable = height;
+  const heightAvailable = height - tableContainerSpecs.headerRowHeight;
 
   /**
    * Set the width and height of svg and translate it
@@ -452,7 +449,8 @@ export async function render(
   // Rotate using css ;-)
   //svg.classed("rotate", true);
 
-  svg.attr("transform", "translate(" + (width - widthAvailable) + ", 0)")
+  svg.attr("transform", "translate(" + (width - widthAvailable) + ", " + tableContainerSpecs.headerRowHeight + ")");
+
   
 
   // Rotate
@@ -713,7 +711,7 @@ export async function render(
   const yAxisRendered = g
     .append("g")
     .attr("class", "axis")
-    .attr("transform", "translate(" + (0) + ", " + (heightAvailable) + ")")
+    .attr("transform", "translate(" + (0) + ", " + (heightAvailable + tableContainerSpecs.headerRowHeight) + ")")
     .style("font-family", styling.scales.font.fontFamily)
     .style("font-weight", styling.scales.font.fontWeight)
     .style("font-size", styling.scales.font.fontSize + "px")
