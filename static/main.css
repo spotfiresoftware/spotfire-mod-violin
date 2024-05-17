@@ -92,12 +92,12 @@
   overflow: hidden;
 }
 
-.table-container-horizontal {
-  table-layout: fixed;
-  position: fixed;
+.table-container-horizontal {  
+  position: relative; 
   top: 0px;
   left: 0px;
   overflow: hidden;
+  width: fit-content;
 }
 
 .stats-table-entry-container {

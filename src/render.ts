@@ -24,6 +24,7 @@ import {
   Log,
   GenerateRoundedRectSvg,
   getContrastingColor,
+  MOD_CONTAINER,
 } from "./index";
 
 // @ts-ignore
@@ -151,65 +152,6 @@ export async function render(
   const isTrellisWithIndividualYscale =
     isTrellis && config.yScalePerTrellisPanel.value();
 
-  const svg = container
-    .append("svg")
-    .attr("xmlns", "http://www.w3.org/2000/svg")
-    .attr("classed", "main-svg-container");
-
-  const patternSize = 2;
-
-  const noDataPattern = svg
-    .append("pattern")
-    .attr("id", "no-data")
-    .attr("x", 1)
-    .attr("y", 1)
-    .attr("width", patternSize * 2)
-    .attr("height", patternSize * 2)
-    .attr("patternUnits", "userSpaceOnUse");
-  noDataPattern
-    .append("rect")
-    .attr("x", 0)
-    .attr("y", 0)
-    .attr("width", patternSize)
-    .attr("height", patternSize)
-    .style(
-      "fill",
-      getContrastingColor(styling.generalStylingInfo.backgroundColor)
-    );
-  noDataPattern
-    .append("rect")
-    .attr("x", patternSize)
-    .attr("y", patternSize)
-    .attr("width", patternSize)
-    .attr("height", patternSize)
-    .style(
-      "fill",
-      getContrastingColor(styling.generalStylingInfo.backgroundColor)
-    );
-
-  const linearPortionPattern = svg
-    .append("pattern")
-    .attr("id", "linear-portion")
-    .attr("x", 1)
-    .attr("y", 1)
-    .attr("width", patternSize * 2)
-    .attr("height", patternSize * 2)
-    .attr("patternUnits", "userSpaceOnUse");
-  linearPortionPattern
-    .append("rect")
-    .attr("x", 0)
-    .attr("y", 0)
-    .attr("width", patternSize)
-    .attr("height", patternSize)
-    .style("fill", "red");
-  linearPortionPattern
-    .append("rect")
-    .attr("x", patternSize)
-    .attr("y", patternSize)
-    .attr("width", patternSize)
-    .attr("height", patternSize)
-    .style("fill", "red");
-
   // const animationSpeed = state.disableAnimation ? 0 : 500;
   const animationSpeed = 0; // consider doing something more clever with animation in v2.0?
 
@@ -251,6 +193,7 @@ export async function render(
     top: 20,
     bottom: isTrellis ? 40 : 15,
     left: calculatedLeftMargin,
+    spaceForBottomAxis: 50
   };
   const padding = { violinX: 20, betweenPlotAndTable: 20 };
   const width = containerSize.width - margin.left;
@@ -278,12 +221,6 @@ export async function render(
   // Remove everything from the container;
   container.selectAll(".summary-table1").remove();
   //container.selectAll("#zoom-slider").remove();
-
-  const g = svg
-    .append("g")
-    // .attr("id", "dragcont")
-    // Rotation - adjust this!
-    //.attr("transform", "translate(" + (0) + "," + (height/2) + ")");
 
   /**
    * Order categories, build plotData.sumStats (summary statistics)
@@ -387,16 +324,7 @@ export async function render(
     "trellis",
     trellisName
   );
-  const xScale = d3
-    .scaleBand()
-    .range([0, height])
-    .domain(orderedCategories) //earlier we extracted the unique categories into an array
-    .paddingInner(0) // This is important: it is the space between 2 groups. 0 means no padding. 1 is the maximum.
-    // Originally, the padding was set to 0.2 but this led to problems aligning the summary table cells accurately,
-    // Therefore, padding has been set to 0... This also reduces the space consumed. Violins touching each other is
-    // not a huge issue in my opinion (A. Berridge)
-    .paddingOuter(0)
-    .align(0);
+
 
   //summary columns
 
@@ -409,7 +337,7 @@ export async function render(
     fontClass,
     plotData,
     orderedCategories,
-    xScale.bandwidth(),
+    height / orderedCategories.length,
     tooltip
   );
   
@@ -433,6 +361,80 @@ export async function render(
   
   const heightAvailable = height - tableContainerSpecs.headerRowHeight;
 
+  const bandwidth = heightAvailable / orderedCategories.length;
+
+  // Set the height of the table entry rows
+  d3.selectAll("tr.statistics-table-entry-row").attr(
+    "style",
+    (d: any, i: number) =>
+    //"width:" + 100 + "px;" + 
+    "height:" + bandwidth + "px"
+  )
+
+  const statisticsTableWidth = tableContainerSpecs.tableContainer.node().getBoundingClientRect().width;
+  const statisticsTableHeight = tableContainerSpecs.tableContainer.node().getBoundingClientRect().height;
+
+  const svg = container
+    .append("svg")
+    .attr("xmlns", "http://www.w3.org/2000/svg")
+    .attr("classed", "main-svg-container");
+
+  const patternSize = 2;
+
+  const noDataPattern = svg
+    .append("pattern")
+    .attr("id", "no-data")
+    .attr("x", 1)
+    .attr("y", 1)
+    .attr("width", patternSize * 2)
+    .attr("height", patternSize * 2)
+    .attr("patternUnits", "userSpaceOnUse");
+  noDataPattern
+    .append("rect")
+    .attr("x", 0)
+    .attr("y", 0)
+    .attr("width", patternSize)
+    .attr("height", patternSize)
+    .style(
+      "fill",
+      getContrastingColor(styling.generalStylingInfo.backgroundColor)
+    );
+  noDataPattern
+    .append("rect")
+    .attr("x", patternSize)
+    .attr("y", patternSize)
+    .attr("width", patternSize)
+    .attr("height", patternSize)
+    .style(
+      "fill",
+      getContrastingColor(styling.generalStylingInfo.backgroundColor)
+    );
+
+  const linearPortionPattern = svg
+    .append("pattern")
+    .attr("id", "linear-portion")
+    .attr("x", 1)
+    .attr("y", 1)
+    .attr("width", patternSize * 2)
+    .attr("height", patternSize * 2)
+    .attr("patternUnits", "userSpaceOnUse");
+  linearPortionPattern
+    .append("rect")
+    .attr("x", 0)
+    .attr("y", 0)
+    .attr("width", patternSize)
+    .attr("height", patternSize)
+    .style("fill", "red");
+  linearPortionPattern
+    .append("rect")
+    .attr("x", patternSize)
+    .attr("y", patternSize)
+    .attr("width", patternSize)
+    .attr("height", patternSize)
+    .style("fill", "red");
+
+  svg.attr("transform", "translate(" + (statisticsTableWidth + padding.betweenPlotAndTable) + ", " + (- 1 * statisticsTableHeight + tableContainerSpecs.headerRowHeight) + ")");
+
   /**
    * Set the width and height of svg and translate it
    */
@@ -442,20 +444,31 @@ export async function render(
       (widthAvailable + margin.left) +
       "px; " +
       "height:" +
-      (heightAvailable + 30) +
+      (heightAvailable + margin.spaceForBottomAxis) +
       "px;"
   );
+
+  container.attr("height", heightAvailable + "px");
 
   // Rotate using css ;-)
   //svg.classed("rotate", true);
 
-  svg.attr("transform", "translate(" + (width - widthAvailable) + ", " + tableContainerSpecs.headerRowHeight + ")");
 
-  
+  const g = svg.append("g");
 
   // Rotate
   //svg.attr("transform", "rotate(90)"); //, " + (containerSize.width / 2) + "," + (containerSize.height / 2) + ")");
 
+  const xScale = d3
+    .scaleBand()
+    .range([0, heightAvailable])
+    .domain(orderedCategories) //earlier we extracted the unique categories into an array
+    .paddingInner(0) // This is important: it is the space between 2 groups. 0 means no padding. 1 is the maximum.
+    // Originally, the padding was set to 0.2 but this led to problems aligning the summary table cells accurately,
+    // Therefore, padding has been set to 0... This also reduces the space consumed. Violins touching each other is
+    // not a huge issue in my opinion (A. Berridge)
+    .paddingOuter(0)
+    .align(0);
 
   const xAxis = d3.axisLeft(xScale);
 
@@ -711,7 +724,7 @@ export async function render(
   const yAxisRendered = g
     .append("g")
     .attr("class", "axis")
-    .attr("transform", "translate(" + (0) + ", " + (heightAvailable + tableContainerSpecs.headerRowHeight) + ")")
+    .attr("transform", "translate(" + (0) + ", " + (heightAvailable) + ")")
     .style("font-family", styling.scales.font.fontFamily)
     .style("font-weight", styling.scales.font.fontWeight)
     .style("font-size", styling.scales.font.fontSize + "px")
