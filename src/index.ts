@@ -1211,7 +1211,7 @@ Spotfire.initialize(async (mod) => {
       previousTrellisColumnsPerPage = columnsPerPage;
       previousTrellisRowsPerPage = rowsPerPage;
 
-      const panelHeight = windowSize.height / rowsPerPage;
+      const panelHeight = (windowSize.height / rowsPerPage) - 3;
       let panelWidth = rootContainerWidth / columnsPerPage;
 
       // Adjust mod container height so we don't get scrollbars (occurs infrequently)
@@ -1336,7 +1336,7 @@ Spotfire.initialize(async (mod) => {
             .text(node.formattedPath());
 
           bodyHeight =
-            rowHeight - titleText.node().getBoundingClientRect().height;
+            rowHeight - titleText.node().getBoundingClientRect().height - 4;
 
           Log.green(LOG_CATEGORIES.General)(bodyHeight);
 
@@ -1356,6 +1356,7 @@ Spotfire.initialize(async (mod) => {
                   "background-color",
                   getComplementaryColor(context.styling.general.backgroundColor)
                 )
+                .style("height", bodyHeight + "px")
             : d3.select("#trellis-body-container-" + panelIndex);
 
           const bodyContent = bodyContainer
@@ -1368,6 +1369,7 @@ Spotfire.initialize(async (mod) => {
                 .classed("h-100", true)
                 .classed("gx-1", true)
                 .classed("gy-1", true)
+                .style("height", "150px")
             : d3.select("#trellis-body-content-" + panelIndex);
           return { bodyContent, bodyHeight, bodyContainer, titleContainer };
         }
@@ -1432,7 +1434,7 @@ Spotfire.initialize(async (mod) => {
             const renderingInfo: Partial<TrellisRenderingInfo> = {
               node: node,
               container: bodyContent,
-              containerSize: { height: panelHeight, width: renderedPanelWidth },
+              containerSize: { height: bodyHeight, width: renderedPanelWidth },
               trellisIndex: panelIndex, // todo - check -1??????
               trellisName: node.formattedPath(),
               trellisRowIndex: rowIndex,
