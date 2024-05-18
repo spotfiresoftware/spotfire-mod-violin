@@ -104,8 +104,6 @@
   overflow: hidden;
 }
 
-
-
 .statistics-table-name-vertical {
   text-align: center;
   white-space: nowrap;
@@ -114,7 +112,10 @@
 }
 
 .summary-table1 {
-  overflow: hidden;
+  overflow: hidden;  
+  padding:0px;
+  border-spacing: 0px;
+  border-collapse: collapse;
   /*table-layout: fixed;*/
   /*width: unset !important;*/
   /* This allows explicit setting of cell widths */
@@ -131,6 +132,7 @@
   text-overflow: clip;
   border: 1px solid;
   text-align: center;
+  vertical-align: center;
   margin: 0px;
   padding: 0px;
 }
@@ -139,7 +141,7 @@
   text-overflow: clip;
   border: 1px solid;  
   margin: 0px;
-  padding: 5px;
+  padding: 0px;
   text-align: right;
 }
 

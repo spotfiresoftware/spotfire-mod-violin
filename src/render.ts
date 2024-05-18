@@ -457,14 +457,24 @@ export async function render(
     height - tableContainerSpecs.headerRowHeight - yAxisBoundingBox.height;
 
   const bandwidth = heightAvailable / orderedCategories.length;
+  Log.blue(LOG_CATEGORIES.Horizontal)("bandwidth", bandwidth);
 
   // Set the height of the table entry rows
-  d3.selectAll("tr.statistics-table-entry-row").attr(
-    "style",
-    (d: any, i: number) =>
-      //"width:" + 100 + "px;" +
-      "height:" + bandwidth + "px"
-  );
+  tableContainerSpecs.tableContainer
+    .selectAll("td.summary-value")
+    .style("height", (bandwidth - 1) + "px");
+
+  tableContainerSpecs.tableContainer
+    .selectAll("td.summary-header-right-align")
+    .style("height", (bandwidth - 1) + "px");
+
+  tableContainerSpecs.tableContainer
+    .selectAll("div.summary-div")
+    .style("height", (bandwidth - 1) + "px");
+
+  tableContainerSpecs.tableContainer
+    .selectAll("div.summary-div")
+    .style("height", (bandwidth - 1) + "px");
 
   // Now move the rendered axis to its correct place
   yAxisRendered.attr(
@@ -493,7 +503,7 @@ export async function render(
       (widthAvailable + margin.left) +
       "px; " +
       "height:" +
-      (heightAvailable + margin.spaceForBottomAxis) +
+      (heightAvailable + yAxisBoundingBox.height) +
       "px;"
   );
 
