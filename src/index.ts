@@ -1,8 +1,8 @@
 /*
-* Copyright © 2024. Cloud Software Group, Inc.
-* This file is subject to the license terms contained
-* in the license file that is distributed with this file.
-*/
+ * Copyright © 2024. Cloud Software Group, Inc.
+ * This file is subject to the license terms contained
+ * in the license file that is distributed with this file.
+ */
 
 import { render } from "./render";
 
@@ -113,7 +113,7 @@ export enum LOG_CATEGORIES {
   DebugCustomSymLog,
   DebugInnovativeLogticks,
   AsinhScale,
-  Horizontal
+  Horizontal,
 }
 
 /**
@@ -708,8 +708,8 @@ Spotfire.initialize(async (mod) => {
             config.includeBoxplot.value() &&
             config.show95pctConfidenceInterval.value()) ||
           (name == "Avg" && config.comparisonCirclesEnabled.value()) ||
-          (name == "Min") ||
-          (name == "Max")
+          name == "Min" ||
+          name == "Max"
         );
       },
       FormatNumber(number: number) {
@@ -1211,13 +1211,13 @@ Spotfire.initialize(async (mod) => {
       previousTrellisColumnsPerPage = columnsPerPage;
       previousTrellisRowsPerPage = rowsPerPage;
 
-      const panelHeight = (windowSize.height / rowsPerPage) - 3;
+      const panelHeight = (windowSize.height / rowsPerPage) - 2 * rowsPerPage;
       let panelWidth = rootContainerWidth / columnsPerPage;
 
       // Adjust mod container height so we don't get scrollbars (occurs infrequently)
       MOD_CONTAINER.attr(
         "height",
-        Math.ceil(panelHeight * (trellisPanelCount / columnsPerPage))
+        Math.ceil(panelHeight * rowsPerPage)
       );
 
       // Adjust panelWidth for individual zoom slider
@@ -1226,10 +1226,11 @@ Spotfire.initialize(async (mod) => {
           ? panelWidth - 5
           : panelWidth - 4;
 
-      Log.green(LOG_CATEGORIES.General)(
+      Log.green(LOG_CATEGORIES.Horizontal)(
         "rows/cols per page",
         rowsPerPage,
         columnsPerPage,
+        "windowSize",
         windowSize,
         rootContainerWidth,
         "panelWidth, panelHeight",
@@ -1240,8 +1241,6 @@ Spotfire.initialize(async (mod) => {
       let currentRow: d3.D3_SELECTION;
 
       // Using Bootstrap's row class - the single "row" can contain all trellis panels;
-      // they are broken into new lines by using a DIV of class w-100 when a line break
-      // is required
       currentRow = d3.select("#row-0").empty()
         ? rootContainer
             .append("div")
@@ -1249,7 +1248,7 @@ Spotfire.initialize(async (mod) => {
             .classed("row", true)
             .classed("no-gutters", true)
             .classed("gx-1", true) //gutter
-            .classed("gy-1", true)
+            .classed("gy-1", true)                      
         : d3.select("#row-0");
 
       Log.green(LOG_CATEGORIES.General)(panelHeight);
@@ -1258,13 +1257,14 @@ Spotfire.initialize(async (mod) => {
       const trellisRenderingInfo: Array<Partial<TrellisRenderingInfo>> =
         new Array();
 
+      // Bootstrap has a maximum of 12 columns
       const colClassNumber = Math.floor(12 / columnsPerPage);
 
       function getOrCreateContainers(
         currentRow: d3.D3_SELECTION,
         panelIndex: number,
         node: DataViewHierarchyNode,
-        rowHeight: number
+        panelHeight: number
       ): {
         bodyContent: d3.D3_SELECTION;
         bodyHeight: number;
@@ -1289,9 +1289,8 @@ Spotfire.initialize(async (mod) => {
           .classed("col-sm-" + colClassNumber, true)
           .classed("col-md-" + colClassNumber, true)
           .classed("col-lg-" + colClassNumber, true)
-          .classed("col-xl-" + colClassNumber, true);
-
-        let bodyHeight = rowHeight;
+          .classed("col-xl-" + colClassNumber, true)
+          .attr("style", "height:" + panelHeight + "px");
 
         if (node) {
           const titleContainer = subContainer
@@ -1335,10 +1334,12 @@ Spotfire.initialize(async (mod) => {
 
             .text(node.formattedPath());
 
-          bodyHeight =
-            rowHeight - titleText.node().getBoundingClientRect().height - 4;
+          Log.red(LOG_CATEGORIES.Horizontal)("titleTextNode", titleText.node().getBoundingClientRect());
 
-          Log.green(LOG_CATEGORIES.General)(bodyHeight);
+          const bodyHeight = 
+            panelHeight - titleText.node().getBoundingClientRect().height;
+            
+          Log.green(LOG_CATEGORIES.Horizontal)("bodyHeight", bodyHeight);
 
           const bodyContainer = subContainer
             .select("#trellis-body-container-" + panelIndex)
@@ -1357,7 +1358,9 @@ Spotfire.initialize(async (mod) => {
                   getComplementaryColor(context.styling.general.backgroundColor)
                 )
                 .style("height", bodyHeight + "px")
-            : d3.select("#trellis-body-container-" + panelIndex);
+            : d3.select("#trellis-body-container-" + panelIndex)
+              // ensure height is set at all times
+              .style("height", bodyHeight + "px");
 
           const bodyContent = bodyContainer
             .select("#trellis-body-content-" + panelIndex)
@@ -1366,10 +1369,9 @@ Spotfire.initialize(async (mod) => {
                 .append("div")
                 .attr("id", "trellis-body-content-" + panelIndex)
                 .classed("px-0", true) // 0 padding
-                .classed("h-100", true)
+                //.classed("h-100", true)
                 .classed("gx-1", true)
                 .classed("gy-1", true)
-                .style("height", "150px")
             : d3.select("#trellis-body-content-" + panelIndex);
           return { bodyContent, bodyHeight, bodyContainer, titleContainer };
         }
