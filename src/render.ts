@@ -158,10 +158,6 @@ export async function render(
 
   Log.green(LOG_CATEGORIES.Rendering)(plotData);
 
-  /**
-   * Calculating the position and size of the chart
-   */
-
   // Display warning if symlog y axis
   d3.select(".warning-icon")
     .attr(
@@ -216,6 +212,71 @@ export async function render(
     width,
     height
   );
+
+  const tableContainer: D3_SELECTION = container
+    .append("div")
+    .classed("table-container-horizontal", true);
+
+  const svg = container
+    .append("svg")
+    .attr("xmlns", "http://www.w3.org/2000/svg")
+    .attr("classed", "main-svg-container");
+
+  const g = svg.append("g");
+
+  const patternSize = 2;
+
+  const noDataPattern = svg
+    .append("pattern")
+    .attr("id", "no-data")
+    .attr("x", 1)
+    .attr("y", 1)
+    .attr("width", patternSize * 2)
+    .attr("height", patternSize * 2)
+    .attr("patternUnits", "userSpaceOnUse");
+  noDataPattern
+    .append("rect")
+    .attr("x", 0)
+    .attr("y", 0)
+    .attr("width", patternSize)
+    .attr("height", patternSize)
+    .style(
+      "fill",
+      getContrastingColor(styling.generalStylingInfo.backgroundColor)
+    );
+  noDataPattern
+    .append("rect")
+    .attr("x", patternSize)
+    .attr("y", patternSize)
+    .attr("width", patternSize)
+    .attr("height", patternSize)
+    .style(
+      "fill",
+      getContrastingColor(styling.generalStylingInfo.backgroundColor)
+    );
+
+  const linearPortionPattern = svg
+    .append("pattern")
+    .attr("id", "linear-portion")
+    .attr("x", 1)
+    .attr("y", 1)
+    .attr("width", patternSize * 2)
+    .attr("height", patternSize * 2)
+    .attr("patternUnits", "userSpaceOnUse");
+  linearPortionPattern
+    .append("rect")
+    .attr("x", 0)
+    .attr("y", 0)
+    .attr("width", patternSize)
+    .attr("height", patternSize)
+    .style("fill", "red");
+  linearPortionPattern
+    .append("rect")
+    .attr("x", patternSize)
+    .attr("y", patternSize)
+    .attr("width", patternSize)
+    .attr("height", patternSize)
+    .style("fill", "red");
 
   // Remove everything from the container;
   container.selectAll(".summary-table1").remove();
@@ -316,15 +377,22 @@ export async function render(
     orderedCategories.push("Comparison");
   }
 
-  // Draw x axis
-  Log.red(LOG_CATEGORIES.DebugXaxisFiltering)(
-    "orderedCategories before xScale:",
-    orderedCategories,
-    "trellis",
-    trellisName
-  );
+  const { minZoom, maxZoom }: { minZoom: number; maxZoom: number } =
+    calculateMinMaxZoom(
+      isTrellisWithIndividualYscale,
+      config,
+      trellisName,
+      plotData
+    );
 
-  //summary columns
+  Log.green(LOG_CATEGORIES.Rendering)(
+    "config zoom",
+    config.yZoomMin.value(),
+    config.yZoomMax.value(),
+    config.yZoomMinUnset.value(),
+    config.yZoomMaxUnset.value()
+  );
+  Log.green(LOG_CATEGORIES.DebugLogYAxis)("minZoom, maxZoom", minZoom, maxZoom);
 
   // Render the summary statistics table
   const tableContainerSpecs: {
@@ -333,7 +401,7 @@ export async function render(
   } = renderStatisticsTableHorizontal(
     config,
     styling,
-    container,
+    tableContainer,
     margin,
     fontClass,
     plotData,
@@ -362,7 +430,31 @@ export async function render(
     tableContainerSpecs.tableContainer.node()
   );
 
-  const heightAvailable = height - tableContainerSpecs.headerRowHeight;
+  const statisticsTableWidth = tableContainerSpecs.tableContainer
+    .node()
+    .getBoundingClientRect().width;
+
+  const {
+    yAxisRendered,
+    yScale,
+  }: { yAxisRendered: D3_SELECTION; yScale: d3.scale } = renderContinuousAxis(
+    g,
+    container,
+    config,
+    minZoom,
+    maxZoom,
+    plotData,
+    widthAvailable,
+    padding,
+    styling,
+    tooltip
+  );
+
+  const yAxisBoundingBox = yAxisRendered.node().getBBox();
+  Log.blue(LOG_CATEGORIES.Horizontal)("yAxisBoundingBox", yAxisBoundingBox);
+
+  const heightAvailable =
+    height - tableContainerSpecs.headerRowHeight - yAxisBoundingBox.height;
 
   const bandwidth = heightAvailable / orderedCategories.length;
 
@@ -374,72 +466,15 @@ export async function render(
       "height:" + bandwidth + "px"
   );
 
-  const statisticsTableWidth = tableContainerSpecs.tableContainer
-    .node()
-    .getBoundingClientRect().width;
+  // Now move the rendered axis to its correct place
+  yAxisRendered.attr(
+    "transform",
+    "translate(" + 0 + ", " + heightAvailable + ")"
+  );
+
   const statisticsTableHeight = tableContainerSpecs.tableContainer
     .node()
     .getBoundingClientRect().height;
-
-  const svg = container
-    .append("svg")
-    .attr("xmlns", "http://www.w3.org/2000/svg")
-    .attr("classed", "main-svg-container");
-
-  const patternSize = 2;
-
-  const noDataPattern = svg
-    .append("pattern")
-    .attr("id", "no-data")
-    .attr("x", 1)
-    .attr("y", 1)
-    .attr("width", patternSize * 2)
-    .attr("height", patternSize * 2)
-    .attr("patternUnits", "userSpaceOnUse");
-  noDataPattern
-    .append("rect")
-    .attr("x", 0)
-    .attr("y", 0)
-    .attr("width", patternSize)
-    .attr("height", patternSize)
-    .style(
-      "fill",
-      getContrastingColor(styling.generalStylingInfo.backgroundColor)
-    );
-  noDataPattern
-    .append("rect")
-    .attr("x", patternSize)
-    .attr("y", patternSize)
-    .attr("width", patternSize)
-    .attr("height", patternSize)
-    .style(
-      "fill",
-      getContrastingColor(styling.generalStylingInfo.backgroundColor)
-    );
-
-  const linearPortionPattern = svg
-    .append("pattern")
-    .attr("id", "linear-portion")
-    .attr("x", 1)
-    .attr("y", 1)
-    .attr("width", patternSize * 2)
-    .attr("height", patternSize * 2)
-    .attr("patternUnits", "userSpaceOnUse");
-  linearPortionPattern
-    .append("rect")
-    .attr("x", 0)
-    .attr("y", 0)
-    .attr("width", patternSize)
-    .attr("height", patternSize)
-    .style("fill", "red");
-  linearPortionPattern
-    .append("rect")
-    .attr("x", patternSize)
-    .attr("y", patternSize)
-    .attr("width", patternSize)
-    .attr("height", patternSize)
-    .style("fill", "red");
-
   svg.attr(
     "transform",
     "translate(" +
@@ -467,8 +502,6 @@ export async function render(
   // Rotate using css ;-)
   //svg.classed("rotate", true);
 
-  const g = svg.append("g");
-
   // Rotate
   //svg.attr("transform", "rotate(90)"); //, " + (containerSize.width / 2) + "," + (containerSize.height / 2) + ")");
 
@@ -495,85 +528,6 @@ export async function render(
     .style("font-size", styling.scales.font.fontSize + "px")
     .call(xAxis);
 
-  let minZoom: number;
-  let maxZoom: number;
-
-  if (isTrellisWithIndividualYscale) {
-    Log.green(LOG_CATEGORIES.Rendering)(
-      config.trellisIndividualZoomSettings.value()
-    );
-    if (
-      config.showZoomSliders.value() &&
-      config.trellisIndividualZoomSettings.value() != ""
-    ) {
-      const trellisZoomConfigs = config.GetTrellisZoomConfigs();
-      Log.green(LOG_CATEGORIES.Rendering)(trellisZoomConfigs, trellisName);
-      const trellisZoomConfig = trellisZoomConfigs.find(
-        (d: TrellisZoomConfig) => d.trellisName == trellisName
-      );
-
-      if (trellisZoomConfig != undefined) {
-        Log.green(LOG_CATEGORIES.Rendering)("found zoom", trellisZoomConfig);
-        if (trellisZoomConfig.minZoomUnset) {
-          minZoom = plotData.yDataDomain.min;
-        } else {
-          minZoom = trellisZoomConfig.minZoom; //- tempminZoom * 0.05;
-        }
-        if (trellisZoomConfig.maxZoomUnset) {
-          maxZoom = plotData.yDataDomain.max;
-        } else {
-          maxZoom = trellisZoomConfig.maxZoom;
-        }
-      } else {
-        minZoom = plotData.yDataDomain.min;
-        maxZoom = plotData.yDataDomain.max;
-      }
-    } else {
-      minZoom = plotData.yDataDomain.min;
-      maxZoom = plotData.yDataDomain.max;
-    }
-  } else {
-    Log.green(LOG_CATEGORIES.DebugResetGlobalZoom)(
-      "Getting min/max zoom from config if set",
-      config.yZoomMaxUnset.value()
-    );
-    minZoom = config.yZoomMinUnset.value()
-      ? plotData.yDataDomain.min
-      : config.yZoomMin.value();
-    maxZoom = config.yZoomMaxUnset.value()
-      ? plotData.yDataDomain.max
-      : config.yZoomMax.value();
-  }
-
-  Log.green(LOG_CATEGORIES.Rendering)(
-    "config zoom",
-    config.yZoomMin.value(),
-    config.yZoomMax.value(),
-    config.yZoomMinUnset.value(),
-    config.yZoomMaxUnset.value()
-  );
-  Log.green(LOG_CATEGORIES.DebugLogYAxis)("minZoom, maxZoom", minZoom, maxZoom);
-
-  const yScaleDetails = renderContinuousAxis(
-    g,
-    container,
-    config,
-    minZoom,
-    maxZoom,
-    plotData,
-    widthAvailable,
-    heightAvailable,
-    padding,
-    styling,
-    tooltip
-  );
-
-  const yAxisRendered = yScaleDetails.yAxisRendered;
-  const yScale = yScaleDetails.yScale;
-
-  const yAxisBoundingBox = yAxisRendered.node().getBBox();
-  Log.blue(LOG_CATEGORIES.Horizontal)("yAxisBoundingBox", yAxisBoundingBox);
-
   Log.green(LOG_CATEGORIES.Rendering)(
     "slider",
     yScale(2.0),
@@ -582,9 +536,6 @@ export async function render(
     yScale(plotData.yDataDomain.min),
     yScale(plotData.yDataDomain.max)
   );
-
-  const tickSelection = yAxisRendered.selectAll("g.tick");
-  //const boundingBoxes:any[] = [];
 
   /**
    * Zoom slider
@@ -1533,4 +1484,62 @@ export async function render(
       }
     });
   }
+}
+
+function calculateMinMaxZoom(
+  isTrellisWithIndividualYscale: boolean,
+  config: Partial<Options>,
+  trellisName: string,
+  plotData: Data
+) {
+  let minZoom: number;
+  let maxZoom: number;
+
+  if (isTrellisWithIndividualYscale) {
+    Log.green(LOG_CATEGORIES.Rendering)(
+      config.trellisIndividualZoomSettings.value()
+    );
+    if (
+      config.showZoomSliders.value() &&
+      config.trellisIndividualZoomSettings.value() != ""
+    ) {
+      const trellisZoomConfigs = config.GetTrellisZoomConfigs();
+      Log.green(LOG_CATEGORIES.Rendering)(trellisZoomConfigs, trellisName);
+      const trellisZoomConfig = trellisZoomConfigs.find(
+        (d: TrellisZoomConfig) => d.trellisName == trellisName
+      );
+
+      if (trellisZoomConfig != undefined) {
+        Log.green(LOG_CATEGORIES.Rendering)("found zoom", trellisZoomConfig);
+        if (trellisZoomConfig.minZoomUnset) {
+          minZoom = plotData.yDataDomain.min;
+        } else {
+          minZoom = trellisZoomConfig.minZoom; //- tempminZoom * 0.05;
+        }
+        if (trellisZoomConfig.maxZoomUnset) {
+          maxZoom = plotData.yDataDomain.max;
+        } else {
+          maxZoom = trellisZoomConfig.maxZoom;
+        }
+      } else {
+        minZoom = plotData.yDataDomain.min;
+        maxZoom = plotData.yDataDomain.max;
+      }
+    } else {
+      minZoom = plotData.yDataDomain.min;
+      maxZoom = plotData.yDataDomain.max;
+    }
+  } else {
+    Log.green(LOG_CATEGORIES.DebugResetGlobalZoom)(
+      "Getting min/max zoom from config if set",
+      config.yZoomMaxUnset.value()
+    );
+    minZoom = config.yZoomMinUnset.value()
+      ? plotData.yDataDomain.min
+      : config.yZoomMin.value();
+    maxZoom = config.yZoomMaxUnset.value()
+      ? plotData.yDataDomain.max
+      : config.yZoomMax.value();
+  }
+  return { minZoom, maxZoom };
 }

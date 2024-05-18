@@ -39,7 +39,6 @@ export function renderContinuousAxis(
   maxZoom: number,
   plotData: Data,
   widthAvailable: number,
-  heightAvailable: number,
   padding: any,
   styling: {
     generalStylingInfo: GeneralStylingInfo;
@@ -47,11 +46,10 @@ export function renderContinuousAxis(
   },
   tooltip: Tooltip
 ): { yScale: d3.Scale; yAxisRendered: D3_SELECTION } {
+
   /**
    * Draw y axis
    */
-
-
   let yScale = d3.scale;
   let ticks: number[];
   let allTicks: number[];
@@ -231,8 +229,7 @@ export function renderContinuousAxis(
   // Render y axis
   const yAxisRendered = g
     .append("g")
-    .attr("class", "axis")
-    .attr("transform", "translate(" + 0 + ", " + heightAvailable + ")")
+    .attr("class", "axis")    
     .style("font-family", styling.scales.font.fontFamily)
     .style("font-weight", styling.scales.font.fontWeight)
     .style("font-size", styling.scales.font.fontSize + "px")
