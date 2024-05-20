@@ -44,6 +44,32 @@ const Spotfire = window.Spotfire;
 
 export const MOD_CONTAINER: D3_SELECTION = d3.select("#mod-container");
 
+class ScrollYTracker {
+  public eventHandlers: { (newValue: number): void }[] = [];
+  public value: number = 0;
+
+  set(newValue: number) {
+    Log.red(LOG_CATEGORIES.Horizontal)(
+      "Scroll new value",
+      newValue,
+      this.value,
+      "eventHandlers", this.eventHandlers,
+      "scrolltop", 
+      window.scrollY || document.documentElement.scrollTop
+    );
+    if ((window.scrollY || document.documentElement.scrollTop) >= 0) {
+      
+      this.value = Math.max(this.value + newValue, 0); // Constrain to > 0
+
+      for (var i = 0; i < this.eventHandlers.length; i++) {
+        this.eventHandlers[i](newValue);
+      }
+    }
+  }
+}
+
+export let windowScrollYTracker = new ScrollYTracker();
+
 let previousYAxisExpression: string = "";
 let previousCountAxisExpression: string = "";
 let previousColorAxisExpression: string = "";
@@ -702,7 +728,9 @@ Spotfire.initialize(async (mod) => {
           (name == "LAV" && config.includeBoxplot.value()) ||
           (name == "UAV" && config.includeBoxplot.value()) ||
           (name == "Median" && config.includeBoxplot.value()) ||
-          (name == "Count" && config.comparisonCirclesEnabled.value()) ||
+          (name == "Count" &&
+            (config.comparisonCirclesEnabled.value() ||
+              config.includeBoxplot.value())) ||
           (name == "StdDev" && config.comparisonCirclesEnabled.value()) ||
           (name == "StdDev" &&
             config.includeBoxplot.value() &&
@@ -995,11 +1023,14 @@ Spotfire.initialize(async (mod) => {
           //.classed("container-offset-right", true)
           .style("background-color", context.styling.general.backgroundColor)
 
-          /* .attr("scrollTop", 100)
-                .on("mousewheel", function (event: WheelEvent) {
-                    Log.green(LOG_CATEGORIES.General)("mousewheel", event);
-                    scrollOffset += event.deltaY;
-                })*/
+          .on("mousewheel", function (event: WheelEvent) {
+            windowScrollYTracker.set(event.deltaY);
+            Log.green(LOG_CATEGORIES.Horizontal)(
+              "mousewheel",
+              event,
+              (scrollY || document.documentElement.scrollTop)
+            );
+          })
           .on("mousedown", (e: MouseEvent) =>
             Log.green(LOG_CATEGORIES.General)(
               "ui marking root container mousedown",
@@ -1211,14 +1242,11 @@ Spotfire.initialize(async (mod) => {
       previousTrellisColumnsPerPage = columnsPerPage;
       previousTrellisRowsPerPage = rowsPerPage;
 
-      const panelHeight = (windowSize.height / rowsPerPage) - 2 * rowsPerPage;
+      const panelHeight = windowSize.height / rowsPerPage - 2 * rowsPerPage;
       let panelWidth = rootContainerWidth / columnsPerPage;
 
       // Adjust mod container height so we don't get scrollbars (occurs infrequently)
-      MOD_CONTAINER.attr(
-        "height",
-        Math.ceil(panelHeight * rowsPerPage)
-      );
+      MOD_CONTAINER.attr("height", Math.ceil(panelHeight * rowsPerPage));
 
       // Adjust panelWidth for individual zoom slider
       panelWidth =
@@ -1248,7 +1276,7 @@ Spotfire.initialize(async (mod) => {
             .classed("row", true)
             .classed("no-gutters", true)
             .classed("gx-1", true) //gutter
-            .classed("gy-1", true)                      
+            .classed("gy-1", true)
         : d3.select("#row-0");
 
       Log.green(LOG_CATEGORIES.General)(panelHeight);
@@ -1334,11 +1362,14 @@ Spotfire.initialize(async (mod) => {
 
             .text(node.formattedPath());
 
-          Log.red(LOG_CATEGORIES.Horizontal)("titleTextNode", titleText.node().getBoundingClientRect());
+          Log.red(LOG_CATEGORIES.Horizontal)(
+            "titleTextNode",
+            titleText.node().getBoundingClientRect()
+          );
 
-          const bodyHeight = 
+          const bodyHeight =
             panelHeight - titleText.node().getBoundingClientRect().height;
-            
+
           Log.green(LOG_CATEGORIES.Horizontal)("bodyHeight", bodyHeight);
 
           const bodyContainer = subContainer
@@ -1358,9 +1389,10 @@ Spotfire.initialize(async (mod) => {
                   getComplementaryColor(context.styling.general.backgroundColor)
                 )
                 .style("height", bodyHeight + "px")
-            : d3.select("#trellis-body-container-" + panelIndex)
-              // ensure height is set at all times
-              .style("height", bodyHeight + "px");
+            : d3
+                .select("#trellis-body-container-" + panelIndex)
+                // ensure height is set at all times
+                .style("height", bodyHeight + "px");
 
           const bodyContent = bodyContainer
             .select("#trellis-body-content-" + panelIndex)

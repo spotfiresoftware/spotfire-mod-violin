@@ -768,7 +768,7 @@ export function renderBoxplot(
     .attr("cx", function (d: any) {
       Log.red(LOG_CATEGORIES.DebugBigData)("cy d", d);
 
-      return yScale(d.y) as number;
+      return yScale(d.y);
     })
     .attr("r", pointRadius)
     .style("fill", (d: any) => d.color)
@@ -778,7 +778,7 @@ export function renderBoxplot(
       // A highlight circle is a black ring overlaid on a white ring
       // in light mode, and a white circle overlaid on a black ring in dark mode
       g.append("circle")
-        .attr("transform", "translate(" + xScale(d.category) + " ,0)")
+        .attr("transform", "translate(0," + xScale(d.category) + ")")
         .attr("id", "highlightcircle")
         .classed("point-highlighted", true)
         .attr("cy", xScale.bandwidth() / 2)
@@ -787,7 +787,7 @@ export function renderBoxplot(
         .attr("stroke", styling.generalStylingInfo.backgroundColor)
         .attr("stroke-width", "3px");
       g.append("circle")
-        .attr("transform", "translate(" + xScale(d.category) + " ,0)")
+        .attr("transform", "translate(0," + xScale(d.category) + ")")
         .attr("id", "highlightcircle")
         .classed("point-highlighted", true)
         .attr("cy", xScale.bandwidth() / 2)
@@ -813,7 +813,7 @@ export function renderBoxplot(
       d3.select(event.currentTarget).classed("area-highlighted", true);
     })
     .on("mouseout", function (event: MouseEvent) {
-      tooltip.hide();
+      //tooltip.hide();
       d3.selectAll(".point-highlighted").remove();
       d3.select(event.currentTarget).classed("area-highlighted", false);
     })

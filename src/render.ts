@@ -23,6 +23,7 @@ import {
   GenerateRoundedRectSvg,
   getContrastingColor,
   MOD_CONTAINER,
+  windowScrollYTracker,
 } from "./index";
 
 // @ts-ignore
@@ -434,6 +435,7 @@ export async function render(
     .node()
     .getBoundingClientRect().width;
 
+  // Render the continuous axis
   const {
     yAxisRendered,
     yScale,
@@ -456,35 +458,75 @@ export async function render(
   const heightAvailable =
     height - tableContainerSpecs.headerRowHeight - yAxisBoundingBox.height;
 
-  const bandwidth = heightAvailable / orderedCategories.length;
+  const minBandwidth = 40;
+
+  const maxBandwidth = heightAvailable / orderedCategories.length;
+
+  const bandwidth = !isTrellis
+    ? Math.max(minBandwidth, maxBandwidth)
+    : maxBandwidth;
+
+  const svgHeight = !isTrellis
+    ? bandwidth * orderedCategories.length
+    : heightAvailable;
+
   Log.blue(LOG_CATEGORIES.Horizontal)("bandwidth", bandwidth);
 
   // Set the height of the table entry rows
   tableContainerSpecs.tableContainer
     .selectAll("td.summary-value")
-    .style("height", (bandwidth - 1) + "px");
+    .style("height", bandwidth - 1 + "px");
 
   tableContainerSpecs.tableContainer
     .selectAll("td.summary-header-right-align")
-    .style("height", (bandwidth - 1) + "px");
+    .style("height", bandwidth - 1 + "px");
 
   tableContainerSpecs.tableContainer
     .selectAll("div.summary-div")
-    .style("height", (bandwidth - 1) + "px");
+    .style("height", bandwidth - 1 + "px");
 
   tableContainerSpecs.tableContainer
     .selectAll("div.summary-div")
-    .style("height", (bandwidth - 1) + "px");
+    .style("height", bandwidth - 1 + "px");
 
-  // Now move the rendered axis to its correct place
+  // Now move the rendered continuous axis to its correct place
   yAxisRendered.attr(
     "transform",
     "translate(" + 0 + ", " + heightAvailable + ")"
   );
 
+  // Event handler for when the mod is scrolled
+  // - used to move the continuous axis with the scroll event
+  // so that it's always visible
+  windowScrollYTracker.eventHandlers.push(() => {
+    Log.red(LOG_CATEGORIES.Horizontal)(
+      "Moving y axis",
+      heightAvailable,
+      windowScrollYTracker.value,
+      heightAvailable + windowScrollYTracker.value
+    );
+    const calculatedPosition = heightAvailable + windowScrollYTracker.value;
+
+    const bandwidthRemainder = calculatedPosition % bandwidth;
+
+    yAxisRendered
+      .transition()
+      .duration(250)
+      .attr(
+        "transform",
+        "translate(" +
+          0 +
+          ", " +
+          (calculatedPosition + bandwidthRemainder + bandwidth / 2) +
+          ")"
+      );
+  });
+
   const statisticsTableHeight = tableContainerSpecs.tableContainer
     .node()
     .getBoundingClientRect().height;
+
+  // Move the statistics table to the correct place
   svg.attr(
     "transform",
     "translate(" +
@@ -503,11 +545,11 @@ export async function render(
       (widthAvailable + margin.left) +
       "px; " +
       "height:" +
-      (heightAvailable + yAxisBoundingBox.height) +
+      (svgHeight + yAxisBoundingBox.height) +
       "px;"
   );
 
-  container.attr("height", heightAvailable + "px");
+  container.attr("height", svgHeight + "px");
 
   // Rotate using css ;-)
   //svg.classed("rotate", true);
@@ -517,7 +559,7 @@ export async function render(
 
   const xScale = d3
     .scaleBand()
-    .range([0, heightAvailable])
+    .range([0, svgHeight])
     .domain(orderedCategories) //earlier we extracted the unique categories into an array
     .paddingInner(0) // This is important: it is the space between 2 groups. 0 means no padding. 1 is the maximum.
     // Originally, the padding was set to 0.2 but this led to problems aligning the summary table cells accurately,
@@ -666,7 +708,7 @@ export async function render(
       .append("svg")
       .attr("xmlns", "http://www.w3.org/2000/svg")
       .attr("id", "slider-container" + trellisIndex)
-      .attr("height", heightAvailable)
+      .attr("height", svgHeight)
       .attr("width", 20);
     sliderSvg
       .append("g")
@@ -864,7 +906,7 @@ export async function render(
       xScale,
       yScale,
       tooltip,
-      heightAvailable,
+      svgHeight,
       plotData,
       styling.generalStylingInfo.backgroundColor,
       state
@@ -909,7 +951,7 @@ export async function render(
       xAxisSpotfire,
       state,
       animationSpeed,
-      heightAvailable,
+      svgHeight,
       config,
       styling.generalStylingInfo
     );
@@ -1026,7 +1068,7 @@ export async function render(
         .style("fill", styling.generalStylingInfo.font.color)
         .text("One-way ANOVA test is not applicable.")
         .attr("x", margin.left + 10)
-        .attr("y", heightAvailable);
+        .attr("y", svgHeight);
     } else {
       svg
         .append("text")
@@ -1036,7 +1078,7 @@ export async function render(
         .style("fill", styling.generalStylingInfo.font.color)
         .text("P-value:" + plotData.pValue.toFixed(6) + " (one-way ANOVA)")
         .attr("x", margin.left + 10)
-        .attr("y", heightAvailable);
+        .attr("y", svgHeight);
     }
   }
 

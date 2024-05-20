@@ -92,7 +92,7 @@ export function renderContinuousAxis(
 
       yScale = scaleAsinh()
         .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
-        .range([widthAvailable - padding.betweenPlotAndTable, 0])
+        .range([0, widthAvailable - padding.betweenPlotAndTable])
         .linearPortion(Math.min(linearPortion, 1));
     }
   }
