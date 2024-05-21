@@ -47,7 +47,7 @@ import { renderBoxplot } from "./render-box-plot";
 import { renderViolin } from "./render-violin-plot";
 import { renderComparisonCircles } from "./render-comparison-circles";
 import { renderStatisticsTableHorizontal } from "./render-stats-table-horizontal";
-import { renderContinuousAxis } from "./continuousAxis";
+import { renderContinuousAxis, renderGridLines } from "./continuousAxis";
 
 /*
  * Adapted from:
@@ -375,7 +375,7 @@ export async function render(
 
   // x-axis item for comparison circles
   if (config.comparisonCirclesEnabled.value()) {
-    orderedCategories.push("Comparison");
+    orderedCategories.unshift("Comparison");
   }
 
   const { minZoom, maxZoom }: { minZoom: number; maxZoom: number } =
@@ -446,7 +446,7 @@ export async function render(
     minZoom,
     maxZoom,
     plotData,
-    widthAvailable,
+    widthAvailable - padding.betweenPlotAndTable,
     padding,
     styling,
     tooltip
@@ -495,32 +495,38 @@ export async function render(
     "translate(" + 0 + ", " + heightAvailable + ")"
   );
 
+  if (config.includeYAxisGrid.value() && styling.scales.line.stroke != "none") {
+    renderGridLines(g, config, svgHeight, styling, yScale, tooltip);
+  }
+
   // Event handler for when the mod is scrolled
   // - used to move the continuous axis with the scroll event
   // so that it's always visible
-  windowScrollYTracker.eventHandlers.push(() => {
-    Log.red(LOG_CATEGORIES.Horizontal)(
-      "Moving y axis",
-      heightAvailable,
-      windowScrollYTracker.value,
-      heightAvailable + windowScrollYTracker.value
-    );
-    const calculatedPosition = heightAvailable + windowScrollYTracker.value;
-
-    const bandwidthRemainder = calculatedPosition % bandwidth;
-
-    yAxisRendered
-      .transition()
-      .duration(250)
-      .attr(
-        "transform",
-        "translate(" +
-          0 +
-          ", " +
-          (calculatedPosition + bandwidthRemainder + bandwidth / 2) +
-          ")"
+  if (!isTrellis) {
+    windowScrollYTracker.eventHandlers.push(() => {
+      Log.red(LOG_CATEGORIES.Horizontal)(
+        "Moving y axis",
+        heightAvailable,
+        windowScrollYTracker.value,
+        heightAvailable + windowScrollYTracker.value
       );
-  });
+      const calculatedPosition = heightAvailable + windowScrollYTracker.value;
+
+      const bandwidthRemainder = calculatedPosition % bandwidth;
+
+      yAxisRendered
+        .transition()
+        .duration(600)
+        .attr(
+          "transform",
+          "translate(" +
+            0 +
+            ", " +
+            (calculatedPosition + bandwidthRemainder + bandwidth / 2) +
+            ")"
+        );
+    });
+  }
 
   const statisticsTableHeight = tableContainerSpecs.tableContainer
     .node()
@@ -559,7 +565,7 @@ export async function render(
 
   const xScale = d3
     .scaleBand()
-    .range([0, svgHeight])
+    .range([0, bandwidth * orderedCategories.length]) // Do not change this to anything related to height (for horizontal)
     .domain(orderedCategories) //earlier we extracted the unique categories into an array
     .paddingInner(0) // This is important: it is the space between 2 groups. 0 means no padding. 1 is the maximum.
     // Originally, the padding was set to 0.2 but this led to problems aligning the summary table cells accurately,
@@ -902,6 +908,7 @@ export async function render(
     renderComparisonCircles(
       config,
       trellisIndex,
+      g,
       g,
       xScale,
       yScale,

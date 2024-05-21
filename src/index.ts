@@ -53,12 +53,12 @@ class ScrollYTracker {
       "Scroll new value",
       newValue,
       this.value,
-      "eventHandlers", this.eventHandlers,
-      "scrolltop", 
+      "eventHandlers",
+      this.eventHandlers,
+      "scrolltop",
       window.scrollY || document.documentElement.scrollTop
     );
     if ((window.scrollY || document.documentElement.scrollTop) >= 0) {
-      
       this.value = Math.max(this.value + newValue, 0); // Constrain to > 0
 
       for (var i = 0; i < this.eventHandlers.length; i++) {
@@ -1012,6 +1012,14 @@ Spotfire.initialize(async (mod) => {
       context.styling.general.backgroundColor
     );
 
+    d3.select("body").on("scroll", function (event: Event) {
+      Log.green(LOG_CATEGORIES.Horizontal)("body scroll event", event);
+    });
+
+    d3.select("svg").on("scroll", function (event: Event) {
+      Log.green(LOG_CATEGORIES.Horizontal)("svg scroll event", event);
+    });
+
     d3.select(".dropdown-container").attr("height", "10px");
 
     const rootContainer = MOD_CONTAINER.select("#root-container").empty()
@@ -1022,13 +1030,12 @@ Spotfire.initialize(async (mod) => {
           //.classed("h-100", true)
           //.classed("container-offset-right", true)
           .style("background-color", context.styling.general.backgroundColor)
-
           .on("mousewheel", function (event: WheelEvent) {
             windowScrollYTracker.set(event.deltaY);
             Log.green(LOG_CATEGORIES.Horizontal)(
               "mousewheel",
               event,
-              (scrollY || document.documentElement.scrollTop)
+              scrollY || document.documentElement.scrollTop
             );
           })
           .on("mousedown", (e: MouseEvent) =>

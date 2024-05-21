@@ -29,7 +29,12 @@ import {
   getContrastingColor,
   MOD_CONTAINER,
 } from "./index";
-import { GeneralStylingInfo, ScaleStylingInfo, StylingInfo, Tooltip } from "spotfire-api";
+import {
+  GeneralStylingInfo,
+  ScaleStylingInfo,
+  StylingInfo,
+  Tooltip,
+} from "spotfire-api";
 
 export function renderContinuousAxis(
   g: D3_SELECTION,
@@ -38,7 +43,7 @@ export function renderContinuousAxis(
   minZoom: number,
   maxZoom: number,
   plotData: Data,
-  widthAvailable: number,
+  rangeMax: number,
   padding: any,
   styling: {
     generalStylingInfo: GeneralStylingInfo;
@@ -46,13 +51,11 @@ export function renderContinuousAxis(
   },
   tooltip: Tooltip
 ): { yScale: d3.Scale; yAxisRendered: D3_SELECTION } {
-
   /**
    * Draw y axis
    */
   let yScale = d3.scale;
   let ticks: number[];
-  let allTicks: number[];
 
   var sumStatsAsArray = [...plotData.sumStats.keys()].map((key: string) =>
     plotData.sumStats.get(key)
@@ -86,13 +89,13 @@ export function renderContinuousAxis(
       yScale = d3
         .scaleLog()
         .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
-        .range([widthAvailable - padding.betweenPlotAndTable, 0]);
+        .range([rangeMax, 0]);
     } else {
       Log.red(LOG_CATEGORIES.AsinhScale)("LinearPortion", linearPortion);
 
       yScale = scaleAsinh()
         .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
-        .range([0, widthAvailable - padding.betweenPlotAndTable])
+        .range([0, rangeMax])
         .linearPortion(Math.min(linearPortion, 1));
     }
   }
@@ -114,22 +117,19 @@ export function renderContinuousAxis(
     config.yAxisScaleType.value() == "symlog" ||
     config.yAxisScaleType.value() == "log"
   ) {
-    allTicks = yScale.ticks();
-    //allTicks = allTicks.concat(minZoom);
+    ticks = yScale.ticks();
+    //ticks = ticks.concat(minZoom);
 
     Log.green(LOG_CATEGORIES.DebugInnovativeLogticks)(
       "ticks",
-      allTicks.map((t: number) => config.FormatNumber(t))
+      ticks.map((t: number) => config.FormatNumber(t))
     );
 
     let minPower =
-      allTicks[0] == 0
+      ticks[0] == 0
         ? 0
-        : Math.sign(allTicks[0]) *
-          Math.floor(Math.log10(Math.abs(allTicks[0])));
-    let maxPower = Math.floor(
-      Math.log10(Math.abs(allTicks[allTicks.length - 1]))
-    );
+        : Math.sign(ticks[0]) * Math.floor(Math.log10(Math.abs(ticks[0])));
+    let maxPower = Math.floor(Math.log10(Math.abs(ticks[ticks.length - 1])));
 
     Log.green(LOG_CATEGORIES.DebugInnovativeLogticks)(
       "min, max",
@@ -149,7 +149,7 @@ export function renderContinuousAxis(
     }
 
     // Add the zero if we have a negative domain
-    if (powerLabels.length > 0 || allTicks[0] == 0) {
+    if (powerLabels.length > 0 || ticks[0] == 0) {
       powerLabels.push(config.FormatNumber(0));
     }
 
@@ -166,9 +166,8 @@ export function renderContinuousAxis(
       .scaleLinear()
       .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
       //.domain([0,50])
-      .range([0, widthAvailable - padding.betweenPlotAndTable]); //.nice();
-    ticks = yScale.ticks((widthAvailable - padding.betweenPlotAndTable) / 40);
-    allTicks = ticks;
+      .range([0, rangeMax]); //.nice();
+    ticks = yScale.ticks(rangeMax / 40);
   }
 
   Log.green(LOG_CATEGORIES.Horizontal)("ticks", ticks);
@@ -179,57 +178,10 @@ export function renderContinuousAxis(
     .tickValues(ticks)
     .tickFormat((d: any) => config.FormatNumber(d));
 
-  /**
-   * Draw grid lines
-   */
-  if (config.includeYAxisGrid.value() && styling.scales.line.stroke != "none") {
-    Log.green(LOG_CATEGORIES.DebugYScaleTicks)(ticks);
-    g.selectAll("line.horizontalGrid")
-      .data(config.yAxisScaleType.value() == "linear" ? ticks : allTicks)
-      .enter()
-      .append("line")
-      .attr("class", "horizontal-grid")
-      .attr("x1", 0)
-      .attr("x2", widthAvailable)
-      .attr("y1", (d: number) => yScale(d) + 0.5)
-      .attr("y2", (d: number) => yScale(d) + 0.5)
-      .attr("stroke", styling.scales.line.stroke)
-      .attr("shape-rendering", "crispEdges");
-    //.attr("stroke", styling.scales.line.stroke)
-
-    g.selectAll("line.horizontal-grid-hover")
-      .data(config.yAxisScaleType.value() == "linear" ? ticks : allTicks)
-      .enter()
-      .append("line")
-      .attr("class", "horizontal-grid-hover")
-      .attr("style", "opacity:0;")
-      .attr("x1", 0)
-      .attr("x2", widthAvailable)
-      .attr("y1", (d: number) => yScale(d))
-      .attr("y2", (d: number) => yScale(d))
-      .attr("stroke", styling.scales.line.stroke)
-      .attr("stroke-width", 5)
-      .attr("shape-rendering", "crispEdges")
-      //.attr("stroke", styling.scales.line.stroke)
-      .on("mouseover", function (event: d3.event, d: any) {
-        Log.green(LOG_CATEGORIES.DebugYScaleTicks)("mouseover", d);
-        tooltip.show(config.FormatNumber(d));
-      })
-      .on("mouseover", function (event: d3.event, d: any) {
-        tooltip.show(config.FormatNumber(d));
-      })
-      .on("mouseout", () => tooltip.hide());
-  }
-
-  // Styling of ticks and lines
-  container.selectAll(".tick line").attr("stroke", styling.scales.tick.stroke);
-
-  container.selectAll(".domain").attr("stroke", styling.scales.line.stroke);
-
   // Render y axis
   const yAxisRendered = g
     .append("g")
-    .attr("class", "axis")    
+    .attr("class", "axis")
     .style("font-family", styling.scales.font.fontFamily)
     .style("font-weight", styling.scales.font.fontWeight)
     .style("font-size", styling.scales.font.fontSize + "px")
@@ -239,7 +191,7 @@ export function renderContinuousAxis(
       Log.green(LOG_CATEGORIES.Rendering)("drag");
     });
 
-     // Symmetrical log - indicate the linear portion
+  // Symmetrical log - indicate the linear portion
   if (
     config.yAxisScaleType.value() == "symlog" &&
     plotData.yDataDomain.min <= 0 &&
@@ -388,9 +340,10 @@ export function renderContinuousAxis(
   // Guard against too many iterations of the algorithm to remove clashing labels
   let iterations = 0;
 
-  while ( false && 
+  while (
+    false &&
     (bottomUpLabelsClash || topDownLabelsClash) &&
-    iterations < allTicks.length * 6
+    iterations < ticks.length * 6
   ) {
     Log.red(LOG_CATEGORIES.DebugInnovativeLogticks)(
       "Iterating",
@@ -439,14 +392,14 @@ export function renderContinuousAxis(
         axisLabelRects,
         powerLabels,
         true,
-        iterations > allTicks.length * 3
+        iterations > ticks.length * 3
       );
     } else {
       bottomUpLabelsClash = removeLabelClashes(
         axisLabelRects,
         powerLabels,
         false,
-        iterations > allTicks.length * 3
+        iterations > ticks.length * 3
       );
     }
 
@@ -461,4 +414,62 @@ export function renderContinuousAxis(
   }
 
   return { yScale: yScale, yAxisRendered: yAxisRendered };
+}
+
+export function renderGridLines(  
+  g: D3_SELECTION,  
+  config: Partial<Options>,
+  lineLength: number,
+  styling: {
+    generalStylingInfo: GeneralStylingInfo;
+    scales: ScaleStylingInfo;
+  },
+  yScale: d3.scale,
+  tooltip: Tooltip
+) {
+  /**
+   * Draw grid lines
+   */
+
+  const ticks = yScale.ticks();
+  g.selectAll("line.horizontalGrid")
+    .data(ticks)
+    .enter()
+    .append("line")
+    .attr("class", "horizontal-grid")
+    .attr("y1", 0)
+    .attr("y2", lineLength)
+    .attr("x1", (d: number) => yScale(d) + 0.5)
+    .attr("x2", (d: number) => yScale(d) + 0.5)
+    .attr("stroke", styling.scales.line.stroke)
+    .attr("shape-rendering", "crispEdges");
+  //.attr("stroke", styling.scales.line.stroke)
+
+  g.selectAll("line.horizontal-grid-hover")
+    .data(ticks)
+    .enter()
+    .append("line")
+    .attr("class", "horizontal-grid-hover")
+    .attr("style", "opacity:0;")
+    .attr("y1", 0)
+    .attr("y2", lineLength)
+    .attr("x1", (d: number) => yScale(d))
+    .attr("x2", (d: number) => yScale(d))
+    .attr("stroke", styling.scales.line.stroke)
+    .attr("stroke-width", 5)
+    .attr("shape-rendering", "crispEdges")
+    //.attr("stroke", styling.scales.line.stroke)
+    .on("mouseover", function (event: d3.event, d: any) {
+      Log.green(LOG_CATEGORIES.DebugYScaleTicks)("mouseover", d);
+      tooltip.show(config.FormatNumber(d));
+    })
+    .on("mouseover", function (event: d3.event, d: any) {
+      tooltip.show(config.FormatNumber(d));
+    })
+    .on("mouseout", () => tooltip.hide());
+
+  // Styling of ticks and lines
+  g.selectAll(".tick line").attr("stroke", styling.scales.tick.stroke);
+
+  g.selectAll(".domain").attr("stroke", styling.scales.line.stroke);
 }
