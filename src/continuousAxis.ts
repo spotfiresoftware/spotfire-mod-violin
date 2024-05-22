@@ -69,9 +69,7 @@ export function renderContinuousAxis(
           "ZeroCrossingValue",
           r.closestValueToZero
         );
-        const pow = Math.log10(Math.abs(r.closestValueToZero));
-        Log.red(LOG_CATEGORIES.AsinhScale)("Pow", pow);
-        return Math.pow(10, pow);
+        return Math.abs(r.closestValueToZero);
       })
     )
   );
@@ -200,10 +198,11 @@ export function renderContinuousAxis(
     g.append("line")
       .style("stroke", "url(#linear-portion)")
       .style("stroke-width", 10)
-      .attr("x1", 0)
-      .attr("x2", 0)
+      .classed("symlog-linear-portion-indicator", true)
+      .attr("y1", 0)
+      .attr("y2", 0)
       .attr(
-        "y1",
+        "x1",
         yScale(
           plotData.yDataDomain.min < -1 * linearPortion
             ? -1 * linearPortion
@@ -211,7 +210,7 @@ export function renderContinuousAxis(
         )
       )
       .attr(
-        "y2",
+        "x2",
         yScale(
           plotData.yDataDomain.max > linearPortion
             ? linearPortion
@@ -267,9 +266,9 @@ export function renderContinuousAxis(
       const axisLabelRect = axisLabelRects[i];
       if (topToBottom) {
         const thisRectBottom =
-          axisLabelRect.BoundingClientRect.top +
-          axisLabelRect.BoundingClientRect.height;
-        const nextRectTop = axisLabelRects[i + 1]?.BoundingClientRect.top;
+          axisLabelRect.BoundingClientRect.left +
+          axisLabelRect.BoundingClientRect.width;
+        const nextRectTop = axisLabelRects[i + 1]?.BoundingClientRect.left;
         const nextLabelText = d3
           .select(axisLabelRects[i + 1]?.SvgTextElement)
           .node()?.innerHTML;
@@ -297,10 +296,10 @@ export function renderContinuousAxis(
           break;
         }
       } else {
-        const thisRectTop = axisLabelRect.BoundingClientRect.top;
+        const thisRectTop = axisLabelRect.BoundingClientRect.left;
         const nextRectBottom =
-          axisLabelRects[i + 1]?.BoundingClientRect.top +
-          axisLabelRects[i + 1]?.BoundingClientRect.height;
+          axisLabelRects[i + 1]?.BoundingClientRect.left +
+          axisLabelRects[i + 1]?.BoundingClientRect.width;
         const nextLabelText = d3
           .select(axisLabelRects[i + 1]?.SvgTextElement)
           .node()?.innerHTML;
@@ -341,7 +340,6 @@ export function renderContinuousAxis(
   let iterations = 0;
 
   while (
-    false &&
     (bottomUpLabelsClash || topDownLabelsClash) &&
     iterations < ticks.length * 6
   ) {
@@ -367,16 +365,16 @@ export function renderContinuousAxis(
         });
       });
     if (iterations % 2 == 0) {
-      // Sort the rects from top to bottom
+      // Sort the rects from top to bottom / left to right
       axisLabelRects.sort(
         (r1: AxisLabelRect, r2: AxisLabelRect) =>
-          r1.BoundingClientRect.top - r2.BoundingClientRect.top
+          r1.BoundingClientRect.left - r2.BoundingClientRect.left
       );
     } else {
-      // Sort the rects from bottom to top
+      // Sort the rects from bottom to top / right to left
       axisLabelRects.sort(
-        (r1: AxisLabelRect, r2: AxisLabelRect) =>
-          r2.BoundingClientRect.top - r1.BoundingClientRect.top
+        (r1: AxisLabelRect, r2: AxisLabelRect) =>          
+          r2.BoundingClientRect.left - r1.BoundingClientRect.left
       );
     }
 
@@ -386,6 +384,8 @@ export function renderContinuousAxis(
       "powerLabels",
       powerLabels
     );
+
+    //return { yScale: yScale, yAxisRendered: yAxisRendered };
 
     if (iterations % 2 == 0) {
       topDownLabelsClash = removeLabelClashes(

@@ -102,6 +102,7 @@ if (!SVGElement.prototype.checkIntersection) {
  */
 export async function render(
   this: any,
+  isHorizontal: boolean,
   spotfireMod: Spotfire.Mod,
   state: RenderState,
   plotData: Data,
@@ -188,7 +189,7 @@ export async function render(
   const margin = {
     top: 20,
     bottom: isTrellis ? 40 : 15,
-    left: calculatedLeftMargin,
+    left: isHorizontal ? 55 :calculatedLeftMargin,
     spaceForBottomAxis: 50,
   };
   const padding = { violinX: 20, betweenPlotAndTable: 20 };
@@ -375,7 +376,7 @@ export async function render(
 
   // x-axis item for comparison circles
   if (config.comparisonCirclesEnabled.value()) {
-    orderedCategories.unshift("Comparison");
+    orderedCategories.push("Comparison");
   }
 
   const { minZoom, maxZoom }: { minZoom: number; maxZoom: number } =
@@ -460,15 +461,9 @@ export async function render(
 
   const minBandwidth = 40;
 
-  const maxBandwidth = heightAvailable / orderedCategories.length;
+  const bandwidth = heightAvailable / orderedCategories.length;
 
-  const bandwidth = !isTrellis
-    ? Math.max(minBandwidth, maxBandwidth)
-    : maxBandwidth;
-
-  const svgHeight = !isTrellis
-    ? bandwidth * orderedCategories.length
-    : heightAvailable;
+  const svgHeight = heightAvailable;
 
   Log.blue(LOG_CATEGORIES.Horizontal)("bandwidth", bandwidth);
 
@@ -495,14 +490,20 @@ export async function render(
     "translate(" + 0 + ", " + heightAvailable + ")"
   );
 
+  // And move the linear portion indicator in the case of symlog:
+  g.select(".symlog-linear-portion-indicator")
+    .attr("y1", heightAvailable)
+    .attr("y2", heightAvailable);
+
   if (config.includeYAxisGrid.value() && styling.scales.line.stroke != "none") {
     renderGridLines(g, config, svgHeight, styling, yScale, tooltip);
   }
 
   // Event handler for when the mod is scrolled
-  // - used to move the continuous axis with the scroll event
-  // so that it's always visible
-  if (!isTrellis) {
+  // - could be used to move the continuous axis with the scroll event
+  // so that it's always visible (if we supported scrolling a horizontal violin
+  // plot - but right now we don't
+  if (false) {
     windowScrollYTracker.eventHandlers.push(() => {
       Log.red(LOG_CATEGORIES.Horizontal)(
         "Moving y axis",
@@ -1074,8 +1075,8 @@ export async function render(
         .style("font-family", styling.generalStylingInfo.font.fontFamily)
         .style("fill", styling.generalStylingInfo.font.color)
         .text("One-way ANOVA test is not applicable.")
-        .attr("x", margin.left + 10)
-        .attr("y", svgHeight);
+        .attr("x", 0)
+        .attr("y", svgHeight - margin.bottom);
     } else {
       svg
         .append("text")
@@ -1084,8 +1085,8 @@ export async function render(
         // SVG text elements use fill to set the color of the text
         .style("fill", styling.generalStylingInfo.font.color)
         .text("P-value:" + plotData.pValue.toFixed(6) + " (one-way ANOVA)")
-        .attr("x", margin.left + 10)
-        .attr("y", svgHeight);
+        .attr("x", 0)
+        .attr("y", svgHeight - margin.bottom);
     }
   }
 

@@ -34,17 +34,17 @@ export function renderComparisonCircles(
     .append("clipPath")
     .attr("id", "comparison-clip-" + trellisIndex)
     .append("rect")
-    .attr("x", xScale("Comparison"))
-    .attr("width", xScale.bandwidth)
-    .attr("height", heightAvailable)
+    .attr("y", xScale("Comparison"))
+    .attr("height", xScale.bandwidth)
+    .attr("width", Math.abs(yScale(plotData.yDataDomain.max) - yScale(plotData.yDataDomain.min)) + 10)
     .attr("fill", "none");
 
   // To "cover up" any gridlines
   containerg
     .append("rect")
-    .attr("x", xScale("Comparison"))
-    .attr("width", xScale.bandwidth)
-    .attr("height", heightAvailable)
+    .attr("y", xScale("Comparison"))
+    .attr("height", xScale.bandwidth)
+    .attr("width", Math.abs(yScale(plotData.yDataDomain.max) - yScale(plotData.yDataDomain.min)) + 10)
     .attr("fill", backgroundColor);
 
   containerg
@@ -54,8 +54,8 @@ export function renderComparisonCircles(
     .append("g")
     .append("circle")
     .attr("clip-path", "url(#comparison-clip-" + trellisIndex + ")")
-    .attr("cx", xScale("Comparison") + xScale.bandwidth() / 2)
-    .attr("cy", (d: any) => yScale(d[1].y0))
+    .attr("cy", xScale("Comparison") + xScale.bandwidth() / 2)
+    .attr("cx", (d: any) => yScale(d[1].y0))
     .attr("r", (d: any) =>
       Math.abs(yScale(d[1].y0) - yScale(d[1].y0 - d[1].radius))
     )
@@ -71,12 +71,12 @@ export function renderComparisonCircles(
           "stroke:" + getComparisonCircleHighlightedColor(backgroundColor)
         );
 
-      const minY = d3.min(
-        plotData.rowDataGroupedByCat.get(d[0]).map((p: any) => p.y)
-      );
-      const maxY = d3.max(
-        plotData.rowDataGroupedByCat.get(d[0]).map((p: any) => p.y)
-      );
+      const minY = 
+        plotData.rowDataGroupedByCat.get(d[0])[0].y;
+      
+      const maxY =
+        plotData.rowDataGroupedByCat.get(d[0])[plotData.rowDataGroupedByCat.get(d[0]).length - 1].y;
+      
       // draw a rect around the box area
       Log.green(LOG_CATEGORIES.ShowHighlightRect)(
         d,
@@ -86,13 +86,13 @@ export function renderComparisonCircles(
       mainVisualg
         .append("rect")
         .attr("id", "highlightRect")
-        .attr("x", xScale(d[0]))
-        .attr("y", yScale(maxY))
-        .attr("height", yScale(minY) - yScale(maxY))
+        .attr("y", xScale(d[0]))
+        .attr("x", yScale(minY))
+        .attr("width", Math.abs(yScale(minY) - yScale(maxY)))
         .attr("style", "opacity:0.9")
         .attr("stroke", getComparisonCircleHighlightedColor(backgroundColor))
         .classed("comparison-circle-highlighted", true)
-        .attr("width", xScale.bandwidth() + 1);
+        .attr("height", xScale.bandwidth() + 1);
       highlightComparisonCircles(
         mainVisualg,
         xScale,
@@ -265,8 +265,8 @@ export function highlightComparisonCircles(
   Array.from(comparisonCirclesData.entries()).forEach((c: any) => {
     if (c[0] != xValueHighlighted) {
       const tick = d3.line()([
-        [xScale(c[0]) + xScale.bandwidth() / 2, heightAvailable],
-        [xScale(c[0]) + xScale.bandwidth() / 2, heightAvailable + 10],
+        [0, xScale(c[0]) + xScale.bandwidth() / 2],
+        [10, xScale(c[0]) + xScale.bandwidth() / 2,],
       ]);
 
       g.append("path")
@@ -282,9 +282,9 @@ export function highlightComparisonCircles(
         .attr("stroke-width", "1px");
     } else {
       g.append("circle")
-        .attr("cx", xScale(c[0]) + xScale.bandwidth() / 2)
-        .attr("cy", heightAvailable - 2.5)
-        .attr("r", 10)
+        .attr("cy", xScale(c[0]) + xScale.bandwidth() / 2)
+        .attr("cx", (Math.min(xScale.bandwidth() / 4, 10)))
+        .attr("r", Math.min(xScale.bandwidth() / 4, 10))
         .attr("class", "comparison-tick")
         .attr("shape-rendering", "crispEdges")
         .attr("stroke", getComparisonCircleHighlightedColor(backgroundColor))

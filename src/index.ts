@@ -145,7 +145,7 @@ export enum LOG_CATEGORIES {
 /**
  * Set this array to any number of categories, or None to hide all logging
  */
-const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.Horizontal];
+const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.InnovativeLogTicks];
 
 /**
  * Log helper - pass the log category as the first argument, then any number of args as you would with console.log
@@ -1615,6 +1615,7 @@ Spotfire.initialize(async (mod) => {
 
         renderedPanels.push(
           await render(
+            true,
             spotfireMod,
             state,
             renderingInfo.data,
@@ -1691,7 +1692,8 @@ Spotfire.initialize(async (mod) => {
 
           renderedPanels.push(
             await render(
-              spotfireMod,
+              true,
+              spotfireMod,              
               state,
               data,
               xAxisSpotfire,

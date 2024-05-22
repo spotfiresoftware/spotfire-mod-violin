@@ -363,11 +363,23 @@ export async function buildDataForTrellisPanel(
       ];
       
       function getClosestValueToZero(rows: RowData[]) {
-        return Math.abs(rows.find(
-          (r: RowData, i: number) =>  {                   
-            return i === rows.length - 1 ||
-            Math.abs(r.y) < Math.abs(rows[i + 1].y) && r.y != 0;}
-        ).y);
+        const negativeRows = rows.filter((r:any) => r.y < 0);
+        Log.green(LOG_CATEGORIES.AsinhScale)("closestValueToZero negativeRows", rows, negativeRows);
+        const firstPositiveRow = rows.find((r:any) => r.y > 0);
+        let negativeClosest = negativeRows.length > 0 ? Math.abs(negativeRows[negativeRows.length -1].y) : undefined;
+        let positiveClosest = firstPositiveRow?.y;
+
+        if (isNaN(negativeClosest)) {
+          return positiveClosest;
+        }
+
+        if (isNaN(positiveClosest)) {
+          return negativeClosest;
+        }
+
+        Log.red(LOG_CATEGORIES.AsinhScale)("closestValueToZero", negativeClosest, positiveClosest, Math.min(negativeClosest, positiveClosest));
+        return Math.min(negativeClosest, positiveClosest);
+        
       }
 
       // Closest value to zero      
@@ -997,7 +1009,7 @@ function buildSumStats(
       uof: uof,
       confidenceIntervalLower: confidenceIntervalLower,
       confidenceIntervalUpper: confidenceIntervalUpper,
-      closestValueToZero: 0,
+      closestValueToZero: 0, // this is set above, if needed
     } as SummaryStatistics;
 
     Log.green(LOG_CATEGORIES.DebugBoxIssue)(stats);

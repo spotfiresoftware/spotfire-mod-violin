@@ -159,13 +159,6 @@
   white-space: nowrap;
 }
 
-table thead {
-  /* you could also change td instead th depending your html code */
-  background-color: green;  
-  position: fixed;
-  z-index: 100;
-  
-}
 /* 
   Hovering is confusing as it shows the arrows after you've clicked them, and they're the wrong way round
 .summary-header.ordered-left:hover::after {

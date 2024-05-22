@@ -85,18 +85,18 @@ export function scaleAsinh() {
       for (let i = powMin; i <= 0; ++i) {
         for (k = 0; k > -base; --k) {
           t = -1 * k * Math.pow(base, i);
-          Log.green(LOG_CATEGORIES.AsinhScale)(
+          /*Log.green(LOG_CATEGORIES.AsinhScale)(
             "i, k, t",
             i,
             k,
             t.toExponential(2),
             !z.includes(t) && t < min,
             t < min
-          );
+          );*/
           if (t < min) continue;
           if (t > max) break;
           if (!z.includes(t)) {
-            Log.green(LOG_CATEGORIES.AsinhScale)("pushing", t.toExponential(2));
+            //Log.green(LOG_CATEGORIES.AsinhScale)("pushing", t.toExponential(2));
             z.push(t);
           }
         }
@@ -106,37 +106,37 @@ export function scaleAsinh() {
       for (let i = powMin; i <= 0; ++i) {
         for (k = 0; k > -base; --k) {
           t = k * Math.pow(base, i);
-          Log.green(LOG_CATEGORIES.AsinhScale)(
+          /*Log.green(LOG_CATEGORIES.AsinhScale)(
             "i, k, t",
             i,
             k,
             t.toExponential(2),
             !z.includes(t) && t < min,
             t < min
-          );
+          );*/
           if (t < min) continue;
           if (t > max) break;
           if (!z.includes(t)) {
-            Log.green(LOG_CATEGORIES.AsinhScale)("pushing", t.toExponential(2));
+            //Log.green(LOG_CATEGORIES.AsinhScale)("pushing", t.toExponential(2));
             z.push(t);
           }
         }
       }
     }
 
-    Log.green(LOG_CATEGORIES.AsinhScale)("negative");
+    //Log.green(LOG_CATEGORIES.AsinhScale)("negative");
     // Negative values
     for (let i = 0; i < powMin; ++i) {
       for (k = 0; k < base; ++k) {
         t = -1 * k * Math.pow(base, i);
-        Log.green(LOG_CATEGORIES.AsinhScale)(
+        /*Log.green(LOG_CATEGORIES.AsinhScale)(
           "i, k, t",
           i,
           k,
           t.toExponential(2),
           !z.includes(t) && t < min,
           t < min
-        );
+        );*/
         //if (t < min) continue;
         if (t > max) break;
         if (!z.includes(t)) {
@@ -145,22 +145,22 @@ export function scaleAsinh() {
         }
       }
     }
-    Log.green(LOG_CATEGORIES.AsinhScale)("positive");
+    //Log.green(LOG_CATEGORIES.AsinhScale)("positive");
     // Positive values
     for (let i = 0; i < powMax; i++) {
       for (k = 0; k < base; ++k) {
         t = k * Math.pow(base, i);
-        Log.green(LOG_CATEGORIES.AsinhScale)(
+        /*Log.green(LOG_CATEGORIES.AsinhScale)(
           "i, k, t",
           i,
           k,
           t.toExponential(2),
           !z.includes(t) && t < min
-        );
+        );*/
         if (t < min) continue;
         if (t > max) break;
         if (!z.includes(t)) {
-          Log.green(LOG_CATEGORIES.AsinhScale)("pushing");
+          //Log.green(LOG_CATEGORIES.AsinhScale)("pushing");
           z.push(t);
         }
       }

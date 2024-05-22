@@ -108,7 +108,7 @@ export interface Data {
     xScale: string[];
     clearMarking(): void;
     rowData: RowData[];
-    rowDataGroupedByCat: Map<any, any>;
+    rowDataGroupedByCat: Map<string, RowData[]>;
     densitiesSplitByMarkingAndCategory: any[];
     densitiesAll: any[];
     sumStats: Map<any, any>;

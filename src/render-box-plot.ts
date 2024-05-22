@@ -69,7 +69,7 @@ export function renderBoxplot(
     if (!config.areColorAndXAxesMatching)
       return (
         plotData.isAnyMarkedRecords &&
-        !d.dataPoints.some((p: RowData) => p?.Marked)
+        !d.dataPoints?.some((p: RowData) => p?.Marked)
       );
     if (config.areColorAndXAxesMatching && !config.useFixedBoxColor.value())
       return false;
@@ -98,15 +98,15 @@ export function renderBoxplot(
       .attr("x", function (d: any) {
         return yScale(d.confidenceIntervalUpper) as number;
       })
-      .attr("height", (d: any) =>
+      .attr("width", (d: any) =>
         !isNaN(
           yScale(d.confidenceIntervalLower) - yScale(d.confidenceIntervalUpper)
         )
-          ? yScale(d.confidenceIntervalLower) -
-            yScale(d.confidenceIntervalUpper)
+          ? Math.abs(yScale(d.confidenceIntervalLower) -
+            yScale(d.confidenceIntervalUpper))
           : 0
       )
-      .attr("width", Math.max(linesWidth / 2, 4))
+      .attr("height", Math.max(linesWidth / 2, 4))
       .attr("stroke", (d: any) =>
         getContrastingColor(styling.generalStylingInfo.backgroundColor)
       )
@@ -115,6 +115,7 @@ export function renderBoxplot(
       )
       .style("opacity", config.boxOpacity)
       .classed("not-marked", (d: any) => notMarked(d))
+      .classed("rect-confidence-interval", true)
       .on("mouseover", function (event: d3.event, d: any) {
         tooltip.show(
           d.category +
@@ -200,8 +201,8 @@ export function renderBoxplot(
           "y",
           (xScale(d.category) ? xScale(d.category) : 0) + verticalLinesX
         )
-        .attr("x", yScale(d.uav))
-        .attr("width", Math.max(0, yScale(d.q3) - yScale(d.uav)))
+        .attr("x", yScale(d.q3))
+        .attr("width", Math.max(0, Math.abs(yScale(d.q3) - yScale(d.uav))))
         .attr("height", linesWidth);
     })
     .on("mouseout", () => {
@@ -361,9 +362,9 @@ export function renderBoxplot(
           "y",
           (xScale(d.category) ? xScale(d.category) : 0) + verticalLinesX
         )
-        .attr("x", yScale(d.q1))
-        .attr("height", Math.max(0, yScale(d.lav) - yScale(d.q1)))
-        .attr("width", linesWidth);
+        .attr("x", yScale(d.lav))
+        .attr("width", Math.max(0, Math.abs(yScale(d.lav) - yScale(d.q1))))
+        .attr("height", linesWidth);
     })
     .on("mouseout", () => {
       tooltip.hide();
@@ -443,8 +444,8 @@ export function renderBoxplot(
             boxWidth / 2
         )
         .attr("x", yScale(d.lav) - 2)
-        .attr("height", 4)
-        .attr("width", boxWidth);
+        .attr("width", 4)
+        .attr("height", boxWidth);
     })
     .on("mouseout", () => {
       tooltip.hide();
