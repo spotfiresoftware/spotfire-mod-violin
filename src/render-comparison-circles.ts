@@ -42,6 +42,7 @@ export function renderComparisonCircles(
   // To "cover up" any gridlines
   containerg
     .append("rect")
+    .attr("x", yScale(plotData.yDataDomain.min))
     .attr("y", xScale("Comparison"))
     .attr("height", xScale.bandwidth)
     .attr("width", Math.abs(yScale(plotData.yDataDomain.max) - yScale(plotData.yDataDomain.min)) + 10)
