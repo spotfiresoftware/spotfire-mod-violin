@@ -34,6 +34,8 @@ export interface RenderedPanel {
     name: String,
     boundingClientRect: DOMRect,
     getBoundingClientRect(): DOMRect,
+    svgLeft: number,
+    svgTop: number,
     mark(x: number, y: number, width: number, height: number, ctrlKey: boolean): void
 }
 

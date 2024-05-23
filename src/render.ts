@@ -24,6 +24,7 @@ import {
   getContrastingColor,
   MOD_CONTAINER,
   windowScrollYTracker,
+  violinWidthPadding,
 } from "./index";
 
 // @ts-ignore
@@ -189,10 +190,10 @@ export async function render(
   const margin = {
     top: 20,
     bottom: isTrellis ? 40 : 15,
-    left: isHorizontal ? 55 :calculatedLeftMargin,
+    left: isHorizontal ? 55 : calculatedLeftMargin,
     spaceForBottomAxis: 50,
   };
-  const padding = { violinX: 20, betweenPlotAndTable: 20 };
+  const padding = { violinX: 20, betweenPlotAndTable: 30 };
   const width = containerSize.width - margin.left;
   const height = containerSize.height;
 
@@ -463,7 +464,7 @@ export async function render(
 
   const bandwidth = heightAvailable / orderedCategories.length;
 
-  const svgHeight = heightAvailable;
+  const renderedPlotHeight = heightAvailable;
 
   Log.blue(LOG_CATEGORIES.Horizontal)("bandwidth", bandwidth);
 
@@ -496,7 +497,7 @@ export async function render(
     .attr("y2", heightAvailable);
 
   if (config.includeYAxisGrid.value() && styling.scales.line.stroke != "none") {
-    renderGridLines(g, config, svgHeight, styling, yScale, tooltip);
+    renderGridLines(g, config, renderedPlotHeight, styling, yScale, tooltip);
   }
 
   // Event handler for when the mod is scrolled
@@ -533,18 +534,22 @@ export async function render(
     .node()
     .getBoundingClientRect().height;
 
-  // Move the statistics table to the correct place
+  const svgTop = tableContainerSpecs.headerRowHeight;
+  const svgLeft = statisticsTableWidth + padding.betweenPlotAndTable;
+  const svgHeight = renderedPlotHeight + yAxisBoundingBox.height;
+
+  // Move the svg to the correct place
   svg.attr(
     "transform",
     "translate(" +
-      (statisticsTableWidth + padding.betweenPlotAndTable) +
+      svgLeft +
       ", " +
       (-1 * statisticsTableHeight + tableContainerSpecs.headerRowHeight) +
       ")"
   );
 
   /**
-   * Set the width and height of svg and translate it
+   * Set the width and height of svg
    */
   svg.attr(
     "style",
@@ -552,7 +557,7 @@ export async function render(
       (widthAvailable + margin.left) +
       "px; " +
       "height:" +
-      (svgHeight + yAxisBoundingBox.height) +
+      svgHeight +
       "px;"
   );
 
@@ -715,7 +720,7 @@ export async function render(
       .append("svg")
       .attr("xmlns", "http://www.w3.org/2000/svg")
       .attr("id", "slider-container" + trellisIndex)
-      .attr("height", svgHeight)
+      .attr("height", renderedPlotHeight)
       .attr("width", 20);
     sliderSvg
       .append("g")
@@ -914,7 +919,7 @@ export async function render(
       xScale,
       yScale,
       tooltip,
-      svgHeight,
+      renderedPlotHeight,
       plotData,
       styling.generalStylingInfo.backgroundColor,
       state
@@ -959,7 +964,7 @@ export async function render(
       xAxisSpotfire,
       state,
       animationSpeed,
-      svgHeight,
+      renderedPlotHeight,
       config,
       styling.generalStylingInfo
     );
@@ -1076,7 +1081,7 @@ export async function render(
         .style("fill", styling.generalStylingInfo.font.color)
         .text("One-way ANOVA test is not applicable.")
         .attr("x", 0)
-        .attr("y", svgHeight - margin.bottom);
+        .attr("y", renderedPlotHeight - margin.bottom);
     } else {
       svg
         .append("text")
@@ -1086,7 +1091,7 @@ export async function render(
         .style("fill", styling.generalStylingInfo.font.color)
         .text("P-value:" + plotData.pValue.toFixed(6) + " (one-way ANOVA)")
         .attr("x", 0)
-        .attr("y", svgHeight - margin.bottom);
+        .attr("y", renderedPlotHeight - margin.bottom);
     }
   }
 
@@ -1096,6 +1101,8 @@ export async function render(
     getBoundingClientRect() {
       return container.node().getBoundingClientRect();
     },
+    svgLeft: svgLeft,
+    svgTop: svgTop,
     mark(x, y, width, height, ctrlKey) {
       Log.green(LOG_CATEGORIES.Marking)(
         "Render Marking panel",
@@ -1124,10 +1131,10 @@ export async function render(
    */
   function rectMark(
     trellisName: string,
-    selectionBoxX: number,
-    selectionBoxY: number,
-    selectionBoxWidth: number,
-    selectionBoxHeight: number,
+    selectionRectX: number, // The y coordinate of the selection box, relative to the SVG
+    selectionRectY: number, // The y coordinate of the selection box, relative to the SVG
+    selectionRectWidth: number,
+    selectionRectHeight: number,
     ctrlKey: boolean
   ) {
     svg.selectAll(".test_points").remove();
@@ -1138,13 +1145,12 @@ export async function render(
     const violinMarkables: any = [];
 
     // set this to true to enable drawing of rects and circles to aid with debugging violin marking
-    const DEBUG_VIOLIN_MARKING = false;
+    const DEBUG_VIOLIN_MARKING = true;
 
-    // Adjust selectionBoxX slightly for non-trellis - not sure why this adjustment is necessary, but it works
-    // for now.
-    if (!isTrellis) {
-      selectionBoxX -= 12;
-    }
+    Log.green(LOG_CATEGORIES.ViolinMarking)(
+      "svg bbox",
+      svg.node().getBoundingClientRect()
+    );
 
     Log.blue(LOG_CATEGORIES.DebugViolinIndividualScalesMarking)(
       d3.selectAll(".violin-path-markable")
@@ -1160,7 +1166,7 @@ export async function render(
       .filter((d: any) => d.some((v: any) => v.trellis == trellisName))
       .each(function (d: d3.path, i: number, g: NodeList) {
         // If xScale.domain()
-        const violinXindex =
+        const violinCategoricalIndex =
           xScale.domain()[0] == "" ? 0 : xScale.domain().indexOf(d[0].category);
 
         //if (violinXindex > 0) return; // todo - remove. Just for debugging
@@ -1168,7 +1174,7 @@ export async function render(
         Log.green(LOG_CATEGORIES.ViolinMarking)(
           "violinMark",
           d,
-          violinXindex,
+          violinCategoricalIndex,
           xScale.domain()
         );
 
@@ -1177,102 +1183,140 @@ export async function render(
 
         /**
          * The logic is quite complicated. Basic premise is to construct a rect
-         * that starts at the edge of the x band where we've selected. This is to capture any sticking out bits
+         * that starts at the edge of the categorical band where we've selected. This is to capture any sticking out bits
          * that we may miss using intersections alone. Need graphics to explain this properly!
          * LHS of violin - extend rect to left-most edge of section of x band
          * RHS - mirror to LHS and use the same logic
          */
 
-        const selectionBoxStartXIndex = Math.floor(
-          (selectionBoxX - margin.left) / xScale.bandwidth()
+        /**
+         * In vertical mode, the intersection box must be extended to the horizontal edge of the band.
+         * In horizontal mode, the intersection box must be extended to the vertical edge of the band
+         */
+
+        const selectionRectY1 = selectionRectY + selectionRectHeight;
+
+        const selectionRectStartCategoricalIndex = Math.floor(
+          (selectionRectY) / xScale.bandwidth()
         );
-        const selectionBoxEndXIndex = Math.floor(
-          (selectionBoxX + selectionBoxWidth - margin.left - 20) /
+        const selectionRectEndCategoricalIndex = Math.floor(
+          (selectionRectY1) /
             xScale.bandwidth()
         );
 
-        // x0 is the left of the current x-axis band in the violin chart
-        const bandX0 = xScale.bandwidth() * violinXindex + margin.left;
+        // band0 is the start of the current x-axis band in the violin chart
+        const band0 = xScale.bandwidth() * violinCategoricalIndex;
 
-        // The right hand edge of the x axis band for this violin
-        const bandX1 = xScale.bandwidth() * (violinXindex + 1) + margin.left;
+        // The end x axis band for this violin - todo tweak for horizontal violin. It's not margin.top!
+        const band1 =
+          xScale.bandwidth() * (violinCategoricalIndex + 1);
 
         // Does drawing start on the left hand side of the violin?
-        const isLhs = selectionBoxX < bandX0 + xScale.bandwidth() / 2;
-
-        const selectionBoxX1 = selectionBoxX + selectionBoxWidth;
+        const isLhs = selectionRectY < band0 + xScale.bandwidth() / 2;
 
         Log.green(LOG_CATEGORIES.ViolinMarking)(
           "violinMark bboxX1 > bandX1",
-          selectionBoxX1 > bandX1,
-          selectionBoxX,
-          selectionBoxX1,
-          bandX1
+          selectionRectY1 > band1, isLhs,
+          "band0", band0,
+          "selectionRect x, y, height",
+          selectionRectX,
+          selectionRectY,
+          selectionRectHeight,
+          "intersectionRect y1",
+          selectionRectY1,
+          band1
         );
 
-        var intersectionRectWidth: number;
+        var intersectionRectHeight: number;
 
-        // VIOLIN PADDING is causing the issue! Need to take this into account and tidy up the logic here.
-
+        // Violin width padding is required as the violin path doesn't go to the edges
+        // - need to use half of the value of the padding, as padding affects the violin width
         if (isLhs) {
           // is marking rectangle to left hand side of violin?
-          intersectionRectWidth = selectionBoxX1 - bandX0 - padding.violinX / 2;
+          intersectionRectHeight = Math.abs(selectionRectY1 - band0) - violinWidthPadding.violinX / 2;
         } else {
-          intersectionRectWidth = bandX1 - selectionBoxX - padding.violinX / 2;
+          intersectionRectHeight = Math.abs(
+            band1 - selectionRectY
+          );
+        }
+
+        if (DEBUG_VIOLIN_MARKING) {
+          // Draw the selection box - to make sure its x and y, etc., are relative to the SVG
+          svg
+            .append("rect")
+            .classed("rect-shapeinfo", true)
+            .attr("y", selectionRectY)
+            .attr("x", selectionRectX)
+            .attr("fill", "none")
+            .attr("stroke", "purple")
+            .attr("width", selectionRectWidth)
+            .attr("height", selectionRectHeight);
+
+          // Draw the intersection box - this is the one that we will use to calculate the
+          // intersections
+          svg
+            .append("rect")
+            .classed("rect-shapeinfo", true)
+            .attr("y", band0 + violinWidthPadding.violinX / 2)
+            .attr("x", selectionRectX)
+            .attr("fill", "none")
+            .attr("stroke", "aqua")
+            .attr("width", selectionRectWidth)
+            .attr("height", intersectionRectHeight);
+
+          // Both of these now look right ;-)
         }
 
         Log.green(LOG_CATEGORIES.ViolinMarking)(
-          "violinMark",
-          "violinXindex",
-          "violinXindex",
-          violinXindex,
-          "selectionBoxStartIndex",
-          selectionBoxStartXIndex,
-          "selectionBoxEndXIndex",
-          selectionBoxEndXIndex
+          "violinCategoricalIndex",
+          violinCategoricalIndex,
+          "selectionRectStartIndex",
+          selectionRectStartCategoricalIndex,
+          "selectionRectEndXIndex",
+          selectionRectEndCategoricalIndex
         );
         Log.green(LOG_CATEGORIES.ViolinMarking)(
           "violinMark",
           "isLhs",
           isLhs,
-          "selectionBoxX",
-          selectionBoxX,
+          "selectionRectX",
+          selectionRectX,
           "bbox.width",
-          selectionBoxWidth,
+          selectionRectWidth,
           "x0",
-          bandX0,
+          band0,
           "width",
-          intersectionRectWidth,
+          intersectionRectHeight,
           "bandX1",
-          bandX1,
-          selectionBoxX - margin.left + selectionBoxWidth,
+          band1,
+          selectionRectX - margin.left + selectionRectWidth,
           "margin.left",
           margin.left
         );
 
-        if (
-          violinXindex >= selectionBoxStartXIndex &&
-          violinXindex <= selectionBoxEndXIndex
+        if ( 
+          violinCategoricalIndex >= selectionRectStartCategoricalIndex &&
+          violinCategoricalIndex <= selectionRectEndCategoricalIndex
         ) {
-          let selectionTop = selectionBoxY;
-          let rectHeight = selectionBoxHeight;
+          let selectionTop = selectionRectY;
           // Need to take the tops and bottoms of the violins into consideration
           // - e.g. if the user starts the marking rectangle above or below the top/bottom
           // of the violin, there will be no intersections there.
 
-          // Determine if top of marking rectangle is above min
+          // Determine if top of marking rectangle is above min (vertical mode)
+          // Or is to the right of min (horizontal mode)
           Log.green(LOG_CATEGORIES.ViolinMarking)(
-            "violinMark invert(selectionBoxY)",
-            yScale.invert(selectionBoxY),
+            "violinMark invert(selectionRectY)",
+            yScale.invert(selectionRectX),
             "max",
             d3.max(d.map((v: any) => v.violinY)),
             "yScale(max)",
             yScale(d3.max(d.map((v: any) => v.violinY)))
           );
-          if (
-            yScale.invert(selectionBoxY - margin.top) >
+          /*if (
+            yScale.invert(selectionRectY) >
               d3.max(d.map((v: any) => v.violinY)) &&
-            yScale.invert(selectionBoxY + selectionBoxHeight - margin.top) <
+            yScale.invert(selectionRectY + selectionRectHeight - margin.top) <
               d3.max(d.map((v: any) => v.violinY))
           ) {
             selectionTop =
@@ -1281,68 +1325,58 @@ export async function render(
               "violinMark adjusted selectionTop",
               selectionTop
             );
-            rectHeight = rectHeight - (selectionTop - selectionBoxY);
+            selectionRectHeight =
+              selectionRectHeight - (selectionTop - selectionRectY);
           }
 
           // Now bottom
           if (
-            yScale.invert(selectionBoxY + selectionBoxHeight) <
+            yScale.invert(selectionRectY + selectionRectHeight) <
               d3.min(d.map((v: any) => v.violinY)) &&
-            yScale.invert(selectionBoxY) > d3.min(d.map((v: any) => v.violinY))
+            yScale.invert(selectionRectY) > d3.min(d.map((v: any) => v.violinY))
           ) {
-            rectHeight =
+            selectionRectHeight =
               yScale(d3.min(d.map((v: any) => v.violinY))) -
               selectionTop +
               margin.top -
               1;
             Log.green(LOG_CATEGORIES.Rendering)(
-              "violinMark adjusted rectHeight",
-              rectHeight
+              "violinMark adjusted selectionRectHeight",
+              selectionRectHeight
             );
-          }
+          }*/
 
           Log.green(LOG_CATEGORIES.ViolinMarking)(
-            "violinMark selectionBoxY",
-            selectionBoxY,
-            "selectionBoxHeight",
-            selectionBoxHeight,
-            "rectHeight",
-            rectHeight
+            "violinMark selectionRectY",
+            selectionRectY,
+            "selectionRectHeight",
+            selectionRectHeight,
+            "selectionRectHeight",
+            selectionRectHeight
           );
 
           // ShapeInfo is relative to each of the bands of the violin chart. (one per categorical x axis value)
-          const interseectionRect = ShapeInfo.rectangle({
-            left: 0,
-            top: selectionTop - margin.top,
-            width: intersectionRectWidth,
-            height: rectHeight,
+          const intersectionRect = ShapeInfo.rectangle({
+            left: selectionRectX,
+            top: 0,
+            width: selectionRectWidth,
+            height: intersectionRectHeight,
           });
 
           Log.green(LOG_CATEGORIES.ViolinMarking)(
             "violinMark rect",
-            interseectionRect,
+            intersectionRect,
             "x0",
-            interseectionRect.args[0].x,
+            intersectionRect.args[0].x,
             "x1",
-            interseectionRect.args[1].x,
+            intersectionRect.args[1].x,
             "width",
-            interseectionRect.args[1].x - interseectionRect.args[0].x
+            intersectionRect.args[1].x - intersectionRect.args[0].x
           );
 
-          if (DEBUG_VIOLIN_MARKING)
-            svg
-              .append("rect")
-              .classed("rect-shapeinfo", true)
-              .attr("x", bandX0 + padding.violinX / 2)
-              .attr("y", selectionTop)
-              .attr("fill", "none")
-              .attr("stroke", "black")
-              .attr("width", intersectionRectWidth)
-              .attr("height", rectHeight);
-
-          const intersections = Intersection.intersect(path, interseectionRect);
+          const intersections = Intersection.intersect(path, intersectionRect);
           if (intersections.status == "Intersection") {
-            Log.green(LOG_CATEGORIES.DebugFirefoxMarking)(
+            Log.green(LOG_CATEGORIES.ViolinMarking)(
               "violinMark intersections",
               intersections
             );
@@ -1355,15 +1389,13 @@ export async function render(
                 .append("circle")
                 .classed("test_points", true)
                 .attr(
-                  "cx",
+                  "cy",
                   (d: any) =>
-                    padding.violinX / 2 +
-                    margin.left +
-                    d.x +
-                    xScale.bandwidth() * violinXindex
+                    d.y +
+                    xScale.bandwidth() * violinCategoricalIndex + violinWidthPadding.violinX / 2
                 )
-                .attr("cy", (d: any) => d.y + margin.top)
-                .attr("r", 5 + 2 * violinXindex)
+                .attr("cx", (d: any) => d.x)
+                .attr("r", 5 + 2 * violinCategoricalIndex)
                 .attr("fill", "red");
 
             // Pairs of points
@@ -1377,12 +1409,12 @@ export async function render(
                     intersections.points[j].x +
                     padding.violinX / 2 +
                     margin.left +
-                    xScale.bandwidth() * violinXindex,
+                    xScale.bandwidth() * violinCategoricalIndex,
                   testX2:
                     intersections.points[j + 1].x +
                     margin.left +
                     +padding.violinX / 2 +
-                    xScale.bandwidth() * violinXindex,
+                    xScale.bandwidth() * violinCategoricalIndex,
                   testY1: intersections.points[j].y + margin.top,
                   testY2: intersections.points[j + 1].y + margin.top,
                   y1: yScale.invert(intersections.points[j].y),
@@ -1408,8 +1440,8 @@ export async function render(
         .classed("test_rect", true)
         .attr("x", (d: any) => Math.min(d.testX1, d.testX2))
         .attr("y", (d: any) => Math.min(d.testY1, d.testY2))
-        .attr("width", (d: any) => Math.abs(d.testX1 - d.testX2))
-        .attr("height", (d: any) => Math.abs(d.testY2 - d.testY1))
+        .attr("height", (d: any) => Math.abs(d.testX1 - d.testX2))
+        .attr("width", (d: any) => Math.abs(d.testY2 - d.testY1))
         .attr("stroke", "red")
         .attr("fill", "none");
 
@@ -1421,21 +1453,22 @@ export async function render(
       );
     }
 
-    // create an SVG rect for computing bounds
+    // create an SVG rect for computing bounds for marking points
     const markingPath = svg
       .append("path")
       .attr(
         "d",
         rect(
-          selectionBoxX,
-          selectionBoxY,
-          selectionBoxWidth,
-          selectionBoxHeight
+          selectionRectX,
+          selectionRectY,
+          selectionRectWidth,
+          selectionRectHeight
         )
       )
-      // Use visible when debugging marking - it renders a nice black rect that indicates the area of the marking rect
-      // .attr("visibility", "visible")
-      .attr("visibility", "hidden")
+      .classed("test_rect", true)
+      // Use visible when debugging marking - it renders a nice gray rect that indicates the area of the marking rect
+      .attr("visibility", DEBUG_VIOLIN_MARKING ? "visible" : "hidden")
+      .attr("style", "opacity: 0.5")   
       .attr("fill", "lightgray");
 
     const svgNode = svg.node();
@@ -1455,10 +1488,10 @@ export async function render(
       });
 
     Log.blue(LOG_CATEGORIES.DebugMarkingOffset)(
-      selectionBoxX,
-      selectionBoxY,
-      selectionBoxWidth,
-      selectionBoxHeight
+      selectionRectX,
+      selectionRectY,
+      selectionRectWidth,
+      selectionRectHeight
     );
     // Marked box segments. Only allow box segment marking if violin is not shown
     let markedBoxSegments: d3.D3_SELECTION;
@@ -1531,7 +1564,9 @@ export async function render(
           maxY,
           plotData.rowData.filter((p) => p.category == element.category)
         );
-        plotData.mark(rowsToMark, ctrlKey ? "ToggleOrAdd" : "Replace");
+        if (!DEBUG_VIOLIN_MARKING) {
+          plotData.mark(rowsToMark, ctrlKey ? "ToggleOrAdd" : "Replace");
+        }
       });
 
       // It is possible the user tried to mark regions of the violin with no data; so clear marking if this is the case (e.g. above max/below min)

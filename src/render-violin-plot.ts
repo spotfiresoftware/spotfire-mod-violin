@@ -7,7 +7,7 @@
 // @ts-ignore
 import * as d3 from "d3";
 import { Data, Options, RenderState, RowData } from "./definitions";
-import { LOG_CATEGORIES, Log, getBoxBorderColor } from "./index";
+import { LOG_CATEGORIES, Log, getBoxBorderColor, violinWidthPadding } from "./index";
 import { Tooltip, DataViewRow, GeneralStylingInfo } from "spotfire-api";
 import {
   highlightComparisonCircles,
@@ -32,8 +32,7 @@ export function renderViolin(
   config: Partial<Options>,
   generalStylingInfo: GeneralStylingInfo
 ) {
-  const padding = { violinX: 20 };
-  const isScaleLog = config.yAxisLog.value();
+  
   const curveType = d3.curveLinear;
 
   Log.green(LOG_CATEGORIES.ViolinIndividualScales)(
@@ -76,7 +75,7 @@ export function renderViolin(
      */
     const violinXscale = d3
       .scaleLinear()
-      .range([1, xScale.bandwidth() - padding.violinX])
+      .range([1, xScale.bandwidth() - violinWidthPadding.violinX])
       .domain([-maxKdeValue, maxKdeValue]);
 
     Log.red(LOG_CATEGORIES.DebugYNaN)(
@@ -101,7 +100,7 @@ export function renderViolin(
         return (
           "translate(0, " + 
           ((xScale(d.category) ? xScale(d.category) : 0) +
-            padding.violinX / 2) +
+            violinWidthPadding.violinX / 2) +
           ")"
         );
       })
@@ -310,7 +309,7 @@ export function renderViolin(
         return (
           "translate(0, " +
           ((xScale(d.category) ? xScale(d.category) : 0) +
-            padding.violinX / 2) +
+            violinWidthPadding.violinX / 2) +
           ")"
         );
       }) // Translation on the right to be at the group position

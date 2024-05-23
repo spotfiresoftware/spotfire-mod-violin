@@ -44,6 +44,8 @@ const Spotfire = window.Spotfire;
 
 export const MOD_CONTAINER: D3_SELECTION = d3.select("#mod-container");
 
+export const violinWidthPadding = { violinX: 20 };
+
 class ScrollYTracker {
   public eventHandlers: { (newValue: number): void }[] = [];
   public value: number = 0;
@@ -145,7 +147,7 @@ export enum LOG_CATEGORIES {
 /**
  * Set this array to any number of categories, or None to hide all logging
  */
-const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.InnovativeLogTicks];
+const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.ViolinMarking];
 
 /**
  * Log helper - pass the log category as the first argument, then any number of args as you would with console.log
@@ -1693,7 +1695,7 @@ Spotfire.initialize(async (mod) => {
           renderedPanels.push(
             await render(
               true,
-              spotfireMod,              
+              spotfireMod,
               state,
               data,
               xAxisSpotfire,
@@ -1776,7 +1778,7 @@ Spotfire.initialize(async (mod) => {
       //const selectionBBox = result.selectionDiv.getBoundingClientRect();
       const selectionBBox: DOMRect =
         result.selectionDiv?.getBoundingClientRect();
-      Log.green(LOG_CATEGORIES.General)(
+      Log.green(LOG_CATEGORIES.ViolinMarking)(
         "index marking result y",
         result.y,
         "bottom",
@@ -1846,17 +1848,24 @@ Spotfire.initialize(async (mod) => {
             panel.name
           );
 
+          Log.red(LOG_CATEGORIES.ViolinMarking)("svgTop", panel.svgTop);
+
           // Now need to calculate the x, y, width and height of the marking rect relative to the panel
           const clamp = (value: number, min: number, max: number) =>
             Math.min(Math.max(min, value), max);
 
           const x = clamp(
-            result.x - panel.getBoundingClientRect().x,
+            result.x -
+              panel.getBoundingClientRect().x -
+              panel.svgLeft -
+              // Not quite sure why -12px is required when not trellised, but it 
+              // seems to be necessary!
+              (!isTrellis ? 12 : 0),
             0,
             panel.getBoundingClientRect().width
           );
           const y = clamp(
-            result.y - panel.getBoundingClientRect().y,
+            result.y - panel.getBoundingClientRect().y - panel.svgTop,
             0,
             panel.getBoundingClientRect().bottom
           );
