@@ -277,10 +277,14 @@ export function renderContinuousAxis(
     for (let i = 0; i < axisLabelRects.length; i++) {
       const axisLabelRect = axisLabelRects[i];
       if (topToBottom) {
-        const thisRectBottom =
-          axisLabelRect.BoundingClientRect.left +
-          axisLabelRect.BoundingClientRect.width;
-        const nextRectTop = axisLabelRects[i + 1]?.BoundingClientRect.left;
+        const thisRectBottom = config.isVertical
+          ? axisLabelRect.BoundingClientRect.top +
+            axisLabelRect.BoundingClientRect.height
+          : axisLabelRect.BoundingClientRect.left +
+            axisLabelRect.BoundingClientRect.width;
+        const nextRectTop = config.isVertical
+          ? axisLabelRects[i + 1]?.BoundingClientRect.top
+          : axisLabelRects[i + 1]?.BoundingClientRect.left;
         const nextLabelText = d3
           .select(axisLabelRects[i + 1]?.SvgTextElement)
           .node()?.innerHTML;
@@ -308,10 +312,14 @@ export function renderContinuousAxis(
           break;
         }
       } else {
-        const thisRectTop = axisLabelRect.BoundingClientRect.left;
-        const nextRectBottom =
-          axisLabelRects[i + 1]?.BoundingClientRect.left +
-          axisLabelRects[i + 1]?.BoundingClientRect.width;
+        const thisRectTop = config.isVertical
+          ? axisLabelRect.BoundingClientRect.top
+          : axisLabelRect.BoundingClientRect.left;
+        const nextRectBottom = config.isVertical
+          ? axisLabelRects[i + 1]?.BoundingClientRect.top +
+            axisLabelRects[i + 1]?.BoundingClientRect.height
+          : axisLabelRects[i + 1]?.BoundingClientRect.left +
+            axisLabelRects[i + 1]?.BoundingClientRect.width;
         const nextLabelText = d3
           .select(axisLabelRects[i + 1]?.SvgTextElement)
           .node()?.innerHTML;
@@ -378,15 +386,17 @@ export function renderContinuousAxis(
       });
     if (iterations % 2 == 0) {
       // Sort the rects from top to bottom / left to right
-      axisLabelRects.sort(
-        (r1: AxisLabelRect, r2: AxisLabelRect) =>
-          r1.BoundingClientRect.left - r2.BoundingClientRect.left
+      axisLabelRects.sort((r1: AxisLabelRect, r2: AxisLabelRect) =>
+        config.isVertical
+          ? r1.BoundingClientRect.top - r2.BoundingClientRect.top
+          : r1.BoundingClientRect.left - r2.BoundingClientRect.left
       );
     } else {
       // Sort the rects from bottom to top / right to left
-      axisLabelRects.sort(
-        (r1: AxisLabelRect, r2: AxisLabelRect) =>
-          r2.BoundingClientRect.left - r1.BoundingClientRect.left
+      axisLabelRects.sort((r1: AxisLabelRect, r2: AxisLabelRect) =>
+        config.isVertical
+          ? r2.BoundingClientRect.top - r1.BoundingClientRect.top
+          : r2.BoundingClientRect.left - r1.BoundingClientRect.left
       );
     }
 
@@ -463,10 +473,10 @@ export function renderGridLines(
     .append("line")
     .attr("class", "horizontal-grid-hover")
     .attr("style", "opacity:0;")
-    .attr("y1", 0)
-    .attr("y2", lineLength)
-    .attr("x1", (d: number) => yScale(d))
-    .attr("x2", (d: number) => yScale(d))
+    .attr(config.isVertical ? "x1" : "y1", 0)
+    .attr(config.isVertical ? "x2" : "y2", lineLength)
+    .attr(config.isVertical ? "y1" : "x1", (d: number) => yScale(d) + 0.5)
+    .attr(config.isVertical ? "y2" : "x2", (d: number) => yScale(d) + 0.5)
     .attr("stroke", styling.scales.line.stroke)
     .attr("stroke-width", 5)
     .attr("shape-rendering", "crispEdges")
