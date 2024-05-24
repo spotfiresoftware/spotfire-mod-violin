@@ -17,6 +17,7 @@ import {
   StatisticsConfig,
   TrellisZoomConfig,
   SummaryStatistics,
+  YScaleSpecs,
 } from "./definitions";
 
 import { scaleAsinh } from "./asinhScale";
@@ -50,7 +51,7 @@ export function renderContinuousAxis(
     scales: ScaleStylingInfo;
   },
   tooltip: Tooltip
-): { yScale: d3.Scale; yAxisRendered: D3_SELECTION } {
+): YScaleSpecs {
   /**
    * Draw y axis
    */
@@ -159,6 +160,8 @@ export function renderContinuousAxis(
 
   Log.green(LOG_CATEGORIES.DebugInnovativeLogticks)("powerLabels", powerLabels);
 
+
+  Log.green(LOG_CATEGORIES.Horizontal)("rangeMax", rangeMax);
   if (config.yAxisScaleType.value() == "linear") {
     yScale = d3
       .scaleLinear()
@@ -170,11 +173,21 @@ export function renderContinuousAxis(
 
   Log.green(LOG_CATEGORIES.Horizontal)("ticks", ticks);
 
-  const yAxis = d3
+  let yAxis:d3.axis;
+  
+  if (config.isVertical) {
+    yAxis = d3
+    .axisLeft()
+    .scale(yScale)
+    .tickValues(ticks)
+    .tickFormat((d: any) => config.FormatNumber(d));
+  } else {
+    yAxis = d3
     .axisBottom()
     .scale(yScale)
     .tickValues(ticks)
     .tickFormat((d: any) => config.FormatNumber(d));
+  }
 
   // Render y axis
   const yAxisRendered = g

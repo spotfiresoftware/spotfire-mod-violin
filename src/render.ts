@@ -43,6 +43,8 @@ import {
   StatisticsConfig,
   TrellisZoomConfig,
   SummaryStatistics,
+  TableContainerSpecs,
+  YScaleSpecs,
 } from "./definitions";
 import { renderBoxplot } from "./render-box-plot";
 import { renderViolin } from "./render-violin-plot";
@@ -216,14 +218,30 @@ export async function render(
     height
   );
 
-  const tableContainer: D3_SELECTION = container
-    .append("div")
-    .classed("table-container-horizontal", true);
+  let tableContainer: D3_SELECTION;
 
-  const svg = container
-    .append("svg")
-    .attr("xmlns", "http://www.w3.org/2000/svg")
-    .attr("classed", "main-svg-container");
+  let svg: D3_SELECTION;
+
+  // Horizontal, table container must be rendered before SVG
+  // Vertical, SVG must be rendered before table
+  if (config.isVertical) {
+    svg = container
+      .append("svg")
+      .attr("xmlns", "http://www.w3.org/2000/svg")
+      .attr("classed", "main-svg-container");
+
+    tableContainer = container
+      .append("div")
+      .classed("table-container-horizontal", false);
+  } else {
+    tableContainer = container
+      .append("div")
+      .classed("table-container-horizontal", true);
+    svg = container
+      .append("svg")
+      .attr("xmlns", "http://www.w3.org/2000/svg")
+      .attr("classed", "main-svg-container");
+  }
 
   const g = svg.append("g");
 
@@ -397,209 +415,319 @@ export async function render(
   );
   Log.green(LOG_CATEGORIES.DebugLogYAxis)("minZoom, maxZoom", minZoom, maxZoom);
 
-  // Render the summary statistics table
-  const tableContainerSpecs: {
-    headerRowHeight: number;
-    tableContainer: D3_SELECTION;
-  } = renderStatisticsTableHorizontal(
-    config,
-    styling,
-    tableContainer,
-    margin,
-    fontClass,
-    plotData,
-    orderedCategories,
-    height / orderedCategories.length,
-    tooltip
-  );
+  let tableContainerSpecs: TableContainerSpecs;
+  let yScaleSpecs: YScaleSpecs;
+  let yAxisRendered: d3.scale;
+  let xScale: d3.scale;
+  let yScale: d3.scale;
+  let xAxis: D3_SELECTION;
+  let widthAvailable: number;
+  let svgTop: number;
+  let svgLeft: number;
+  let svgHeight: number;
+  let renderedPlotHeight: number;
+  let heightAvailable: number;
+  let statisticsTableHeight: number;
+  let statisticsTableWidth: number;
+  let bandwidth: number;
 
-  const widthAvailable = Math.max(
-    0,
-    width -
-      tableContainerSpecs.tableContainer.node().getBoundingClientRect().width
-  );
+  // Render the summary statistics table at this point if plot is horizontal, as we need various sizing
+  // from it in order to construct the continuous axis, etc.
+  if (!config.isVertical) {
+    tableContainerSpecs = renderStatisticsTableHorizontal(
+      config,
+      styling,
+      tableContainer,
+      margin,
+      fontClass,
+      plotData,
+      orderedCategories,
+      height / orderedCategories.length,
+      tooltip
+    );
 
-  Log.green(LOG_CATEGORIES.Rendering)(
-    "height, heightAvailable",
-    height,
-    widthAvailable,
-    "containerSize",
-    containerSize,
-    tableContainerSpecs.tableContainer.node().getBoundingClientRect(),
-    tableContainerSpecs.tableContainer.node().clientHeight
-  );
-  //tableContainer.attr("style", "top:" + heightAvailable + "px");
-  Log.green(LOG_CATEGORIES.Rendering)(
-    tableContainerSpecs.tableContainer.node()
-  );
+    widthAvailable = Math.max(
+      0,
+      width -
+        tableContainerSpecs.tableContainer.node().getBoundingClientRect().width
+    );
 
-  const statisticsTableWidth = tableContainerSpecs.tableContainer
-    .node()
-    .getBoundingClientRect().width;
+    Log.green(LOG_CATEGORIES.Rendering)(
+      "height, heightAvailable",
+      height,
+      widthAvailable,
+      "containerSize",
+      containerSize,
+      tableContainerSpecs.tableContainer.node().getBoundingClientRect(),
+      tableContainerSpecs.tableContainer.node().clientHeight
+    );
+    //tableContainer.attr("style", "top:" + heightAvailable + "px");
+    Log.green(LOG_CATEGORIES.Rendering)(
+      tableContainerSpecs.tableContainer.node()
+    );
 
-  // Render the continuous axis
-  const {
-    yAxisRendered,
-    yScale,
-  }: { yAxisRendered: D3_SELECTION; yScale: d3.scale } = renderContinuousAxis(
-    g,
-    container,
-    config,
-    minZoom,
-    maxZoom,
-    plotData,
-    widthAvailable - padding.betweenPlotAndTable,
-    padding,
-    styling,
-    tooltip
-  );
+    statisticsTableWidth = tableContainerSpecs.tableContainer
+      .node()
+      .getBoundingClientRect().width;
 
-  const yAxisBoundingBox = yAxisRendered.node().getBBox();
-  Log.blue(LOG_CATEGORIES.Horizontal)("yAxisBoundingBox", yAxisBoundingBox);
+    // Render the continuous axis
+    yScaleSpecs = renderContinuousAxis(
+      g,
+      container,
+      config,
+      minZoom,
+      maxZoom,
+      plotData,
+      widthAvailable - padding.betweenPlotAndTable,
+      padding,
+      styling,
+      tooltip
+    );
 
-  const heightAvailable =
-    height - tableContainerSpecs.headerRowHeight - yAxisBoundingBox.height;
+    yAxisRendered = yScaleSpecs.yAxisRendered;
+    yScale = yScaleSpecs.yScale;
 
-  const minBandwidth = 40;
+    const yAxisBoundingBox = yAxisRendered.node().getBBox();
+    Log.blue(LOG_CATEGORIES.Horizontal)("yAxisBoundingBox", yAxisBoundingBox);
 
-  const bandwidth = heightAvailable / orderedCategories.length;
+    heightAvailable =
+      height - tableContainerSpecs.headerRowHeight - yAxisBoundingBox.height;
 
-  const renderedPlotHeight = heightAvailable;
+    const minBandwidth = 40;
 
-  Log.blue(LOG_CATEGORIES.Horizontal)("bandwidth", bandwidth);
+    bandwidth = heightAvailable / orderedCategories.length;
 
-  // Set the height of the table entry rows
-  tableContainerSpecs.tableContainer
-    .selectAll("td.summary-value")
-    .style("height", bandwidth - 1 + "px");
+    renderedPlotHeight = heightAvailable;
 
-  tableContainerSpecs.tableContainer
-    .selectAll("td.summary-header-right-align")
-    .style("height", bandwidth - 1 + "px");
+    Log.blue(LOG_CATEGORIES.Horizontal)("bandwidth", bandwidth);
 
-  tableContainerSpecs.tableContainer
-    .selectAll("div.summary-div")
-    .style("height", bandwidth - 1 + "px");
+    // Set the height of the table entry rows
+    tableContainerSpecs.tableContainer
+      .selectAll("td.summary-value")
+      .style("height", bandwidth - 1 + "px");
 
-  tableContainerSpecs.tableContainer
-    .selectAll("div.summary-div")
-    .style("height", bandwidth - 1 + "px");
+    tableContainerSpecs.tableContainer
+      .selectAll("td.summary-header-right-align")
+      .style("height", bandwidth - 1 + "px");
 
-  // Now move the rendered continuous axis to its correct place
-  yAxisRendered.attr(
-    "transform",
-    "translate(" + 0 + ", " + heightAvailable + ")"
-  );
+    tableContainerSpecs.tableContainer
+      .selectAll("div.summary-div")
+      .style("height", bandwidth - 1 + "px");
 
-  // And move the linear portion indicator in the case of symlog:
-  g.select(".symlog-linear-portion-indicator")
-    .attr("y1", heightAvailable)
-    .attr("y2", heightAvailable);
+    tableContainerSpecs.tableContainer
+      .selectAll("div.summary-div")
+      .style("height", bandwidth - 1 + "px");
 
-  if (config.includeYAxisGrid.value() && styling.scales.line.stroke != "none") {
-    renderGridLines(g, config, renderedPlotHeight, styling, yScale, tooltip);
-  }
+    // Now move the rendered continuous axis to its correct place
+    yAxisRendered.attr(
+      "transform",
+      "translate(" + 0 + ", " + heightAvailable + ")"
+    );
 
-  // Event handler for when the mod is scrolled
-  // - could be used to move the continuous axis with the scroll event
-  // so that it's always visible (if we supported scrolling a horizontal violin
-  // plot - but right now we don't
-  if (false) {
-    windowScrollYTracker.eventHandlers.push(() => {
-      Log.red(LOG_CATEGORIES.Horizontal)(
-        "Moving y axis",
-        heightAvailable,
-        windowScrollYTracker.value,
-        heightAvailable + windowScrollYTracker.value
-      );
-      const calculatedPosition = heightAvailable + windowScrollYTracker.value;
+    // And move the linear portion indicator in the case of symlog:
+    g.select(".symlog-linear-portion-indicator")
+      .attr("y1", heightAvailable)
+      .attr("y2", heightAvailable);
 
-      const bandwidthRemainder = calculatedPosition % bandwidth;
+    if (
+      config.includeYAxisGrid.value() &&
+      styling.scales.line.stroke != "none"
+    ) {
+      renderGridLines(g, config, renderedPlotHeight, styling, yScale, tooltip);
+    }
 
-      yAxisRendered
-        .transition()
-        .duration(600)
-        .attr(
-          "transform",
-          "translate(" +
-            0 +
-            ", " +
-            (calculatedPosition + bandwidthRemainder + bandwidth / 2) +
-            ")"
+    // Event handler for when the mod is scrolled
+    // - could be used to move the continuous axis with the scroll event
+    // so that it's always visible (if we supported scrolling a horizontal violin
+    // plot - but right now we don't
+    if (false) {
+      windowScrollYTracker.eventHandlers.push(() => {
+        Log.red(LOG_CATEGORIES.Horizontal)(
+          "Moving y axis",
+          heightAvailable,
+          windowScrollYTracker.value,
+          heightAvailable + windowScrollYTracker.value
         );
-    });
+        const calculatedPosition = heightAvailable + windowScrollYTracker.value;
+
+        const bandwidthRemainder = calculatedPosition % bandwidth;
+
+        yAxisRendered
+          .transition()
+          .duration(600)
+          .attr(
+            "transform",
+            "translate(" +
+              0 +
+              ", " +
+              (calculatedPosition + bandwidthRemainder + bandwidth / 2) +
+              ")"
+          );
+      });
+    }
+
+    statisticsTableHeight = tableContainerSpecs.tableContainer
+      .node()
+      .getBoundingClientRect().height;
+
+    svgTop = tableContainerSpecs.headerRowHeight;
+    svgLeft = statisticsTableWidth + padding.betweenPlotAndTable;
+    svgHeight = renderedPlotHeight + yAxisBoundingBox.height;
+
+    // Move the svg to the correct place
+    svg.attr(
+      "transform",
+      "translate(" +
+        svgLeft +
+        ", " +
+        (-1 * statisticsTableHeight + tableContainerSpecs.headerRowHeight) +
+        ")"
+    );
+
+    /**
+     * Set the width and height of svg
+     */
+    svg.attr(
+      "style",
+      "width:" +
+        (widthAvailable + margin.left) +
+        "px; " +
+        "height:" +
+        svgHeight +
+        "px;"
+    );
+
+    container.attr("height", svgHeight + "px");
+
+    // Rotate using css ;-)
+    //svg.classed("rotate", true);
+
+    // Rotate
+    //svg.attr("transform", "rotate(90)"); //, " + (containerSize.width / 2) + "," + (containerSize.height / 2) + ")");
+
+    xScale = d3
+      .scaleBand()
+      .range([0, bandwidth * orderedCategories.length]) // Do not change this to anything related to height (for horizontal)
+      .domain(orderedCategories) //earlier we extracted the unique categories into an array
+      .paddingInner(0) // This is important: it is the space between 2 groups. 0 means no padding. 1 is the maximum.
+      // Originally, the padding was set to 0.2 but this led to problems aligning the summary table cells accurately,
+      // Therefore, padding has been set to 0... This also reduces the space consumed. Violins touching each other is
+      // not a huge issue in my opinion (A. Berridge)
+      .paddingOuter(0)
+      .align(0);
+
+    xAxis = d3.axisLeft(xScale);
+
+    // Render the x axis
+    g.append("g")
+      .attr("class", "x-axis")
+      //.attr("transform", "translate(0," + heightAvailable + ")")
+      .attr("font-family", styling.scales.font.fontFamily)
+      .attr("fill", styling.scales.font.color)
+      .attr("font-weight", styling.scales.font.fontWeight)
+      .style("font-size", styling.scales.font.fontSize + "px")
+      .call(xAxis);
+
+    Log.green(LOG_CATEGORIES.Rendering)(
+      "slider",
+      yScale(2.0),
+      plotData.yDataDomain.min,
+      plotData.yDataDomain.max,
+      yScale(plotData.yDataDomain.min),
+      yScale(plotData.yDataDomain.max)
+    );
+  } else {
+    // Plot is vertical
+
+    widthAvailable = width;
+
+    xScale = d3
+      .scaleBand()
+      .range([0, width]) // @todo: see if we can calculate the bandwidth?
+      .domain(orderedCategories) //earlier we extracted the unique categories into an array
+      .paddingInner(0) // This is important: it is the space between 2 groups. 0 means no padding. 1 is the maximum.
+      // Originally, the padding was set to 0.2 but this led to problems aligning the summary table cells accurately,
+      // Therefore, padding has been set to 0... This also reduces the space consumed. Violins touching each other is
+      // not a huge issue in my opinion (A. Berridge)
+      .paddingOuter(0)
+      .align(0);
+
+    tableContainer = renderStatisticsTable(
+      config,
+      styling,
+      container,
+      margin,
+      fontClass,
+      plotData,
+      orderedCategories,
+      xScale.bandwidth(),
+      tooltip
+    );
+
+    heightAvailable = Math.max(
+      0,
+      height -
+        tableContainer.node().getBoundingClientRect().height -
+        margin.top -
+        margin.bottom
+    );
+
+    Log.green(LOG_CATEGORIES.Rendering)(
+      "height, heightAvailable",
+      height,
+      heightAvailable,
+      "containerSize",
+      containerSize,
+      tableContainer.node().getBoundingClientRect(),
+      tableContainer.node().clientHeight
+    );
+    //tableContainer.attr("style", "top:" + heightAvailable + "px");
+    Log.green(LOG_CATEGORIES.Rendering)(tableContainer.node());
+
+    /**
+     * Set the width and height of svg and translate it
+     */
+    svg.attr(
+      "style",
+      "width:" +
+        (width + margin.left) +
+        "px; " +
+        "height:" +
+        (heightAvailable + 30) +
+        "px;"
+    );
+
+    xAxis = d3.axisLeft(xScale);
+
+    // Render the x axis
+    g.append("g")
+      .attr("class", "x-axis")
+      //.attr("transform", "translate(0," + heightAvailable + ")")
+      .attr("font-family", styling.scales.font.fontFamily)
+      .attr("fill", styling.scales.font.color)
+      .attr("font-weight", styling.scales.font.fontWeight)
+      .style("font-size", styling.scales.font.fontSize + "px")
+      .call(xAxis);
+
+    svgTop = margin.top;
+    svgLeft = margin.left;
+    svgHeight = renderedPlotHeight;
+
+    yScaleSpecs = renderContinuousAxis(
+      g,
+      container,
+      config,
+      minZoom,
+      maxZoom,
+      plotData,
+      heightAvailable - svgTop,
+      padding,
+      styling,
+      tooltip
+    );
+
+    yScale = yScaleSpecs.yScale;
   }
-
-  const statisticsTableHeight = tableContainerSpecs.tableContainer
-    .node()
-    .getBoundingClientRect().height;
-
-  const svgTop = tableContainerSpecs.headerRowHeight;
-  const svgLeft = statisticsTableWidth + padding.betweenPlotAndTable;
-  const svgHeight = renderedPlotHeight + yAxisBoundingBox.height;
-
-  // Move the svg to the correct place
-  svg.attr(
-    "transform",
-    "translate(" +
-      svgLeft +
-      ", " +
-      (-1 * statisticsTableHeight + tableContainerSpecs.headerRowHeight) +
-      ")"
-  );
-
-  /**
-   * Set the width and height of svg
-   */
-  svg.attr(
-    "style",
-    "width:" +
-      (widthAvailable + margin.left) +
-      "px; " +
-      "height:" +
-      svgHeight +
-      "px;"
-  );
-
-  container.attr("height", svgHeight + "px");
-
-  // Rotate using css ;-)
-  //svg.classed("rotate", true);
-
-  // Rotate
-  //svg.attr("transform", "rotate(90)"); //, " + (containerSize.width / 2) + "," + (containerSize.height / 2) + ")");
-
-  const xScale = d3
-    .scaleBand()
-    .range([0, bandwidth * orderedCategories.length]) // Do not change this to anything related to height (for horizontal)
-    .domain(orderedCategories) //earlier we extracted the unique categories into an array
-    .paddingInner(0) // This is important: it is the space between 2 groups. 0 means no padding. 1 is the maximum.
-    // Originally, the padding was set to 0.2 but this led to problems aligning the summary table cells accurately,
-    // Therefore, padding has been set to 0... This also reduces the space consumed. Violins touching each other is
-    // not a huge issue in my opinion (A. Berridge)
-    .paddingOuter(0)
-    .align(0);
-
-  const xAxis = d3.axisLeft(xScale);
-
-  // Render the x axis
-  g.append("g")
-    .attr("class", "x-axis")
-    //.attr("transform", "translate(0," + heightAvailable + ")")
-    .attr("font-family", styling.scales.font.fontFamily)
-    .attr("fill", styling.scales.font.color)
-    .attr("font-weight", styling.scales.font.fontWeight)
-    .style("font-size", styling.scales.font.fontSize + "px")
-    .call(xAxis);
-
-  Log.green(LOG_CATEGORIES.Rendering)(
-    "slider",
-    yScale(2.0),
-    plotData.yDataDomain.min,
-    plotData.yDataDomain.max,
-    yScale(plotData.yDataDomain.min),
-    yScale(plotData.yDataDomain.max)
-  );
 
   /**
    * Zoom slider

@@ -1,13 +1,18 @@
 /*
-* Copyright © 2024. Cloud Software Group, Inc.
-* This file is subject to the license terms contained
-* in the license file that is distributed with this file.
-*/
+ * Copyright © 2024. Cloud Software Group, Inc.
+ * This file is subject to the license terms contained
+ * in the license file that is distributed with this file.
+ */
 
 // @ts-ignore
 import * as d3 from "d3";
 import { Data, Options, RenderState, RowData } from "./definitions";
-import { LOG_CATEGORIES, Log, getBoxBorderColor, violinWidthPadding } from "./index";
+import {
+  LOG_CATEGORIES,
+  Log,
+  getBoxBorderColor,
+  violinWidthPadding,
+} from "./index";
 import { Tooltip, DataViewRow, GeneralStylingInfo } from "spotfire-api";
 import {
   highlightComparisonCircles,
@@ -34,7 +39,6 @@ export function renderViolin(
   config: Partial<Options>,
   generalStylingInfo: GeneralStylingInfo
 ) {
-  
   const curveType = d3.curveLinear;
 
   Log.green(LOG_CATEGORIES.ViolinIndividualScales)(
@@ -50,9 +54,10 @@ export function renderViolin(
     const densitiesAll = plotData.densitiesAll.filter(
       (d: any) => d.category == category
     );
-    const densitiesSplitByMarking = plotData.densitiesSplitByMarkingAndCategory.filter(
-      (d: any) => d.category == category
-    );
+    const densitiesSplitByMarking =
+      plotData.densitiesSplitByMarkingAndCategory.filter(
+        (d: any) => d.category == category
+      );
     Log.green(LOG_CATEGORIES.ViolinIndividualScales)(
       "densitiesAll for",
       category,
@@ -94,15 +99,26 @@ export function renderViolin(
     // Segments for the violin - marked/unmarked
     g.selectAll(".violin-path-" + violinIndex)
       // This is all violins that will be displayed, including category
-      .data(densitiesSplitByMarking.sort((a:any, b:any) => b.IsGap - a.IsGap))
+      .data(densitiesSplitByMarking.sort((a: any, b: any) => b.IsGap - a.IsGap))
       .enter()
       .append("g")
       .attr("transform", function (d: any) {
-        Log.green(LOG_CATEGORIES.ViolinIndividualScales)("violin d", d);
+        const xTranslate =
+          (xScale(d.category) ? xScale(d.category) : 0) +
+          violinWidthPadding.violinX / 2;
+        Log.green(LOG_CATEGORIES.Horizontal)(
+          "translate",
+          "translate(" +
+            (config.isVertical ? xTranslate : 0) +
+            ", " +
+            (config.isVertical ? 0 : xTranslate) +
+            ")"
+        );
         return (
-          "translate(0, " + 
-          ((xScale(d.category) ? xScale(d.category) : 0) +
-            violinWidthPadding.violinX / 2) +
+          "translate(" +
+          (config.isVertical ? xTranslate : 0) +
+          ", " +
+          (config.isVertical ? 0 : xTranslate) +
           ")"
         );
       })
@@ -149,28 +165,7 @@ export function renderViolin(
             a.violinY - b.violinY || yScale(a.violinY) - yScale(b.violinY)
         );
       }) // So now we are working bin per bin
-      .attr(
-        "d",
-        d3
-          .area()
-          .defined((d: any, i: number) => true) //{Log.green(LOG_CATEGORIES.DebugCustomSymLog)(d, yScale(d.violinY)); return true || d.violinY > 1 || d.violinY < -1;}) //&& !isNaN(Math.log(Math.abs(d.violinY)));})
-          .y0(function (d: any) {
-            return violinXscale(-d.violinX) as number;
-          })
-          .y1(function (d: any) {
-            Log.green(LOG_CATEGORIES.Rendering)(d);
-            Log.green(LOG_CATEGORIES.Rendering)(d[1]);
-            return violinXscale(d.violinX) as number;
-          })
-          .x(function (d: any) {
-            //if (isNaN(yScale(d.violinY))) {
-            //  return 0;
-            //}
-            Log.green(LOG_CATEGORIES.Rendering)(yScale(d[0]));
-            return yScale(d.violinY) as number;
-          })
-          .curve(curveType)
-      )
+      .attr("d", getViolinArea(violinXscale))
       .classed("markable", true)
       .on("mouseover", function (event: d3.event, d: any) {
         if (event.currentTarget.classList.contains("violin-gap")) {
@@ -244,15 +239,15 @@ export function renderViolin(
               d[0].category +
               "\n raw y (x): " +
               // @todo: The magic number 12 comes up again! Must figure out why
-              config.FormatNumber(event.x - svgLeft - 12) +              
+              config.FormatNumber(event.x - svgLeft - 12) +
               "\ny: " +
-              config.FormatNumber(yScale.invert(event.x - svgLeft - 12)) +              
+              config.FormatNumber(yScale.invert(event.x - svgLeft - 12)) +
               "\nDensity: " +
               d3.format(".2e")(violinXscale.invert(event.x)) +
               "\nY min: " +
               config.FormatNumber(d3.min(d.map((p: any) => p.violinY))) +
               "\nY max: " +
-              config.FormatNumber(d3.max(d.map((p: any) => p.violinY))) +              
+              config.FormatNumber(d3.max(d.map((p: any) => p.violinY))) +
               "\nCount: " +
               d[0].count
           );
@@ -283,7 +278,10 @@ export function renderViolin(
         );
       })
       .on("click", (event: MouseEvent, d: any) => {
-        Log.green(LOG_CATEGORIES.DebugLatestMarking)("clicked violin", d[0].rows);
+        Log.green(LOG_CATEGORIES.DebugLatestMarking)(
+          "clicked violin",
+          d[0].rows
+        );
         if (d[0].isGap || d[1].isGap) return; // Don't attempt to do anything if the user clicks a gap!
         const dataPoints = plotData.rowData.filter((r: any) => {
           if (d[0].category == "(None)") return true;
@@ -292,10 +290,12 @@ export function renderViolin(
         state.disableAnimation = true;
 
         plotData.mark(
-          d[0].rows.map((r:RowData) => r.row) as DataViewRow[],
+          d[0].rows.map((r: RowData) => r.row) as DataViewRow[],
           event.ctrlKey ? "ToggleOrAdd" : "Replace"
         );
       });
+
+      return;
 
     Log.green(LOG_CATEGORIES.Rendering)(plotData.densitiesAll);
     // Now add a second set of paths for the violins - these will be invisible, but are used to make
@@ -363,4 +363,47 @@ export function renderViolin(
           .curve(curveType)
       );
   });
+
+  function getViolinArea(violinXscale: d3.scale): any {
+    if (config.isVertical) {
+      return d3
+        .area()
+        .defined((d: any, i: number) => true) //{Log.green(LOG_CATEGORIES.DebugCustomSymLog)(d, yScale(d.violinY)); return true || d.violinY > 1 || d.violinY < -1;}) //&& !isNaN(Math.log(Math.abs(d.violinY)));})
+        .x0(function (d: any) {
+          return violinXscale(-d.violinX) as number;
+        })
+        .x1(function (d: any) {
+          Log.green(LOG_CATEGORIES.Rendering)(d);
+          Log.green(LOG_CATEGORIES.Rendering)(d[1]);
+          return violinXscale(d.violinX) as number;
+        })
+        .y(function (d: any) {
+          //if (isNaN(yScale(d.violinY))) {
+          //  return 0;
+          //}
+          Log.green(LOG_CATEGORIES.Rendering)(yScale(d[0]));
+          return yScale(d.violinY) as number;
+        })
+        .curve(curveType);
+    }
+    return d3
+      .area()
+      .defined((d: any, i: number) => true) //{Log.green(LOG_CATEGORIES.DebugCustomSymLog)(d, yScale(d.violinY)); return true || d.violinY > 1 || d.violinY < -1;}) //&& !isNaN(Math.log(Math.abs(d.violinY)));})
+      .y0(function (d: any) {
+        return violinXscale(-d.violinX) as number;
+      })
+      .y1(function (d: any) {
+        Log.green(LOG_CATEGORIES.Rendering)(d);
+        Log.green(LOG_CATEGORIES.Rendering)(d[1]);
+        return violinXscale(d.violinX) as number;
+      })
+      .x(function (d: any) {
+        //if (isNaN(yScale(d.violinY))) {
+        //  return 0;
+        //}
+        Log.green(LOG_CATEGORIES.Rendering)(yScale(d[0]));
+        return yScale(d.violinY) as number;
+      })
+      .curve(curveType);
+  }
 }

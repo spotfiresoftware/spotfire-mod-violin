@@ -240,3 +240,13 @@ export interface Options {
   // Shortcut as it will be used so very often
   isVertical: boolean;
 }
+
+export interface TableContainerSpecs {
+    headerRowHeight: number,
+    tableContainer: D3_SELECTION
+}
+
+export interface YScaleSpecs {
+    yAxisRendered:D3_SELECTION,
+    yScale: d3.scale
+}
