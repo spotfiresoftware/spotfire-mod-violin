@@ -572,6 +572,7 @@ export async function render(
     svgTop = tableContainerSpecs.headerRowHeight;
     svgLeft = statisticsTableWidth + padding.betweenPlotAndTable;
     svgHeight = renderedPlotHeight + yAxisBoundingBox.height;
+    renderedPlotHeight = heightAvailable;
 
     // Move the svg to the correct place
     svg.attr(
@@ -731,6 +732,13 @@ export async function render(
     );
 
     yScale = yScaleSpecs.yScale;
+
+    if (
+      config.includeYAxisGrid.value() &&
+      styling.scales.line.stroke != "none"
+    ) {
+      renderGridLines(g, config, widthAvailable, styling, yScale, tooltip);
+    }
 
   }
 

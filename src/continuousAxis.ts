@@ -160,7 +160,6 @@ export function renderContinuousAxis(
 
   Log.green(LOG_CATEGORIES.DebugInnovativeLogticks)("powerLabels", powerLabels);
 
-
   Log.green(LOG_CATEGORIES.Horizontal)("rangeMax", rangeMax);
   if (config.yAxisScaleType.value() == "linear") {
     yScale = d3
@@ -173,20 +172,20 @@ export function renderContinuousAxis(
 
   Log.green(LOG_CATEGORIES.Horizontal)("ticks", ticks);
 
-  let yAxis:d3.axis;
-  
+  let yAxis: d3.axis;
+
   if (config.isVertical) {
     yAxis = d3
-    .axisLeft()
-    .scale(yScale)
-    .tickValues(ticks)
-    .tickFormat((d: any) => config.FormatNumber(d));
+      .axisLeft()
+      .scale(yScale)
+      .tickValues(ticks)
+      .tickFormat((d: any) => config.FormatNumber(d));
   } else {
     yAxis = d3
-    .axisBottom()
-    .scale(yScale)
-    .tickValues(ticks)
-    .tickFormat((d: any) => config.FormatNumber(d));
+      .axisBottom()
+      .scale(yScale)
+      .tickValues(ticks)
+      .tickFormat((d: any) => config.FormatNumber(d));
   }
 
   // Render y axis
@@ -386,7 +385,7 @@ export function renderContinuousAxis(
     } else {
       // Sort the rects from bottom to top / right to left
       axisLabelRects.sort(
-        (r1: AxisLabelRect, r2: AxisLabelRect) =>          
+        (r1: AxisLabelRect, r2: AxisLabelRect) =>
           r2.BoundingClientRect.left - r1.BoundingClientRect.left
       );
     }
@@ -429,8 +428,8 @@ export function renderContinuousAxis(
   return { yScale: yScale, yAxisRendered: yAxisRendered };
 }
 
-export function renderGridLines(  
-  g: D3_SELECTION,  
+export function renderGridLines(
+  g: D3_SELECTION,
   config: Partial<Options>,
   lineLength: number,
   styling: {
@@ -450,10 +449,10 @@ export function renderGridLines(
     .enter()
     .append("line")
     .attr("class", "horizontal-grid")
-    .attr("y1", 0)
-    .attr("y2", lineLength)
-    .attr("x1", (d: number) => yScale(d) + 0.5)
-    .attr("x2", (d: number) => yScale(d) + 0.5)
+    .attr(config.isVertical ? "x1" : "y1", 0)
+    .attr(config.isVertical ? "x2" : "y2", lineLength)
+    .attr(config.isVertical ? "y1" : "x1", (d: number) => yScale(d) + 0.5)
+    .attr(config.isVertical ? "y2" : "x2", (d: number) => yScale(d) + 0.5)
     .attr("stroke", styling.scales.line.stroke)
     .attr("shape-rendering", "crispEdges");
   //.attr("stroke", styling.scales.line.stroke)
