@@ -662,10 +662,10 @@ export function renderBoxplot(
     .attr("y2", xScale.bandwidth() / 2 + boxWidth / 2)
     .attr("x1", function (d: any) {
       //Log.green(LOG_CATEGORIES.DebugMedian)(d, d.median, yScale(d.median));
-      return yScale(d.median) as number;
+      return yScale(d.median) + 1 as number; // median is 2px wide
     })
     .attr("x2", function (d: any) {
-      return yScale(d.median) as number;
+      return yScale(d.median) + 1 as number;
     })
     .attr("stroke", styling.generalStylingInfo.backgroundColor)
     .on("mouseover", function (event: d3.event, d: any) {
@@ -684,9 +684,9 @@ export function renderBoxplot(
             boxWidth / 2 -
             (height < 600 ? 2 : 5) / 2
         )
-        .attr("x", yScale(d.median) - 2)
-        .attr("height", "4px")
-        .attr("width", boxWidth + (height < 600 ? 2 : 5));
+        .attr("x", yScale(d.median) - 1)
+        .attr("width", "4px")
+        .attr("height", boxWidth + (height < 600 ? 2 : 5));
     })
     .on("mouseout", () => {
       tooltip.hide();

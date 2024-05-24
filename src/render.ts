@@ -849,8 +849,8 @@ export async function render(
             d3
               .line()
               .curve(d3.curveCatmullRom)
-              .x((d: any) => xScale(d.x) + xScale.bandwidth() / 2)
-              .y((d: any) => yScale(d.y))
+              .y((d: any) => xScale(d.x) + xScale.bandwidth() / 2)
+              .x((d: any) => yScale(d.y))
           );
         // Add another, wider path that's easier to hover over, and make it transparent
         g.append("path")
@@ -869,8 +869,8 @@ export async function render(
             d3
               .line()
               .curve(d3.curveCatmullRom)
-              .x((d: any) => xScale(d.x) + xScale.bandwidth() / 2)
-              .y((d: any) => yScale(d.y))
+              .y((d: any) => xScale(d.x) + xScale.bandwidth() / 2)
+              .x((d: any) => yScale(d.y))
           )
           .attr("stroke", "transparent")
           .attr("fill", "none")
@@ -895,6 +895,8 @@ export async function render(
       orderedCategories,
       xScale,
       yScale,
+      svgLeft,
+      svgTop,
       margin,
       g,
       tooltip,
@@ -958,6 +960,8 @@ export async function render(
       orderedCategories,
       xScale,
       yScale,
+      svgLeft,
+      svgTop,
       margin,
       g,
       tooltip,
@@ -1006,15 +1010,21 @@ export async function render(
         .classed("reference-line-" + r.name, true)
         .attr("stroke-dasharray", newDasharray)
         .attr("transform", (d: any) => {
+          const xTranslate =
+            (xScale(d[0]) ? xScale(d[0]) : 0) + xScale.bandwidth() / 2;
+          const yTranslate =
+            yScale(d[1][sumStatsSetting.property]) +
+            sumStatsSetting.verticalOffset(xScale.bandwidth());
+          const rotation =
+            sumStatsSetting.rotation + (config.isVertical ? 0 : 90);
           Log.green(LOG_CATEGORIES.ReferenceLines)(d[0], xScale(d[0]));
           return (
             "translate(" +
-            ((xScale(d[0]) ? xScale(d[0]) : 0) + xScale.bandwidth() / 2) +
+            yTranslate +
             "," +
-            (yScale(d[1][sumStatsSetting.property]) +
-              sumStatsSetting.verticalOffset(xScale.bandwidth())) +
+            xTranslate +
             ") rotate(" +
-            sumStatsSetting.rotation +
+            +rotation +
             ")"
           );
         })
@@ -1049,15 +1059,13 @@ export async function render(
         .enter()
         .append("text")
         .attr("transform", function (d: any) {
-          return (
-            "translate(" +
-            ((xScale(d[0]) ? xScale(d[0]) : 0) +
-              sumStatsSetting.labelHorizOffset(xScale.bandwidth())) +
-            "," +
-            (yScale(d[1][sumStatsSetting.property]) +
-              sumStatsSetting.labelVerticalOffset) +
-            ")"
-          );
+          const xTranslate =
+            (xScale(d[0]) ? xScale(d[0]) : 0) +
+            sumStatsSetting.labelHorizOffset(xScale.bandwidth());
+          const yTranslate =
+            yScale(d[1][sumStatsSetting.property]) +
+            sumStatsSetting.labelVerticalOffset;
+          return "translate(" + yTranslate + "," + xTranslate + ")";
         })
         .classed(fontClass, true)
         .attr("font-family", styling.scales.font.fontFamily)
@@ -1197,27 +1205,27 @@ export async function render(
         const selectionRectY1 = selectionRectY + selectionRectHeight;
 
         const selectionRectStartCategoricalIndex = Math.floor(
-          (selectionRectY) / xScale.bandwidth()
+          selectionRectY / xScale.bandwidth()
         );
         const selectionRectEndCategoricalIndex = Math.floor(
-          (selectionRectY1) /
-            xScale.bandwidth()
+          selectionRectY1 / xScale.bandwidth()
         );
 
         // band0 is the start of the current x-axis band in the violin chart
         const band0 = xScale.bandwidth() * violinCategoricalIndex;
 
         // The end x axis band for this violin - todo tweak for horizontal violin. It's not margin.top!
-        const band1 =
-          xScale.bandwidth() * (violinCategoricalIndex + 1);
+        const band1 = xScale.bandwidth() * (violinCategoricalIndex + 1);
 
         // Does drawing start on the left hand side of the violin?
         const isLhs = selectionRectY < band0 + xScale.bandwidth() / 2;
 
         Log.green(LOG_CATEGORIES.ViolinMarking)(
           "violinMark bboxX1 > bandX1",
-          selectionRectY1 > band1, isLhs,
-          "band0", band0,
+          selectionRectY1 > band1,
+          isLhs,
+          "band0",
+          band0,
           "selectionRect x, y, height",
           selectionRectX,
           selectionRectY,
@@ -1233,11 +1241,10 @@ export async function render(
         // - need to use half of the value of the padding, as padding affects the violin width
         if (isLhs) {
           // is marking rectangle to left hand side of violin?
-          intersectionRectHeight = Math.abs(selectionRectY1 - band0) - violinWidthPadding.violinX / 2;
+          intersectionRectHeight =
+            Math.abs(selectionRectY1 - band0) - violinWidthPadding.violinX / 2;
         } else {
-          intersectionRectHeight = Math.abs(
-            band1 - selectionRectY
-          );
+          intersectionRectHeight = Math.abs(band1 - selectionRectY);
         }
 
         if (DEBUG_VIOLIN_MARKING) {
@@ -1294,7 +1301,7 @@ export async function render(
           margin.left
         );
 
-        if ( 
+        if (
           violinCategoricalIndex >= selectionRectStartCategoricalIndex &&
           violinCategoricalIndex <= selectionRectEndCategoricalIndex
         ) {
@@ -1392,7 +1399,8 @@ export async function render(
                   "cy",
                   (d: any) =>
                     d.y +
-                    xScale.bandwidth() * violinCategoricalIndex + violinWidthPadding.violinX / 2
+                    xScale.bandwidth() * violinCategoricalIndex +
+                    violinWidthPadding.violinX / 2
                 )
                 .attr("cx", (d: any) => d.x)
                 .attr("r", 5 + 2 * violinCategoricalIndex)
@@ -1403,8 +1411,20 @@ export async function render(
             for (let j = 0; j < intersections.points.length; j += 2) {
               // Guard against j + 1 running off the end of the array
               if (j + 1 < intersections.points.length) {
+                // Note for tomorrow - look into svgLeft, and +12 for this - +12 seems to make it better, but I'm not sure it's "correct"
+                Log.blue(LOG_CATEGORIES.ViolinMarking)(
+                  "yScale.invert(intersections.points[j].x)",
+                  yScale.invert(intersections.points[j].x + 12)
+                );
+                Log.blue(LOG_CATEGORIES.ViolinMarking)(
+                  "yScale.invert(intersections.points[j + 1].x)",
+                  yScale.invert(intersections.points[j + 1].x + 12)
+                );
                 violinMarkables.push({
                   category: category,
+                  // testX1, testX2, testY1, testY2 aren't actually required for marking. They're
+                  // just to help with development and future debugging.
+                  // - not properly fixed during development of the horizontal violin feature
                   testX1:
                     intersections.points[j].x +
                     padding.violinX / 2 +
@@ -1415,10 +1435,10 @@ export async function render(
                     margin.left +
                     +padding.violinX / 2 +
                     xScale.bandwidth() * violinCategoricalIndex,
-                  testY1: intersections.points[j].y + margin.top,
-                  testY2: intersections.points[j + 1].y + margin.top,
-                  y1: yScale.invert(intersections.points[j].y),
-                  y2: yScale.invert(intersections.points[j + 1].y),
+                  testY1: intersections.points[j].x,
+                  testY2: intersections.points[j + 1].x,
+                  y1: yScale.invert(intersections.points[j].x),
+                  y2: yScale.invert(intersections.points[j + 1].x),
                 });
               }
             }
@@ -1439,9 +1459,9 @@ export async function render(
         .append("rect")
         .classed("test_rect", true)
         .attr("x", (d: any) => Math.min(d.testX1, d.testX2))
-        .attr("y", (d: any) => Math.min(d.testY1, d.testY2))
+        .attr("y", (d: any) => Math.min(d.y1, d.y2))
         .attr("height", (d: any) => Math.abs(d.testX1 - d.testX2))
-        .attr("width", (d: any) => Math.abs(d.testY2 - d.testY1))
+        .attr("width", (d: any) => Math.abs(d.y1 - d.y2))
         .attr("stroke", "red")
         .attr("fill", "none");
 
@@ -1468,7 +1488,7 @@ export async function render(
       .classed("test_rect", true)
       // Use visible when debugging marking - it renders a nice gray rect that indicates the area of the marking rect
       .attr("visibility", DEBUG_VIOLIN_MARKING ? "visible" : "hidden")
-      .attr("style", "opacity: 0.5")   
+      .attr("style", "opacity: 0.5")
       .attr("fill", "lightgray");
 
     const svgNode = svg.node();
@@ -1564,7 +1584,7 @@ export async function render(
           maxY,
           plotData.rowData.filter((p) => p.category == element.category)
         );
-        if (!DEBUG_VIOLIN_MARKING) {
+        if (true || !DEBUG_VIOLIN_MARKING) {
           plotData.mark(rowsToMark, ctrlKey ? "ToggleOrAdd" : "Replace");
         }
       });

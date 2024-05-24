@@ -408,6 +408,7 @@ Spotfire.initialize(async (mod) => {
     mod.visualization.data(),
     mod.windowSize(),
     mod.visualization.axis("X"),
+    mod.property<boolean>("isVerticalPlot"),
     mod.property<boolean>("xAxisFiltered"),
     mod.property<string>("yAxisLog"),
     mod.property<string>("yAxisScaleType"),
@@ -467,6 +468,7 @@ Spotfire.initialize(async (mod) => {
    * @param {Spotfire.DataView} dataView
    * @param {Spotfire.Size} windowSize
    * @param {Spotfire.Axis} xAxisSpotfire
+   * @param {ModProperty<boolean>} isVerticalPlot
    * @param {ModProperty<string>} yAxisLog
    * @param {ModProperty<string>} yAxisScaleType
    * @param {ModProperty<string>} symLogWarningDismissed
@@ -508,6 +510,7 @@ Spotfire.initialize(async (mod) => {
     dataView: DataView,
     windowSize: Spotfire.Size,
     xAxisSpotfire: Spotfire.Axis,
+    isVerticalPlot: ModProperty<boolean>,
     xAxisFiltered: ModProperty<boolean>,
     yAxisLog: ModProperty<boolean>,
     yAxisScaleType: ModProperty<string>,
@@ -579,6 +582,8 @@ Spotfire.initialize(async (mod) => {
     Log.blue(LOG_CATEGORIES.BoxPlotColorBy)(colorAxisExpression);
 
     const config: Options = {
+      isVerticalPlot: isVerticalPlot,
+      isVertical: isVerticalPlot.value(),
       xAxisFiltered: xAxisFiltered,
       yAxisLog: yAxisLog,
       yAxisScaleType: yAxisScaleType,

@@ -22,6 +22,8 @@ export function renderViolin(
   orderedCategories: string[],
   xScale: d3.scaleBand,
   yScale: d3.scale,
+  svgLeft: number,
+  svgTop: number,
   margin: any,
   g: any,
   tooltip: Tooltip,
@@ -240,8 +242,11 @@ export function renderViolin(
               ? xAxisSpotfire.parts[0]?.displayName + ": "
               : "") +
               d[0].category +
+              "\n raw y (x): " +
+              // @todo: The magic number 12 comes up again! Must figure out why
+              config.FormatNumber(event.x - svgLeft - 12) +              
               "\ny: " +
-              config.FormatNumber(yScale.invert(event.y - margin.top)) +              
+              config.FormatNumber(yScale.invert(event.x - svgLeft - 12)) +              
               "\nDensity: " +
               d3.format(".2e")(violinXscale.invert(event.x)) +
               "\nY min: " +

@@ -6,6 +6,11 @@
     "icon": "icon.svg",
     "properties": [
         {
+            "name": "isVerticalPlot",
+            "type": "boolean",
+            "defaultValue": "true"
+        },
+        {
             "name": "xAxisFiltered",
             "type": "boolean",
             "defaultValue": "false"

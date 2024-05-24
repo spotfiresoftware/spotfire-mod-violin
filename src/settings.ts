@@ -775,9 +775,25 @@ export function createSettingsPopout(
     labelElement.innerHTML = "Help";
     dropDownContainer.append(labelElement);
     AddDivider(dropDownContainer); */
-
-  let section = AddSection("Appearance - Zoom Sliders", dropDownContainer);
+  
+  let section = AddSection("Appearance - Overall", dropDownContainer);
   let placeholder = AddPlaceholder(section);
+
+  const verticalHorizontalOptionPlaceholder = AddPlaceholder(section);
+  AddRadioButton(
+    config.isVerticalPlot,
+    [
+      { text: "Vertical", value: true },
+      { text: "Horizontal", value: false }
+    ],
+    verticalHorizontalOptionPlaceholder,
+    () => {}
+  );
+
+  AddDivider(dropDownContainer);
+
+  section = AddSection("Appearance - Zoom Sliders", dropDownContainer);
+  placeholder = AddPlaceholder(section);
 
   const zoomSliderOptionsPlaceholder = AddPlaceholder(section);
   AddCheckbox(
