@@ -105,7 +105,6 @@ if (!SVGElement.prototype.checkIntersection) {
  */
 export async function render(
   this: any,
-  isHorizontal: boolean,
   spotfireMod: Spotfire.Mod,
   state: RenderState,
   plotData: Data,
@@ -192,7 +191,7 @@ export async function render(
   const margin = {
     top: 20,
     bottom: isTrellis ? 40 : 15,
-    left: isHorizontal ? 55 : calculatedLeftMargin,
+    left: config.isVertical ? calculatedLeftMargin: 55,
     spaceForBottomAxis: 50,
   };
   const padding = { violinX: 20, betweenPlotAndTable: 30 };
@@ -652,7 +651,7 @@ export async function render(
       .paddingOuter(0)
       .align(0);
 
-    tableContainer = renderStatisticsTable(
+    tableContainerSpecs = renderStatisticsTable(
       config,
       styling,
       container,
@@ -663,6 +662,8 @@ export async function render(
       xScale.bandwidth(),
       tooltip
     );
+
+    tableContainer = tableContainerSpecs.tableContainer;
 
     heightAvailable = Math.max(
       0,
@@ -696,8 +697,11 @@ export async function render(
         (heightAvailable + 30) +
         "px;"
     );
+    
+    // Translate the g
+    g.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-    xAxis = d3.axisLeft(xScale);
+    xAxis = d3.axisBottom(xScale);
 
     // Render the x axis
     g.append("g")
@@ -727,6 +731,7 @@ export async function render(
     );
 
     yScale = yScaleSpecs.yScale;
+
   }
 
   /**

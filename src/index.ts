@@ -1621,8 +1621,7 @@ Spotfire.initialize(async (mod) => {
         );
 
         renderedPanels.push(
-          await render(
-            true,
+          await render(            
             spotfireMod,
             state,
             renderingInfo.data,
@@ -1699,7 +1698,6 @@ Spotfire.initialize(async (mod) => {
 
           renderedPanels.push(
             await render(
-              true,
               spotfireMod,
               state,
               data,
