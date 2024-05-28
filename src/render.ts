@@ -191,7 +191,7 @@ export async function render(
   const margin = {
     top: 20,
     bottom: isTrellis ? 40 : 15,
-    left: config.isVertical ? calculatedLeftMargin : 55,
+    left: config.isVertical ? calculatedLeftMargin : 0,
     spaceForBottomAxis: 50,
   };
   const padding = { violinX: 20, betweenPlotAndTable: 30 };
@@ -414,7 +414,7 @@ export async function render(
   );
   Log.green(LOG_CATEGORIES.DebugLogYAxis)("minZoom, maxZoom", minZoom, maxZoom);
 
-  // @todo - simplify these variables. There are too many, and it's difficult to 
+  // @todo - simplify these variables. There are too many, and it's difficult to
   // understand their meanings, whether they are are all required, and it's difficult
   // to make sure they are all specified when switching between horizontal and vertical
   let tableContainerSpecs: TableContainerSpecs;
@@ -1259,7 +1259,7 @@ export async function render(
         .attr("x", config.isVertical ? margin.left + 10 : 0)
         .attr(
           "y",
-          config.isVertical ? heightAvailable : (heightAvailable - margin.bottom)
+          config.isVertical ? heightAvailable : heightAvailable - margin.bottom
         );
     } else {
       svg
@@ -1270,7 +1270,10 @@ export async function render(
         .style("fill", styling.generalStylingInfo.font.color)
         .text("P-value:" + plotData.pValue.toFixed(6) + " (one-way ANOVA)")
         .attr("x", config.isVertical ? margin.left + 10 : 0)
-        .attr("y", config.isVertical ? heightAvailable : (heightAvailable - margin.bottom));
+        .attr(
+          "y",
+          config.isVertical ? heightAvailable : heightAvailable - margin.bottom
+        );
     }
   }
 
@@ -1291,7 +1294,8 @@ export async function render(
         width,
         height,
         "svgLeft, svgTop",
-        svgLeft, svgTop
+        svgLeft,
+        svgTop
       );
       rectMark(trellisName, x, y, width, height, ctrlKey);
     },
@@ -1331,8 +1335,8 @@ export async function render(
     Log.green(LOG_CATEGORIES.ViolinMarking)(
       "svg bbox",
       svg.node().getBoundingClientRect(),
-      "trellisName", 
-      trellisName, 
+      "trellisName",
+      trellisName,
       d3.selectAll(".violin-path-markable")
     );
 
@@ -1379,24 +1383,38 @@ export async function render(
          */
 
         const selectionRectY1 = selectionRectY + selectionRectHeight;
+        const selectionRectX1 = selectionRectX + selectionRectWidth;
 
-        const selectionRectStartCategoricalIndex = Math.floor(
-          selectionRectY / xScale.bandwidth()
-        );
-        const selectionRectEndCategoricalIndex = Math.floor(
-          selectionRectY1 / xScale.bandwidth()
-        );
+        const selectionRectStartCategoricalIndex = config.isVertical
+          ? Math.floor((selectionRectX - margin.left) / xScale.bandwidth())
+          : Math.floor(selectionRectY / xScale.bandwidth());
+        const selectionRectEndCategoricalIndex = config.isVertical
+          ? // @todo - remove the "magic" - 20
+            Math.floor(
+              (selectionRectX + selectionRectWidth - margin.left - 20) /
+                xScale.bandwidth()
+            )
+          : Math.floor(selectionRectY1 / xScale.bandwidth());
 
         // band0 is the start of the current x-axis band in the violin chart
-        const band0 = xScale.bandwidth() * violinCategoricalIndex;
+        // margin.left is zero for horizontal chart
+        const band0 = xScale.bandwidth() * violinCategoricalIndex + margin.left;
 
         // The end x axis band for this violin - todo tweak for horizontal violin. It's not margin.top!
-        const band1 = xScale.bandwidth() * (violinCategoricalIndex + 1);
+        const band1 =
+          xScale.bandwidth() * (violinCategoricalIndex + 1) + margin.left;
 
-        // Does drawing start on the left hand side of the violin?
-        const isLhs = selectionRectY < band0 + xScale.bandwidth() / 2;
+        // Does drawing start on the left hand side of the violin? (vertical mode)
+        // Horizontal mode - lhs = above
+        const isLhs = config.isVertical
+          ? selectionRectX < band0 + xScale.bandwidth() / 2
+          : selectionRectY < band0 + xScale.bandwidth() / 2;
 
         Log.green(LOG_CATEGORIES.ViolinMarking)(
+          "selectionRectStartCategoricalIndex",
+          selectionRectStartCategoricalIndex,
+          "selectionRectEndCategoricalIndex",
+          selectionRectEndCategoricalIndex,
           "violinMark bboxX1 > bandX1",
           selectionRectY1 > band1,
           isLhs,
@@ -1412,18 +1430,31 @@ export async function render(
         );
 
         var intersectionRectHeight: number;
+        var intersectionRectWidth: number;
 
         // Violin width padding is required as the violin path doesn't go to the edges
         // - need to use half of the value of the padding, as padding affects the violin width
         if (isLhs) {
           // is marking rectangle to left hand side of violin?
-          intersectionRectHeight =
-            Math.abs(selectionRectY1 - band0) - violinWidthPadding.violinX / 2;
+          intersectionRectHeight = config.isVertical
+            ? selectionRectHeight
+            : Math.abs(selectionRectY1 - band0) -
+              violinWidthPadding.violinX / 2;
+
+          intersectionRectWidth = config.isVertical
+            ? selectionRectX1 - band0 - padding.violinX / 2
+            : selectionRectWidth;
         } else {
-          intersectionRectHeight = Math.abs(band1 - selectionRectY);
+          intersectionRectHeight = config.isVertical
+            ? selectionRectHeight
+            : Math.abs(band1 - selectionRectY);
+
+          intersectionRectWidth = config.isVertical
+            ? band1 - selectionRectX - padding.violinX / 2
+            : selectionRectWidth;
         }
 
-        if (DEBUG_VIOLIN_MARKING) {
+        if (DEBUG_VIOLIN_MARKING && false) {
           // Draw the selection box - to make sure its x and y, etc., are relative to the SVG
           svg
             .append("rect")
@@ -1434,23 +1465,8 @@ export async function render(
             .attr("stroke", "purple")
             .attr("width", selectionRectWidth)
             .attr("height", selectionRectHeight);
-
-          // Draw the intersection box - this is the one that we will use to calculate the
-          // intersections
-          svg
-            .append("rect")
-            .classed("rect-shapeinfo", true)
-            .attr("y", band0 + violinWidthPadding.violinX / 2)
-            .attr("x", selectionRectX)
-            .attr("fill", "none")
-            .attr("stroke", "aqua")
-            .attr("width", selectionRectWidth)
-            .attr("height", intersectionRectHeight);
-
-          // Both of these now look right for horizontal. Now need to fix intersectionRect ;-)
+          // This is now correct for horizontal and vertical ;-)
         }
-        
-        return;
 
         Log.green(LOG_CATEGORIES.ViolinMarking)(
           "violinCategoricalIndex",
@@ -1483,10 +1499,30 @@ export async function render(
           violinCategoricalIndex >= selectionRectStartCategoricalIndex &&
           violinCategoricalIndex <= selectionRectEndCategoricalIndex
         ) {
-          let selectionTop = selectionRectY;
+          if (DEBUG_VIOLIN_MARKING) {
+            // Draw the intersection box - this is the one that we will use to calculate the
+            // intersections
+            svg
+              .append("rect")
+              .classed("rect-shapeinfo", true)
+              .attr(
+                config.isVertical ? "x" : "y",
+                band0 + violinWidthPadding.violinX / 2
+              )
+              .attr(
+                config.isVertical ? "y" : "x",
+                config.isVertical ? selectionRectY : selectionRectX
+              )
+              .attr("fill", "none")
+              .attr("stroke", "aqua")
+              .attr("width", intersectionRectWidth)
+              .attr("height", intersectionRectHeight);
+          }
+
           // Need to take the tops and bottoms of the violins into consideration
           // - e.g. if the user starts the marking rectangle above or below the top/bottom
           // of the violin, there will be no intersections there.
+          // @todo - check if this still holds
 
           // Determine if top of marking rectangle is above min (vertical mode)
           // Or is to the right of min (horizontal mode)
@@ -1542,9 +1578,9 @@ export async function render(
 
           // ShapeInfo is relative to each of the bands of the violin chart. (one per categorical x axis value)
           const intersectionRect = ShapeInfo.rectangle({
-            left: selectionRectX,
-            top: 0,
-            width: selectionRectWidth,
+            left: config.isVertical ? 0 : selectionRectX,
+            top: config.isVertical ? selectionRectY - margin.top : 0,
+            width: intersectionRectWidth,
             height: intersectionRectHeight,
           });
 
@@ -1573,14 +1609,21 @@ export async function render(
                 .enter()
                 .append("circle")
                 .classed("test_points", true)
-                .attr(
-                  "cy",
-                  (d: any) =>
-                    d.y +
-                    xScale.bandwidth() * violinCategoricalIndex +
-                    violinWidthPadding.violinX / 2
+                .attr("cx", (d: any) =>
+                  config.isVertical
+                    ? padding.violinX / 2 +
+                      margin.left +
+                      d.x +
+                      xScale.bandwidth() * violinCategoricalIndex
+                    : d.x
                 )
-                .attr("cx", (d: any) => d.x)
+                .attr("cy", (d: any) =>
+                  config.isVertical
+                    ? d.y + margin.top
+                    : d.y +
+                      xScale.bandwidth() * violinCategoricalIndex +
+                      violinWidthPadding.violinX / 2
+                )
                 .attr("r", 5 + 2 * violinCategoricalIndex)
                 .attr("fill", "red");
 
@@ -1615,8 +1658,8 @@ export async function render(
                     xScale.bandwidth() * violinCategoricalIndex,
                   testY1: intersections.points[j].x,
                   testY2: intersections.points[j + 1].x,
-                  y1: yScale.invert(intersections.points[j].x),
-                  y2: yScale.invert(intersections.points[j + 1].x),
+                  y1: yScale.invert(config.isVertical ? intersections.points[j].y : intersections.points[j].x),
+                  y2: yScale.invert(config.isVertical ? intersections.points[j + 1].y : intersections.points[j + 1].x),
                 });
               }
             }
@@ -1755,14 +1798,15 @@ export async function render(
           .map((r) => r.row);
 
         violinRowsMarkedCount += rowsToMark.length;
-        Log.green(LOG_CATEGORIES.Rendering)(
+        Log.green(LOG_CATEGORIES.ViolinMarking)(
           "violinMarkables",
           rowsToMark,
           minY,
           maxY,
           plotData.rowData.filter((p) => p.category == element.category)
         );
-        if (false || !DEBUG_VIOLIN_MARKING) {
+        if (true || !DEBUG_VIOLIN_MARKING) {
+          Log.blue(LOG_CATEGORIES.ViolinMarking)("Will mark", rowsToMark);
           plotData.mark(rowsToMark, ctrlKey ? "ToggleOrAdd" : "Replace");
         }
       });
