@@ -362,31 +362,6 @@ export async function buildDataForTrellisPanel(
         { x: number; y: number }
       ];
       
-      function getClosestValueToZero(rows: RowData[]) {
-        const negativeRows = rows.filter((r:any) => r.y < 0);
-        Log.green(LOG_CATEGORIES.AsinhScale)("closestValueToZero negativeRows", rows, negativeRows);
-        const firstPositiveRow = rows.find((r:any) => r.y > 0);
-        let negativeClosest = negativeRows.length > 0 ? Math.abs(negativeRows[negativeRows.length -1].y) : undefined;
-        let positiveClosest = firstPositiveRow?.y;
-
-        if (isNaN(negativeClosest)) {
-          return positiveClosest;
-        }
-
-        if (isNaN(positiveClosest)) {
-          return negativeClosest;
-        }
-
-        Log.red(LOG_CATEGORIES.AsinhScale)("closestValueToZero", negativeClosest, positiveClosest, Math.min(negativeClosest, positiveClosest));
-        return Math.min(negativeClosest, positiveClosest);
-        
-      }
-
-      // Closest value to zero      
-      const closestValueToZero = getClosestValueToZero(sortedCategoryRowData);
-
-      sumStats.get(category).closestValueToZero = closestValueToZero;
-
       // Now need a data structure where data points are grouped by marking
       const rowsGroupedByMarking = d3.rollup(
         sortedRowDataGroupedByCat.get(category),
@@ -988,6 +963,29 @@ function buildSumStats(
         "seconds"
     );
 
+    function getClosestValueToZero(rows: RowData[]) {
+      const negativeRows = rows.filter((r:any) => r.y < 0);
+      Log.green(LOG_CATEGORIES.AsinhScale)("closestValueToZero negativeRows", rows, negativeRows);
+      const firstPositiveRow = rows.find((r:any) => r.y > 0);
+      let negativeClosest = negativeRows.length > 0 ? Math.abs(negativeRows[negativeRows.length -1].y) : undefined;
+      let positiveClosest = firstPositiveRow?.y;
+
+      if (isNaN(negativeClosest)) {
+        return positiveClosest;
+      }
+
+      if (isNaN(positiveClosest)) {
+        return negativeClosest;
+      }
+
+      Log.red(LOG_CATEGORIES.AsinhScale)("closestValueToZero", negativeClosest, positiveClosest, Math.min(negativeClosest, positiveClosest));
+      return Math.min(negativeClosest, positiveClosest);
+      
+    }
+
+    // Get closest value to zero - only required if yAxis is symlog
+    const closestValueToZero = config.yAxisScaleType.value() == "symlog" ? getClosestValueToZero(rowData) : 1;
+
     const stats = {
       trellis: trellisName,
       count: count,
@@ -1011,7 +1009,7 @@ function buildSumStats(
       uof: uof,
       confidenceIntervalLower: confidenceIntervalLower,
       confidenceIntervalUpper: confidenceIntervalUpper,
-      closestValueToZero: 0, // this is set above, if needed
+      closestValueToZero: closestValueToZero
     } as SummaryStatistics;
 
     Log.green(LOG_CATEGORIES.DebugBoxIssue)(stats);
