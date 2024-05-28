@@ -191,7 +191,7 @@ export async function render(
   const margin = {
     top: 20,
     bottom: isTrellis ? 40 : 15,
-    left: config.isVertical ? calculatedLeftMargin: 55,
+    left: config.isVertical ? calculatedLeftMargin : 55,
     spaceForBottomAxis: 50,
   };
   const padding = { violinX: 20, betweenPlotAndTable: 30 };
@@ -698,7 +698,7 @@ export async function render(
         (heightAvailable + 30) +
         "px;"
     );
-    
+
     // Translate the g
     g.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
@@ -739,7 +739,6 @@ export async function render(
     ) {
       renderGridLines(g, config, widthAvailable, styling, yScale, tooltip);
     }
-
   }
 
   /**
@@ -990,8 +989,16 @@ export async function render(
             d3
               .line()
               .curve(d3.curveCatmullRom)
-              .y((d: any) => xScale(d.x) + xScale.bandwidth() / 2)
-              .x((d: any) => yScale(d.y))
+              .x((d: any) =>
+                config.isVertical
+                  ? xScale(d.x) + xScale.bandwidth() / 2
+                  : yScale(d.y)
+              )
+              .y((d: any) =>
+                config.isVertical
+                  ? yScale(d.y)
+                  : xScale(d.x) + xScale.bandwidth() / 2
+              )
           );
         // Add another, wider path that's easier to hover over, and make it transparent
         g.append("path")
@@ -1010,8 +1017,16 @@ export async function render(
             d3
               .line()
               .curve(d3.curveCatmullRom)
-              .y((d: any) => xScale(d.x) + xScale.bandwidth() / 2)
-              .x((d: any) => yScale(d.y))
+              .x((d: any) =>
+                config.isVertical
+                  ? xScale(d.x) + xScale.bandwidth() / 2
+                  : yScale(d.y)
+              )
+              .y((d: any) =>
+                config.isVertical
+                  ? yScale(d.y)
+                  : xScale(d.x) + xScale.bandwidth() / 2
+              )
           )
           .attr("stroke", "transparent")
           .attr("fill", "none")
@@ -1161,9 +1176,9 @@ export async function render(
           Log.green(LOG_CATEGORIES.ReferenceLines)(d[0], xScale(d[0]));
           return (
             "translate(" +
-            yTranslate +
+            (config.isVertical ? xTranslate : yTranslate) +
             "," +
-            xTranslate +
+            (config.isVertical ? yTranslate : xTranslate) +
             ") rotate(" +
             +rotation +
             ")"
@@ -1206,7 +1221,13 @@ export async function render(
           const yTranslate =
             yScale(d[1][sumStatsSetting.property]) +
             sumStatsSetting.labelVerticalOffset;
-          return "translate(" + yTranslate + "," + xTranslate + ")";
+          return (
+            "translate(" +
+            (config.isVertical ? xTranslate : yTranslate) +
+            "," +
+            (config.isVertical ? yTranslate : xTranslate) +
+            ")"
+          );
         })
         .classed(fontClass, true)
         .attr("font-family", styling.scales.font.fontFamily)
@@ -1229,8 +1250,11 @@ export async function render(
         .style("font-family", styling.generalStylingInfo.font.fontFamily)
         .style("fill", styling.generalStylingInfo.font.color)
         .text("One-way ANOVA test is not applicable.")
-        .attr("x", 0)
-        .attr("y", renderedPlotHeight - margin.bottom);
+        .attr("x", config.isVertical ? margin.left + 10 : 0)
+        .attr(
+          "y",
+          config.isVertical ? heightAvailable : (heightAvailable - margin.bottom)
+        );
     } else {
       svg
         .append("text")
@@ -1239,8 +1263,8 @@ export async function render(
         // SVG text elements use fill to set the color of the text
         .style("fill", styling.generalStylingInfo.font.color)
         .text("P-value:" + plotData.pValue.toFixed(6) + " (one-way ANOVA)")
-        .attr("x", 0)
-        .attr("y", renderedPlotHeight - margin.bottom);
+        .attr("x", config.isVertical ? margin.left + 10 : 0)
+        .attr("y", config.isVertical ? heightAvailable : (heightAvailable - margin.bottom));
     }
   }
 

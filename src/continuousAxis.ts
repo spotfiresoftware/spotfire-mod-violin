@@ -80,7 +80,9 @@ export function renderContinuousAxis(
     // Log.blue(LOG_CATEGORIES.DebugCustomSymLog)("stats", ...plotData.sumStats.values());
     Log.blue(LOG_CATEGORIES.DebugCustomSymLog)("stats", sumStatsAsArray);
 
-    // If domain is all positive, or all negative then we can use standard d3 log
+    // If domain is all positive, or all negative then we could use standard d3 log
+    // except that functionality is disabled for now, as we will just use the symmetrical log
+    // y axis for all
     if (
       (false && plotData.yDataDomain.min > 0) ||
       (plotData.yDataDomain.min < 0 && plotData.yDataDomain.max < 0)
@@ -88,13 +90,13 @@ export function renderContinuousAxis(
       yScale = d3
         .scaleLog()
         .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
-        .range([rangeMax, 0]);
+        .range([config.isVertical ? rangeMax : 0, config.isVertical ? 0 : rangeMax]);
     } else {
       Log.red(LOG_CATEGORIES.AsinhScale)("LinearPortion", linearPortion);
 
       yScale = scaleAsinh()
         .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
-        .range([0, rangeMax])
+        .range([config.isVertical ? rangeMax : 0, config.isVertical ? 0 : rangeMax])
         .linearPortion(Math.min(linearPortion, 1));
     }
   }
@@ -166,7 +168,7 @@ export function renderContinuousAxis(
       .scaleLinear()
       .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
       //.domain([0,50])
-      .range([0, rangeMax]); //.nice();
+      .range([config.isVertical ? rangeMax : 0, config.isVertical ? 0 : rangeMax]); //.nice();
     ticks = yScale.ticks(rangeMax / 40);
   }
 
