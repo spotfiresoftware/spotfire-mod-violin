@@ -147,7 +147,7 @@ export enum LOG_CATEGORIES {
 /**
  * Set this array to any number of categories, or None to hide all logging
  */
-const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.ColorViolin];
+const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.ViolinMarking];
 
 /**
  * Log helper - pass the log category as the first argument, then any number of args as you would with console.log
@@ -1853,9 +1853,9 @@ Spotfire.initialize(async (mod) => {
             panel.name
           );
 
-          Log.red(LOG_CATEGORIES.ViolinMarking)("svgTop", panel.svgTop);
+          Log.red(LOG_CATEGORIES.ViolinMarking)("svgTop", panel.svgTop, "svgLeft", panel.svgLeft);
 
-          // Now need to calculate the x, y, width and height of the marking rect relative to the panel
+          // Now need to calculate the x, y, width and height of the marking rect relative to the SVG
           const clamp = (value: number, min: number, max: number) =>
             Math.min(Math.max(min, value), max);
 

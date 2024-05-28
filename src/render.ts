@@ -719,8 +719,9 @@ export async function render(
       .style("font-size", styling.scales.font.fontSize + "px")
       .call(xAxis);
 
-    svgTop = margin.top;
-    svgLeft = margin.left;
+    // Vertical chart, the SVG is at 0,0
+    svgTop = 0;
+    svgLeft = 0;
     svgHeight = renderedPlotHeight;
 
     yScaleSpecs = renderContinuousAxis(
@@ -730,7 +731,7 @@ export async function render(
       minZoom,
       maxZoom,
       plotData,
-      heightAvailable - svgTop,
+      heightAvailable - margin.top,
       padding,
       styling,
       tooltip
@@ -1282,13 +1283,15 @@ export async function render(
     svgLeft: svgLeft,
     svgTop: svgTop,
     mark(x, y, width, height, ctrlKey) {
-      Log.green(LOG_CATEGORIES.Marking)(
+      Log.green(LOG_CATEGORIES.ViolinMarking)(
         "Render Marking panel",
         trellisName,
         x,
         y,
         width,
-        height
+        height,
+        "svgLeft, svgTop",
+        svgLeft, svgTop
       );
       rectMark(trellisName, x, y, width, height, ctrlKey);
     },
@@ -1444,8 +1447,10 @@ export async function render(
             .attr("width", selectionRectWidth)
             .attr("height", intersectionRectHeight);
 
-          // Both of these now look right ;-)
+          // Both of these now look right for horizontal. Now need to fix intersectionRect ;-)
         }
+        
+        return;
 
         Log.green(LOG_CATEGORIES.ViolinMarking)(
           "violinCategoricalIndex",
@@ -1757,7 +1762,7 @@ export async function render(
           maxY,
           plotData.rowData.filter((p) => p.category == element.category)
         );
-        if (true || !DEBUG_VIOLIN_MARKING) {
+        if (false || !DEBUG_VIOLIN_MARKING) {
           plotData.mark(rowsToMark, ctrlKey ? "ToggleOrAdd" : "Replace");
         }
       });
