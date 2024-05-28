@@ -128,6 +128,8 @@ export function renderViolin(
       .style("opacity", config.violinOpacity)
       .style("fill", function (d: any) {
         Log.blue(LOG_CATEGORIES.ColorViolin)("isGap", d, d.IsGap);
+        Log.blue(LOG_CATEGORIES.ColorViolin)("matching?", config.areColorAndXAxesMatching);
+        
         return d.IsGap
           ? "url(#no-data)"
           : config.areColorAndXAxesMatching
@@ -138,7 +140,7 @@ export function renderViolin(
         if (!plotData.isAnyMarkedRecords) {
           return false;
         }
-        return config.useFixedViolinColor.value() && !d.Marked;
+        return (!config.areColorAndXAxesMatching || config.useFixedViolinColor.value()) && !d.Marked;
       })
       .append("path")
       .classed("violin-path", true)

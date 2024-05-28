@@ -141,13 +141,13 @@ export enum LOG_CATEGORIES {
   DebugCustomSymLog,
   DebugInnovativeLogticks,
   AsinhScale,
-  Horizontal,
+  Horizontal
 }
 
 /**
  * Set this array to any number of categories, or None to hide all logging
  */
-const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.ViolinMarking];
+const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.ColorViolin];
 
 /**
  * Log helper - pass the log category as the first argument, then any number of args as you would with console.log
