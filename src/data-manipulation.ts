@@ -440,8 +440,8 @@ export async function buildDataForTrellisPanel(
             : p.x >= rows[0].y && p.x <= rows[rows.length - 1].y
         );
 
-        points.unshift({ x: rows[0].y, y: minClosestDensity.y });
-        points.push({ x: rows[rows.length - 1].y, y: maxClosestDensity.y });
+        points.unshift({ x: rows[0].y, y: minClosestDensity?.y });
+        points.push({ x: rows[rows.length - 1].y, y: maxClosestDensity?.y });
 
         Log.blue(LOG_CATEGORIES.DebugLatestMarking)("points", points);
 
@@ -482,9 +482,7 @@ export async function buildDataForTrellisPanel(
         densitiesSplitByMarkingAndCategory
       );
 
-      // Now fill in the gaps
-      let prevMax = densityPointsSorted[0].x;
-      
+      // Now fill in the gaps     
       // Filter to just this category
       const categoryDensitiesSplitByMarking = densitiesSplitByMarkingAndCategory.filter((d:any) => d.category == category);
 
@@ -534,8 +532,7 @@ export async function buildDataForTrellisPanel(
             IsGap: true,
             count: 0,
             type: "gap",
-          });
-          prevMax = gapPoints[gapPoints.length - 1].x;
+          });         
         }
       }
 

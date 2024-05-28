@@ -414,6 +414,9 @@ export async function render(
   );
   Log.green(LOG_CATEGORIES.DebugLogYAxis)("minZoom, maxZoom", minZoom, maxZoom);
 
+  // @todo - simplify these variables. There are too many, and it's difficult to 
+  // understand their meanings, whether they are are all required, and it's difficult
+  // to make sure they are all specified when switching between horizontal and vertical
   let tableContainerSpecs: TableContainerSpecs;
   let yScaleSpecs: YScaleSpecs;
   let yAxisRendered: d3.scale;
@@ -673,6 +676,8 @@ export async function render(
         margin.top -
         margin.bottom
     );
+
+    renderedPlotHeight = heightAvailable;
 
     Log.green(LOG_CATEGORIES.Rendering)(
       "height, heightAvailable",
