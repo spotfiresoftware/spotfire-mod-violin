@@ -1327,7 +1327,10 @@ export async function render(
 
     Log.green(LOG_CATEGORIES.ViolinMarking)(
       "svg bbox",
-      svg.node().getBoundingClientRect()
+      svg.node().getBoundingClientRect(),
+      "trellisName", 
+      trellisName, 
+      d3.selectAll(".violin-path-markable")
     );
 
     Log.blue(LOG_CATEGORIES.DebugViolinIndividualScalesMarking)(

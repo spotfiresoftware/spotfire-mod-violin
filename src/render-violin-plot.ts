@@ -297,8 +297,6 @@ export function renderViolin(
         );
       });
 
-      return;
-
     Log.green(LOG_CATEGORIES.Rendering)(plotData.densitiesAll);
     // Now add a second set of paths for the violins - these will be invisible, but are used to make
     // the marking code a lot easier!
@@ -307,16 +305,22 @@ export function renderViolin(
       .enter() // So now we are working group per group
       .append("g")
       .attr("transform", function (d: any) {
-        Log.green(LOG_CATEGORIES.Rendering)(
-          "test data",
-          d,
-          d.category,
-          xScale(d.category)
+        const xTranslate =
+          (xScale(d.category) ? xScale(d.category) : 0) +
+          violinWidthPadding.violinX / 2;
+        Log.green(LOG_CATEGORIES.Horizontal)(
+          "translate",
+          "translate(" +
+            (config.isVertical ? xTranslate : 0) +
+            ", " +
+            (config.isVertical ? 0 : xTranslate) +
+            ")"
         );
         return (
-          "translate(0, " +
-          ((xScale(d.category) ? xScale(d.category) : 0) +
-            violinWidthPadding.violinX / 2) +
+          "translate(" +
+          (config.isVertical ? xTranslate : 0) +
+          ", " +
+          (config.isVertical ? 0 : xTranslate) +
           ")"
         );
       }) // Translation on the right to be at the group position
@@ -337,33 +341,7 @@ export function renderViolin(
         return datum;
       }) // So now we are working bin per bin
       .classed("markable", true)
-      .attr(
-        "d",
-        d3
-          .area()
-          .y0(function (d: any) {
-            if (isNaN(violinXscale(-d.violinX))) {
-              Log.green(LOG_CATEGORIES.DebugYNaN)(
-                d.category,
-                d.violinX,
-                violinXscale(-d.violinX),
-                maxKdeValue
-              );
-            }
-            return violinXscale(-d.violinX) as number;
-          })
-          .y1(function (d: any) {
-            return violinXscale(d.violinX) as number;
-          })
-          .x(function (d: any) {
-            if (isNaN(yScale(d.violinY))) {
-              return 0;
-            }
-            Log.green(LOG_CATEGORIES.Rendering)(yScale(d[0]));
-            return yScale(d.violinY) as number;
-          })
-          .curve(curveType)
-      );
+      .attr("d", getViolinArea(violinXscale));
   });
 
   function getViolinArea(violinXscale: d3.scale): any {
@@ -388,6 +366,8 @@ export function renderViolin(
         })
         .curve(curveType);
     }
+
+    // Horizontal
     return d3
       .area()
       .defined((d: any, i: number) => true) //{Log.green(LOG_CATEGORIES.DebugCustomSymLog)(d, yScale(d.violinY)); return true || d.violinY > 1 || d.violinY < -1;}) //&& !isNaN(Math.log(Math.abs(d.violinY)));})
