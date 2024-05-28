@@ -742,7 +742,9 @@ Spotfire.initialize(async (mod) => {
           (name == "StdDev" &&
             config.includeBoxplot.value() &&
             config.show95pctConfidenceInterval.value()) ||
-          (name == "Avg" && config.comparisonCirclesEnabled.value()) ||
+          (name == "Avg" &&
+            (config.comparisonCirclesEnabled.value() ||
+              config.show95pctConfidenceInterval.value())) ||
           name == "Min" ||
           name == "Max"
         );
@@ -1621,7 +1623,7 @@ Spotfire.initialize(async (mod) => {
         );
 
         renderedPanels.push(
-          await render(            
+          await render(
             spotfireMod,
             state,
             renderingInfo.data,
@@ -1861,7 +1863,7 @@ Spotfire.initialize(async (mod) => {
             result.x -
               panel.getBoundingClientRect().x -
               panel.svgLeft -
-              // Not quite sure why -12px is required when not trellised, but it 
+              // Not quite sure why -12px is required when not trellised, but it
               // seems to be necessary!
               (!isTrellis ? 12 : 0),
             0,

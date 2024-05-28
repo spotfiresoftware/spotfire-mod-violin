@@ -1,8 +1,8 @@
 /*
-* Copyright © 2024. Cloud Software Group, Inc.
-* This file is subject to the license terms contained
-* in the license file that is distributed with this file.
-*/
+ * Copyright © 2024. Cloud Software Group, Inc.
+ * This file is subject to the license terms contained
+ * in the license file that is distributed with this file.
+ */
 
 //@ts-ignore
 import * as d3 from "d3";
@@ -59,7 +59,13 @@ export function renderBoxplot(
     .append("g")
     .attr("transform", function (d: any) {
       Log.green(LOG_CATEGORIES.Rendering)("boxd", d);
-      return "translate(0, " + xScale(d[0]) + ")";
+      return (
+        "translate(" +
+        (config.isVertical ? xScale(d[0]) : 0) +
+        ", " +
+        (config.isVertical ? 0 : xScale(d[0])) +
+        ")"
+      );
     });
 
   function notMarked(d: any, isOutlier: boolean = false): boolean {
@@ -81,10 +87,13 @@ export function renderBoxplot(
     boxplot
       .append("rect")
       .datum((d: any) => {
-        Log.green(LOG_CATEGORIES.ConfidenceIntervals)(
+        Log.green(LOG_CATEGORIES.Horizontal)(
           "datum, sumStats",
           d,
-          plotData.sumStats.get(d[0])
+          plotData.sumStats.get(d[0]),
+          "confidence intervals",
+          plotData.sumStats.get(d[0]).confidenceIntervalLower,
+          plotData.sumStats.get(d[0]).confidenceIntervalUpper
         );
         return {
           category: d[0],
@@ -94,19 +103,26 @@ export function renderBoxplot(
             .confidenceIntervalUpper,
         };
       })
-      .attr("y", verticalLinesX + boxWidth / 2 + linesWidth / 2)
-      .attr("x", function (d: any) {
-        return yScale(d.confidenceIntervalUpper) as number;
+      .attr(
+        config.isVertical ? "x" : "y",
+        verticalLinesX + boxWidth / 2 + linesWidth / 2
+      )
+      .attr(config.isVertical ? "y" : "x", function (d: any) {
+        return config.isVertical
+          ? yScale(d.confidenceIntervalUpper)
+          : (yScale(d.confidenceIntervalLower) as number);
       })
-      .attr("width", (d: any) =>
+      .attr(config.isVertical ? "height" : "width", (d: any) =>
         !isNaN(
           yScale(d.confidenceIntervalLower) - yScale(d.confidenceIntervalUpper)
         )
-          ? Math.abs(yScale(d.confidenceIntervalLower) -
-            yScale(d.confidenceIntervalUpper))
+          ? Math.abs(
+              yScale(d.confidenceIntervalLower) -
+                yScale(d.confidenceIntervalUpper)
+            )
           : 0
       )
-      .attr("height", Math.max(linesWidth / 2, 4))
+      .attr(config.isVertical ? "width" : "height", Math.max(linesWidth / 2, 4))
       .attr("stroke", (d: any) =>
         getContrastingColor(styling.generalStylingInfo.backgroundColor)
       )
@@ -166,14 +182,15 @@ export function renderBoxplot(
       };
     })
     .classed("markable", true)
-    .attr("y", verticalLinesX)
-    .attr("x", function (d: any) {
+    .attr(config.isVertical ? "x" : "y", verticalLinesX)
+    .attr(config.isVertical ? "y" : "x", function (d: any) {
       Log.green(LOG_CATEGORIES.DebugBigData)("d for Q3 to UAV", d);
-      return yScale(d.q3) as number;
+      return config.isVertical ? yScale(d.uav) : (yScale(d.q3) as number);
     })
-    .attr("width", (d: any) => {
-      return Math.abs(yScale(d.q3) - yScale(d.uav))})
-    .attr("height", linesWidth)
+    .attr(config.isVertical ? "height" : "width", (d: any) => {
+      return Math.abs(yScale(d.q3) - yScale(d.uav));
+    })
+    .attr(config.isVertical ? "width" : "height", linesWidth)
     .attr("stroke", (d: any) => getBoxBorderColor(d.color))
     .attr("fill", (d: any) => d.color)
     .style("opacity", config.boxOpacity)
@@ -198,12 +215,18 @@ export function renderBoxplot(
           getMarkerHighlightColor(styling.generalStylingInfo.backgroundColor)
         )
         .attr(
-          "y",
+          config.isVertical ? "x" : "y",
           (xScale(d.category) ? xScale(d.category) : 0) + verticalLinesX
         )
-        .attr("x", yScale(d.q3))
-        .attr("width", Math.max(0, Math.abs(yScale(d.q3) - yScale(d.uav))))
-        .attr("height", linesWidth);
+        .attr(
+          config.isVertical ? "y" : "x",
+          config.isVertical ? yScale(d.uav) : yScale(d.q3)
+        )
+        .attr(
+          config.isVertical ? "height" : "width",
+          Math.max(0, Math.abs(yScale(d.q3) - yScale(d.uav)))
+        )
+        .attr(config.isVertical ? "width" : "height", linesWidth);
     })
     .on("mouseout", () => {
       tooltip.hide();
@@ -243,12 +266,12 @@ export function renderBoxplot(
       };
     })
     .classed("markable", true)
-    .attr("y", xScale.bandwidth() / 2 - boxWidth / 2)
-    .attr("x", function (d: any) {
+    .attr(config.isVertical ? "x" : "y", xScale.bandwidth() / 2 - boxWidth / 2)
+    .attr(config.isVertical ? "y" : "x", function (d: any) {
       return (yScale(d.uav) - 2) as number;
     })
-    .attr("width", 4)
-    .attr("height", boxWidth)
+    .attr(config.isVertical ? "height" : "width", 4)
+    .attr(config.isVertical ? "width" : "height", boxWidth)
     .attr("stroke", (d: any) => getBoxBorderColor(d.color))
     .attr("fill", (d: any) => d.color)
     .style("opacity", config.boxOpacity)
@@ -266,14 +289,14 @@ export function renderBoxplot(
           getMarkerHighlightColor(styling.generalStylingInfo.backgroundColor)
         )
         .attr(
-          "y",
+          config.isVertical ? "x" : "y",
           (xScale(d.category) ? xScale(d.category) : 0) +
             xScale.bandwidth() / 2 -
             boxWidth / 2
         )
-        .attr("x", yScale(d.uav) - 2)
-        .attr("width", 4)
-        .attr("height", boxWidth);
+        .attr(config.isVertical ? "y" : "x", yScale(d.uav) - 2)
+        .attr(config.isVertical ? "height" : "width", 4)
+        .attr(config.isVertical ? "width" : "height", boxWidth);
     })
     .on("mouseout", () => {
       tooltip.hide();
@@ -291,7 +314,6 @@ export function renderBoxplot(
     .attr("y1", xScale.bandwidth() / 2 - boxWidth / 2)
     .attr("y2", xScale.bandwidth() / 2 + boxWidth / 2);
 
-   
   // LAV (Lower Adjacent Value) to Q1 - bottom vertical line
   boxplot
     .append("rect")
@@ -329,10 +351,14 @@ export function renderBoxplot(
       };
     })
     .classed("markable", true)
-    .attr("y", verticalLinesX)
-    .attr("x", (d: any) => yScale(d.lav))
-    .attr("width", (d: any) => Math.abs(yScale(d.lav) - yScale(d.q1)))
-    .attr("height", linesWidth)
+    .attr(config.isVertical ? "x" : "y", verticalLinesX)
+    .attr(config.isVertical ? "y" : "x", (d: any) =>
+      config.isVertical ? yScale(d.q1) : yScale(d.lav)
+    )
+    .attr(config.isVertical ? "height" : "width", (d: any) =>
+      Math.abs(yScale(d.lav) - yScale(d.q1))
+    )
+    .attr(config.isVertical ? "width" : "height", linesWidth)
     .attr("stroke", (d: any) => getBoxBorderColor(d.color))
     .attr("fill", (d: any) => d.color)
     .style("opacity", config.boxOpacity)
@@ -359,12 +385,18 @@ export function renderBoxplot(
         )
 
         .attr(
-          "y",
+          config.isVertical ? "x" : "y",
           (xScale(d.category) ? xScale(d.category) : 0) + verticalLinesX
         )
-        .attr("x", yScale(d.lav))
-        .attr("width", Math.max(0, Math.abs(yScale(d.lav) - yScale(d.q1))))
-        .attr("height", linesWidth);
+        .attr(
+          config.isVertical ? "y" : "x",
+          config.isVertical ? yScale(d.q1) : yScale(d.lav)
+        )
+        .attr(
+          config.isVertical ? "height" : "width",
+          Math.max(0, Math.abs(yScale(d.lav) - yScale(d.q1)))
+        )
+        .attr(config.isVertical ? "width" : "height", linesWidth);
     })
     .on("mouseout", () => {
       tooltip.hide();
@@ -386,7 +418,6 @@ export function renderBoxplot(
       return yScale(d.lav) as number;
     });
 
-   
   //bottom horizontal line
   boxplot
     .append("rect")
@@ -413,14 +444,14 @@ export function renderBoxplot(
       };
     })
     .classed("markable", true)
-    .attr("y", xScale.bandwidth() / 2 - boxWidth / 2)
+    .attr(config.isVertical ? "x" : "y", xScale.bandwidth() / 2 - boxWidth / 2)
 
-    .attr("x", function (d: any) {
+    .attr(config.isVertical ? "y" : "x", function (d: any) {
       return (yScale(d.lav) - 2) as number;
     })
 
-    .attr("width", 4)
-    .attr("height", boxWidth)
+    .attr(config.isVertical ? "height" : "width", 4)
+    .attr(config.isVertical ? "width" : "height", boxWidth)
     .attr("stroke", (d: any) => getBoxBorderColor(d.color))
     .attr("fill", (d: any) => d.color)
     .style("opacity", config.boxOpacity)
@@ -438,14 +469,14 @@ export function renderBoxplot(
         )
 
         .attr(
-          "y",
+          config.isVertical ? "x" : "y",
           (xScale(d.category) ? xScale(d.category) : 0) +
             xScale.bandwidth() / 2 -
             boxWidth / 2
         )
-        .attr("x", yScale(d.lav) - 2)
-        .attr("width", 4)
-        .attr("height", boxWidth);
+        .attr(config.isVertical ? "y" : "x", yScale(d.lav) - 2)
+        .attr(config.isVertical ? "height" : "width", 4)
+        .attr(config.isVertical ? "width" : "height", boxWidth);
     })
     .on("mouseout", () => {
       tooltip.hide();
@@ -463,7 +494,7 @@ export function renderBoxplot(
     .attr("y1", xScale.bandwidth() / 2 - boxWidth / 2)
     .attr("y2", xScale.bandwidth() / 2 + boxWidth / 2);
 
-  //top box
+  // top box
   boxplot
     .append("rect")
     .datum((d: any) => {
@@ -493,8 +524,8 @@ export function renderBoxplot(
       };
     })
     .classed("markable", true)
-    .attr("y", xScale.bandwidth() / 2)
-    .attr("x", function (d: any) {
+    .attr(config.isVertical ? "x" : "y", xScale.bandwidth() / 2)
+    .attr(config.isVertical ? "y" : "x", function (d: any) {
       Log.blue(LOG_CATEGORIES.DebugSingleRowMarking)(
         "d",
         d,
@@ -502,12 +533,12 @@ export function renderBoxplot(
         "yScale",
         yScale(d.median)
       );
-      return yScale(d.median) as number;
+      return config.isVertical ? yScale(d.q3) : (yScale(d.median) as number);
     })
-    .attr("width", function (d: any) {
+    .attr(config.isVertical ? "height" : "width", function (d: any) {
       return Math.max(0, Math.abs(yScale(d.median) - yScale(d.q3))) as number;
     })
-    .attr("height", 0)
+    .attr(config.isVertical ? "width" : "height", 0)
     .attr("stroke", (d: any) => getBoxBorderColor(d.color))
     .style("fill", (d: any) => {
       return d.color;
@@ -532,16 +563,21 @@ export function renderBoxplot(
           "stroke",
           getMarkerHighlightColor(styling.generalStylingInfo.backgroundColor)
         )
-
         .attr(
-          "y",
+          config.isVertical ? "x" : "y",
           (xScale(d.category) ? xScale(d.category) : 0) +
             xScale.bandwidth() / 2 -
             boxWidth / 2
         )
-        .attr("x", yScale(d.q3))
-        .attr("width", Math.max(0, yScale(d.median) - yScale(d.q3)))
-        .attr("height", boxWidth);
+        .attr(
+          config.isVertical ? "y" : "x",
+          config.isVertical ? yScale(d.q3) : yScale(d.median)
+        )
+        .attr(
+          config.isVertical ? "height" : "width",
+          Math.max(0, Math.abs(yScale(d.median) - yScale(d.q3)))
+        )
+        .attr(config.isVertical ? "width" : "height", boxWidth);
     })
     .on("mouseout", () => {
       tooltip.hide();
@@ -556,8 +592,8 @@ export function renderBoxplot(
     })
     .transition()
     .duration(animationSpeed)
-    .attr("y", xScale.bandwidth() / 2 - boxWidth / 2)
-    .attr("height", boxWidth);
+    .attr(config.isVertical ? "x" : "y", xScale.bandwidth() / 2 - boxWidth / 2)
+    .attr(config.isVertical ? "width" : "height", boxWidth);
 
   //bottom box
   boxplot
@@ -592,14 +628,14 @@ export function renderBoxplot(
       };
     })
     .classed("markable", true)
-    .attr("y", xScale.bandwidth() / 2 - boxWidth / 2)
-    .attr("x", function (d: any) {
-      return yScale(d.q1) as any;
+    .attr(config.isVertical ? "x" : "y", xScale.bandwidth() / 2 - boxWidth / 2)
+    .attr(config.isVertical ? "y" : "x", function (d: any) {
+      return config.isVertical ? yScale(d.median) : (yScale(d.q1) as any);
     })
-    .attr("width", function (d: any) {
+    .attr(config.isVertical ? "height" : "width", function (d: any) {
       return Math.abs(yScale(d.median) - yScale(d.q1)) as number;
     })
-    .attr("height", boxWidth)
+    .attr(config.isVertical ? "width" : "height", boxWidth)
     .style("fill", (d: any) => d.color)
     .style("opacity", config.boxOpacity)
     .attr("stroke", (d: any) => getBoxBorderColor(d.color))
@@ -624,14 +660,17 @@ export function renderBoxplot(
         )
 
         .attr(
-          "y",
+          config.isVertical ? "x" : "y",
           (xScale(d.category) ? xScale(d.category) : 0) +
             xScale.bandwidth() / 2 -
             boxWidth / 2
         )
-        .attr("x", yScale(d.median))
-        .attr("height", Math.max(0, yScale(d.q1) - yScale(d.median)))
-        .attr("width", boxWidth);
+        .attr(config.isVertical ? "y" : "x", config.isVertical ? yScale(d.median): yScale(d.q1))
+        .attr(
+          config.isVertical ? "height" : "width",
+          Math.max(0, Math.abs(yScale(d.q1) - yScale(d.median)))
+        )
+        .attr(config.isVertical ? "width" : "height", boxWidth);
     })
     .on("mouseout", () => {
       tooltip.hide();
@@ -658,14 +697,20 @@ export function renderBoxplot(
     .classed("markable", false)
     .classed("median-line", true)
     .style("opacity", 1)
-    .attr("y1", xScale.bandwidth() / 2 - boxWidth / 2)
-    .attr("y2", xScale.bandwidth() / 2 + boxWidth / 2)
-    .attr("x1", function (d: any) {
+    .attr(
+      config.isVertical ? "x1" : "y1",
+      xScale.bandwidth() / 2 - boxWidth / 2
+    )
+    .attr(
+      config.isVertical ? "x2" : "y2",
+      xScale.bandwidth() / 2 + boxWidth / 2
+    )
+    .attr(config.isVertical ? "y1" : "x1", function (d: any) {
       //Log.green(LOG_CATEGORIES.DebugMedian)(d, d.median, yScale(d.median));
-      return yScale(d.median) + 1 as number; // median is 2px wide
+      return (yScale(d.median) + 1) as number; // median is 2px wide
     })
-    .attr("x2", function (d: any) {
-      return yScale(d.median) + 1 as number;
+    .attr(config.isVertical ? "y2" : "x2", function (d: any) {
+      return (yScale(d.median) + 1) as number;
     })
     .attr("stroke", styling.generalStylingInfo.backgroundColor)
     .on("mouseover", function (event: d3.event, d: any) {
@@ -678,15 +723,18 @@ export function renderBoxplot(
           getMarkerHighlightColor(styling.generalStylingInfo.backgroundColor)
         )
         .attr(
-          "y",
+          config.isVertical ? "x" : "y",
           (xScale(d.category) ? xScale(d.category) : 0) +
             xScale.bandwidth() / 2 -
             boxWidth / 2 -
             (height < 600 ? 2 : 5) / 2
         )
-        .attr("x", yScale(d.median) - 1)
-        .attr("width", "4px")
-        .attr("height", boxWidth + (height < 600 ? 2 : 5));
+        .attr(config.isVertical ? "y" : "x", yScale(d.median) - 2)
+        .attr(config.isVertical ? "height" : "width", "4px")
+        .attr(
+          config.isVertical ? "width" : "height",
+          boxWidth + (height < 600 ? 2 : 5)
+        );
     })
     .on("mouseout", () => {
       tooltip.hide();
@@ -707,7 +755,13 @@ export function renderBoxplot(
     .enter()
     .append("g")
     .attr("transform", function (d: any) {
-      return "translate(0, " + xScale(d[0]) + ")";
+      return (
+        "translate(" +
+        (config.isVertical ? xScale(d[0]) : 0) +
+        ", " +
+        (config.isVertical ? 0 : xScale(d[0])) +
+        ")"
+      );
     })
     .selectAll("circlegroups")
     .data((d: any) => {
@@ -763,10 +817,10 @@ export function renderBoxplot(
     .append("circle")
     .classed("markable-points", true)
     .classed("not-marked", (d: any) => notMarked(d, true))
-    .attr("cy", function () {
+    .attr(config.isVertical ? "cx" : "cy", function () {
       return xScale.bandwidth() / 2;
     })
-    .attr("cx", function (d: any) {
+    .attr(config.isVertical ? "cy" : "cx", function (d: any) {
       Log.red(LOG_CATEGORIES.DebugBigData)("cy d", d);
 
       return yScale(d.y);
@@ -779,20 +833,34 @@ export function renderBoxplot(
       // A highlight circle is a black ring overlaid on a white ring
       // in light mode, and a white circle overlaid on a black ring in dark mode
       g.append("circle")
-        .attr("transform", "translate(0," + xScale(d.category) + ")")
+        .attr(
+          "transform",
+          "translate(" +
+            (config.isVertical ? xScale(d.category) : 0) +
+            "," +
+            (config.isVertical ? 0 : xScale(d.category)) +
+            ")"
+        )
         .attr("id", "highlightcircle")
         .classed("point-highlighted", true)
-        .attr("cy", xScale.bandwidth() / 2)
-        .attr("cx", yScale(d.y))
+        .attr(config.isVertical ? "cx" : "cy", xScale.bandwidth() / 2)
+        .attr(config.isVertical ? "cy" : "cx", yScale(d.y))
         .attr("r", pointRadius + 3)
         .attr("stroke", styling.generalStylingInfo.backgroundColor)
         .attr("stroke-width", "3px");
       g.append("circle")
-        .attr("transform", "translate(0," + xScale(d.category) + ")")
+        .attr(
+          "transform",
+          "translate(" +
+            (config.isVertical ? xScale(d.category) : 0) +
+            "," +
+            (config.isVertical ? 0 : xScale(d.category)) +
+            ")"
+        )
         .attr("id", "highlightcircle")
         .classed("point-highlighted", true)
-        .attr("cy", xScale.bandwidth() / 2)
-        .attr("cx", yScale(d.y))
+        .attr(config.isVertical ? "cx" : "cy", xScale.bandwidth() / 2)
+        .attr(config.isVertical ? "cy" : "cx", yScale(d.y))
         .attr("r", pointRadius + 3)
         .attr(
           "stroke",

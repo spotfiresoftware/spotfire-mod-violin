@@ -963,6 +963,11 @@ function buildSumStats(
     const confidenceIntervalUpper = avg + 1.96 * (stdDev / Math.sqrt(count));
     const confidenceIntervalLower = avg - 1.96 * (stdDev / Math.sqrt(count));
 
+    Log.blue(LOG_CATEGORIES.Horizontal)(
+      "confidence intervals",
+      confidenceIntervalLower, confidenceIntervalUpper
+    );
+
     // todo: check!
     let outlierCount: number;
     if (config.IsStatisticsConfigItemEnabled("Outliers")) {
