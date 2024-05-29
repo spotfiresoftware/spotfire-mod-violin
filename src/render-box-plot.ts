@@ -23,6 +23,7 @@ import {
 } from "./index";
 
 export function renderBoxplot(
+  margin : any,
   styling: {
     generalStylingInfo: GeneralStylingInfo;
     scales: ScaleStylingInfo;
@@ -61,7 +62,7 @@ export function renderBoxplot(
       Log.green(LOG_CATEGORIES.Rendering)("boxd", d);
       return (
         "translate(" +
-        (config.isVertical ? xScale(d[0]) : 0) +
+        (config.isVertical ? margin.left + xScale(d[0]) : 0) +
         ", " +
         (config.isVertical ? 0 : xScale(d[0])) +
         ")"
@@ -216,7 +217,7 @@ export function renderBoxplot(
         )
         .attr(
           config.isVertical ? "x" : "y",
-          (xScale(d.category) ? xScale(d.category) : 0) + verticalLinesX
+          (xScale(d.category) ? margin.left + xScale(d.category) : 0) + verticalLinesX
         )
         .attr(
           config.isVertical ? "y" : "x",
@@ -290,7 +291,7 @@ export function renderBoxplot(
         )
         .attr(
           config.isVertical ? "x" : "y",
-          (xScale(d.category) ? xScale(d.category) : 0) +
+          (xScale(d.category) ? margin.left + xScale(d.category) : 0) +
             xScale.bandwidth() / 2 -
             boxWidth / 2
         )
@@ -386,7 +387,7 @@ export function renderBoxplot(
 
         .attr(
           config.isVertical ? "x" : "y",
-          (xScale(d.category) ? xScale(d.category) : 0) + verticalLinesX
+          (xScale(d.category) ? margin.left + xScale(d.category) : 0) + verticalLinesX
         )
         .attr(
           config.isVertical ? "y" : "x",
@@ -470,7 +471,7 @@ export function renderBoxplot(
 
         .attr(
           config.isVertical ? "x" : "y",
-          (xScale(d.category) ? xScale(d.category) : 0) +
+          (xScale(d.category) ? margin.left + xScale(d.category) : 0) +
             xScale.bandwidth() / 2 -
             boxWidth / 2
         )
@@ -565,7 +566,7 @@ export function renderBoxplot(
         )
         .attr(
           config.isVertical ? "x" : "y",
-          (xScale(d.category) ? xScale(d.category) : 0) +
+          (xScale(d.category) ? margin.left + xScale(d.category) : 0) +
             xScale.bandwidth() / 2 -
             boxWidth / 2
         )
@@ -661,7 +662,7 @@ export function renderBoxplot(
 
         .attr(
           config.isVertical ? "x" : "y",
-          (xScale(d.category) ? xScale(d.category) : 0) +
+          (xScale(d.category) ? margin.left + xScale(d.category) : 0) +
             xScale.bandwidth() / 2 -
             boxWidth / 2
         )
@@ -724,7 +725,7 @@ export function renderBoxplot(
         )
         .attr(
           config.isVertical ? "x" : "y",
-          (xScale(d.category) ? xScale(d.category) : 0) +
+          (xScale(d.category) ? margin.left + xScale(d.category) : 0) +
             xScale.bandwidth() / 2 -
             boxWidth / 2 -
             (height < 600 ? 2 : 5) / 2
@@ -757,7 +758,7 @@ export function renderBoxplot(
     .attr("transform", function (d: any) {
       return (
         "translate(" +
-        (config.isVertical ? xScale(d[0]) : 0) +
+        (config.isVertical ? margin.left + xScale(d[0]) : 0) +
         ", " +
         (config.isVertical ? 0 : xScale(d[0])) +
         ")"
@@ -836,7 +837,7 @@ export function renderBoxplot(
         .attr(
           "transform",
           "translate(" +
-            (config.isVertical ? xScale(d.category) : 0) +
+            (config.isVertical ? margin.left + xScale(d.category) : 0) +
             "," +
             (config.isVertical ? 0 : xScale(d.category)) +
             ")"
@@ -852,7 +853,7 @@ export function renderBoxplot(
         .attr(
           "transform",
           "translate(" +
-            (config.isVertical ? xScale(d.category) : 0) +
+            (config.isVertical ? margin.left + xScale(d.category) : 0) +
             "," +
             (config.isVertical ? 0 : xScale(d.category)) +
             ")"

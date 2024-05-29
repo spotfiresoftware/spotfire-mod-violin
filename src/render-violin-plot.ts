@@ -103,7 +103,7 @@ export function renderViolin(
       .enter()
       .append("g")
       .attr("transform", function (d: any) {
-        const xTranslate =
+        const xTranslate = (config.isVertical ? margin.left : 0) +
           (xScale(d.category) ? xScale(d.category) : 0) +
           violinWidthPadding.violinX / 2;
         Log.green(LOG_CATEGORIES.Horizontal)(
@@ -307,7 +307,7 @@ export function renderViolin(
       .enter() // So now we are working group per group
       .append("g")
       .attr("transform", function (d: any) {
-        const xTranslate =
+        const xTranslate = (config.isVertical ? margin.left : 0) +
           (xScale(d.category) ? xScale(d.category) : 0) +
           violinWidthPadding.violinX / 2;
         Log.green(LOG_CATEGORIES.Horizontal)(

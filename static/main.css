@@ -199,6 +199,11 @@ table {
   width: 30px;
 }
 
+/* Important! */
+#root-container.horizontal {
+  display: flex;
+}
+
 .root-container-trellis-with-global-zoom-slider {
   position: absolute;
   top: 0px;
@@ -212,6 +217,10 @@ table {
   left: 0px;
   border-width: 10px;
   border-color: #3399ff;
+}
+
+.main-svg-container {  
+  display: inline;
 }
 
 #zoom-slider {

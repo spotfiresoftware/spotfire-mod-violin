@@ -39,7 +39,6 @@ import {
 
 export function renderContinuousAxis(
   g: D3_SELECTION,
-  container: D3_SELECTION,
   config: Partial<Options>,
   minZoom: number,
   maxZoom: number,
@@ -90,13 +89,19 @@ export function renderContinuousAxis(
       yScale = d3
         .scaleLog()
         .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
-        .range([config.isVertical ? rangeMax : 0, config.isVertical ? 0 : rangeMax]);
+        .range([
+          config.isVertical ? rangeMax : 0,
+          config.isVertical ? 0 : rangeMax,
+        ]);
     } else {
       Log.red(LOG_CATEGORIES.AsinhScale)("LinearPortion", linearPortion);
 
       yScale = scaleAsinh()
         .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
-        .range([config.isVertical ? rangeMax : 0, config.isVertical ? 0 : rangeMax])
+        .range([
+          config.isVertical ? rangeMax : 0,
+          config.isVertical ? 0 : rangeMax,
+        ])
         .linearPortion(Math.min(linearPortion, 1));
     }
   }
@@ -168,7 +173,10 @@ export function renderContinuousAxis(
       .scaleLinear()
       .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
       //.domain([0,50])
-      .range([config.isVertical ? rangeMax : 0, config.isVertical ? 0 : rangeMax]); //.nice();
+      .range([
+        config.isVertical ? rangeMax : 0,
+        config.isVertical ? 0 : rangeMax,
+      ]); //.nice();
     ticks = yScale.ticks(rangeMax / 40);
   }
 
@@ -200,7 +208,8 @@ export function renderContinuousAxis(
     .style("color", styling.scales.font.color)
     .call(yAxis)
     .on("drag", () => {
-      Log.green(LOG_CATEGORIES.Rendering)("drag");
+      // @todo - check to see if the drag event is triggered
+      Log.green(LOG_CATEGORIES.Horizontal)("drag");
     });
 
   // Symmetrical log - indicate the linear portion
@@ -443,6 +452,7 @@ export function renderContinuousAxis(
 export function renderGridLines(
   g: D3_SELECTION,
   config: Partial<Options>,
+  margin: any,
   lineLength: number,
   styling: {
     generalStylingInfo: GeneralStylingInfo;
@@ -461,7 +471,7 @@ export function renderGridLines(
     .enter()
     .append("line")
     .attr("class", "horizontal-grid")
-    .attr(config.isVertical ? "x1" : "y1", 0)
+    .attr(config.isVertical ? "x1" : "y1", margin.left)
     .attr(config.isVertical ? "x2" : "y2", lineLength)
     .attr(config.isVertical ? "y1" : "x1", (d: number) => yScale(d) + 0.5)
     .attr(config.isVertical ? "y2" : "x2", (d: number) => yScale(d) + 0.5)
@@ -475,7 +485,7 @@ export function renderGridLines(
     .append("line")
     .attr("class", "horizontal-grid-hover")
     .attr("style", "opacity:0;")
-    .attr(config.isVertical ? "x1" : "y1", 0)
+    .attr(config.isVertical ? "x1" : "y1", margin.left)
     .attr(config.isVertical ? "x2" : "y2", lineLength)
     .attr(config.isVertical ? "y1" : "x1", (d: number) => yScale(d) + 0.5)
     .attr(config.isVertical ? "y2" : "x2", (d: number) => yScale(d) + 0.5)
