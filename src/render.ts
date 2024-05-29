@@ -195,14 +195,14 @@ export async function render(
     spaceForBottomAxis: 50,
   };
   const padding = { violinX: 20, betweenPlotAndTable: 30 };
-  const width = containerSize.width - margin.left;
-  const height = containerSize.height;
+  const containerWidth = containerSize.width;
+  const containerHeight = containerSize.height;
 
   let fontClass = "regularfont";
 
-  if (height < 360 || width < 360) {
+  if (containerHeight < 360 || containerWidth < 360) {
     fontClass = "smaller-font";
-  } else if (height < 500 || width < 500) {
+  } else if (containerHeight < 500 || containerWidth < 500) {
     fontClass = "small-font";
   } else {
     fontClass = "medium-font";
@@ -213,8 +213,8 @@ export async function render(
   Log.green(LOG_CATEGORIES.Horizontal)(
     "Show chart size:",
     containerSize,
-    width,
-    height
+    containerWidth,
+    containerHeight
   );
 
   let tableContainer: D3_SELECTION;
@@ -423,12 +423,12 @@ export async function render(
   let xScale: d3.scale;
   let yScale: d3.scale;
   let xAxis: D3_SELECTION;
-  let widthAvailable: number;
+  let svgWidth: number;
   let svgTop: number;
   let svgLeft: number;
   let svgHeight: number;
-  let renderedPlotHeight: number;
-  let heightAvailable: number;
+  let plotHeight: number;
+  let plotWidth: number;
   let statisticsTableHeight: number;
   let statisticsTableWidth: number;
   let bandwidth: number;
@@ -444,20 +444,20 @@ export async function render(
       fontClass,
       plotData,
       orderedCategories,
-      height / orderedCategories.length,
+      containerHeight / orderedCategories.length,
       tooltip
     );
 
-    widthAvailable = Math.max(
+    svgWidth = Math.max(
       0,
-      width -
+      containerWidth -
         tableContainerSpecs.tableContainer.node().getBoundingClientRect().width
     );
 
     Log.green(LOG_CATEGORIES.Rendering)(
       "height, heightAvailable",
-      height,
-      widthAvailable,
+      containerHeight,
+      svgWidth,
       "containerSize",
       containerSize,
       tableContainerSpecs.tableContainer.node().getBoundingClientRect(),
@@ -480,7 +480,7 @@ export async function render(
       minZoom,
       maxZoom,
       plotData,
-      widthAvailable - padding.betweenPlotAndTable,
+      svgWidth - padding.betweenPlotAndTable,
       padding,
       styling,
       tooltip
@@ -492,15 +492,13 @@ export async function render(
     const yAxisBoundingBox = yAxisRendered.node().getBBox();
     Log.blue(LOG_CATEGORIES.Horizontal)("yAxisBoundingBox", yAxisBoundingBox);
 
-    heightAvailable =
-      height - tableContainerSpecs.headerRowHeight - yAxisBoundingBox.height;
+    plotHeight =
+      containerHeight - tableContainerSpecs.headerRowHeight - yAxisBoundingBox.height;
 
     const minBandwidth = 40;
 
-    bandwidth = heightAvailable / orderedCategories.length;
-
-    renderedPlotHeight = heightAvailable;
-
+    bandwidth = plotHeight / orderedCategories.length;
+    
     Log.blue(LOG_CATEGORIES.Horizontal)("bandwidth", bandwidth);
 
     // Set the height of the table entry rows
@@ -523,19 +521,19 @@ export async function render(
     // Now move the rendered continuous axis to its correct place
     yAxisRendered.attr(
       "transform",
-      "translate(" + 0 + ", " + heightAvailable + ")"
+      "translate(" + 0 + ", " + plotHeight + ")"
     );
 
     // And move the linear portion indicator in the case of symlog:
     g.select(".symlog-linear-portion-indicator")
-      .attr("y1", heightAvailable)
-      .attr("y2", heightAvailable);
+      .attr("y1", plotHeight)
+      .attr("y2", plotHeight);
 
     if (
       config.includeYAxisGrid.value() &&
       styling.scales.line.stroke != "none"
     ) {
-      renderGridLines(g, config, renderedPlotHeight, styling, yScale, tooltip);
+      renderGridLines(g, config, plotHeight, styling, yScale, tooltip);
     }
 
     // Event handler for when the mod is scrolled
@@ -546,11 +544,11 @@ export async function render(
       windowScrollYTracker.eventHandlers.push(() => {
         Log.red(LOG_CATEGORIES.Horizontal)(
           "Moving y axis",
-          heightAvailable,
+          plotHeight,
           windowScrollYTracker.value,
-          heightAvailable + windowScrollYTracker.value
+          plotHeight + windowScrollYTracker.value
         );
-        const calculatedPosition = heightAvailable + windowScrollYTracker.value;
+        const calculatedPosition = plotHeight + windowScrollYTracker.value;
 
         const bandwidthRemainder = calculatedPosition % bandwidth;
 
@@ -574,9 +572,8 @@ export async function render(
 
     svgTop = tableContainerSpecs.headerRowHeight;
     svgLeft = statisticsTableWidth + padding.betweenPlotAndTable;
-    svgHeight = renderedPlotHeight + yAxisBoundingBox.height;
-    renderedPlotHeight = heightAvailable;
-
+    svgHeight = plotHeight + yAxisBoundingBox.height;
+    
     // Move the svg to the correct place
     svg.attr(
       "transform",
@@ -593,7 +590,7 @@ export async function render(
     svg.attr(
       "style",
       "width:" +
-        (widthAvailable + margin.left) +
+        (svgWidth) +
         "px; " +
         "height:" +
         svgHeight +
@@ -642,11 +639,11 @@ export async function render(
   } else {
     // Plot is vertical
 
-    widthAvailable = width;
+    svgWidth = containerWidth;
 
     xScale = d3
       .scaleBand()
-      .range([0, width]) // @todo: see if we can calculate the bandwidth?
+      .range([0, containerWidth]) // @todo: see if we can calculate the bandwidth?
       .domain(orderedCategories) //earlier we extracted the unique categories into an array
       .paddingInner(0) // This is important: it is the space between 2 groups. 0 means no padding. 1 is the maximum.
       // Originally, the padding was set to 0.2 but this led to problems aligning the summary table cells accurately,
@@ -669,20 +666,18 @@ export async function render(
 
     tableContainer = tableContainerSpecs.tableContainer;
 
-    heightAvailable = Math.max(
+    plotHeight = Math.max(
       0,
-      height -
+      containerHeight -
         tableContainer.node().getBoundingClientRect().height -
         margin.top -
         margin.bottom
     );
 
-    renderedPlotHeight = heightAvailable;
-
     Log.green(LOG_CATEGORIES.Rendering)(
       "height, heightAvailable",
-      height,
-      heightAvailable,
+      containerHeight,
+      plotHeight,
       "containerSize",
       containerSize,
       tableContainer.node().getBoundingClientRect(),
@@ -697,12 +692,14 @@ export async function render(
     svg.attr(
       "style",
       "width:" +
-        (width + margin.left) +
+        (containerWidth + margin.left) +
         "px; " +
         "height:" +
-        (heightAvailable + 30) +
+        (plotHeight + 30) +
         "px;"
     );
+
+    //@todo - set width/height of g?
 
     // Translate the g
     g.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
@@ -722,7 +719,7 @@ export async function render(
     // Vertical chart, the SVG is at 0,0
     svgTop = 0;
     svgLeft = 0;
-    svgHeight = renderedPlotHeight;
+    svgHeight = plotHeight;
 
     yScaleSpecs = renderContinuousAxis(
       g,
@@ -731,7 +728,7 @@ export async function render(
       minZoom,
       maxZoom,
       plotData,
-      heightAvailable - margin.top,
+      plotHeight - margin.top,
       padding,
       styling,
       tooltip
@@ -743,7 +740,7 @@ export async function render(
       config.includeYAxisGrid.value() &&
       styling.scales.line.stroke != "none"
     ) {
-      renderGridLines(g, config, widthAvailable, styling, yScale, tooltip);
+      renderGridLines(g, config, svgWidth, styling, yScale, tooltip);
     }
   }
 
@@ -866,7 +863,7 @@ export async function render(
       .append("svg")
       .attr("xmlns", "http://www.w3.org/2000/svg")
       .attr("id", "slider-container" + trellisIndex)
-      .attr("height", renderedPlotHeight)
+      .attr("height", plotHeight)
       .attr("width", 20);
     sliderSvg
       .append("g")
@@ -1065,7 +1062,7 @@ export async function render(
       xAxisSpotfire,
       state,
       animationSpeed,
-      widthAvailable,
+      svgWidth,
       config,
       styling.generalStylingInfo
     );
@@ -1083,7 +1080,7 @@ export async function render(
       xScale,
       yScale,
       tooltip,
-      renderedPlotHeight,
+      plotHeight,
       plotData,
       styling.generalStylingInfo.backgroundColor,
       state
@@ -1100,7 +1097,7 @@ export async function render(
       plotData,
       xScale,
       yScale,
-      widthAvailable,
+      svgWidth,
       g,
       tooltip,
       xAxisSpotfire,
@@ -1130,7 +1127,7 @@ export async function render(
       xAxisSpotfire,
       state,
       animationSpeed,
-      renderedPlotHeight,
+      plotHeight,
       config,
       styling.generalStylingInfo
     );
@@ -1259,7 +1256,7 @@ export async function render(
         .attr("x", config.isVertical ? margin.left + 10 : 0)
         .attr(
           "y",
-          config.isVertical ? heightAvailable : heightAvailable - margin.bottom
+          config.isVertical ? plotHeight : plotHeight - margin.bottom
         );
     } else {
       svg
@@ -1272,7 +1269,7 @@ export async function render(
         .attr("x", config.isVertical ? margin.left + 10 : 0)
         .attr(
           "y",
-          config.isVertical ? heightAvailable : heightAvailable - margin.bottom
+          config.isVertical ? plotHeight : plotHeight - margin.bottom
         );
     }
   }
