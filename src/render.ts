@@ -446,9 +446,7 @@ export async function render(
 
   let xAxis: D3_SELECTION;
 
-  const plotWidth = config.isVertical
-    ? svgWidth - margin.left - margin.right
-    : svgWidth - margin.left - margin.right;
+  const plotWidth = config.isVertical ? svgWidth - margin.left : svgWidth;
 
   if (config.isVertical) {
     xScale = d3
@@ -506,6 +504,7 @@ export async function render(
     config.isVertical
       ? verticalPlotHeight
       : svgWidth - padding.betweenPlotAndTable,
+    margin,
     padding,
     styling,
     tooltip
@@ -527,7 +526,6 @@ export async function render(
     : plotHeight / orderedCategories.length;
 
   if (!config.isVertical) {
-    
     Log.blue(LOG_CATEGORIES.Horizontal)("bandwidth", bandwidth);
 
     // Set the height of the table entry rows
@@ -697,13 +695,13 @@ export async function render(
       "width:" + svgWidth + "px; " + "height:" + svgHeight + "px;"
     );
 
-    g.attr(
+    /*g.attr(
       "style",
       "width:" + plotWidth + "px; " + "height:" + plotHeight + "px;"
     );
 
     g.attr("transform", "translate(" + margin.left + "," + (config.isVertical? margin.top : 0) + ")");
-
+    */
     xAxis = d3.axisBottom(xScale);
 
     // Render the x axis
@@ -717,12 +715,19 @@ export async function render(
       .call(xAxis);
   }
 
+  Log.green(LOG_CATEGORIES.Horizontal)(
+    "plotWidth",
+    plotWidth,
+    "plotHeight",
+    plotHeight
+  );
+
   if (config.includeYAxisGrid.value() && styling.scales.line.stroke != "none") {
     renderGridLines(
       g,
       config,
       margin,
-      config.isVertical ? svgWidth : plotHeight,
+      config.isVertical ? plotWidth : plotHeight,
       styling,
       yScale,
       tooltip
@@ -1442,7 +1447,7 @@ export async function render(
             .attr("stroke", "purple")
             .attr("width", selectionRectWidth)
             .attr("height", selectionRectHeight);
-          // This is now correct for horizontal and vertical ;-)
+          // This is currently correct for vertical ONLY
         }
 
         Log.green(LOG_CATEGORIES.ViolinMarking)(
@@ -1556,7 +1561,7 @@ export async function render(
           // ShapeInfo is relative to each of the bands of the violin chart. (one per categorical x axis value)
           const intersectionRect = ShapeInfo.rectangle({
             left: config.isVertical ? 0 : selectionRectX,
-            top: config.isVertical ? selectionRectY - margin.top : 0,
+            top: config.isVertical ? selectionRectY : 0,
             width: intersectionRectWidth,
             height: intersectionRectHeight,
           });
@@ -1596,7 +1601,7 @@ export async function render(
                 )
                 .attr("cy", (d: any) =>
                   config.isVertical
-                    ? d.y + margin.top
+                    ? d.y 
                     : d.y +
                       xScale.bandwidth() * violinCategoricalIndex +
                       violinWidthPadding.violinX / 2
@@ -1790,7 +1795,7 @@ export async function render(
           maxY,
           plotData.rowData.filter((p) => p.category == element.category)
         );
-        if (true || !DEBUG_VIOLIN_MARKING) {
+        if (false || !DEBUG_VIOLIN_MARKING) {
           Log.blue(LOG_CATEGORIES.ViolinMarking)("Will mark", rowsToMark);
           plotData.mark(rowsToMark, ctrlKey ? "ToggleOrAdd" : "Replace");
         }

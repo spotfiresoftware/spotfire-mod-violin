@@ -147,7 +147,7 @@ export enum LOG_CATEGORIES {
 /**
  * Set this array to any number of categories, or None to hide all logging
  */
-const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.Horizontal];
+const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.ViolinMarking];
 
 /**
  * Log helper - pass the log category as the first argument, then any number of args as you would with console.log
@@ -1784,7 +1784,9 @@ Spotfire.initialize(async (mod) => {
       const selectionBBox: DOMRect =
         result.selectionDiv?.getBoundingClientRect();
       Log.green(LOG_CATEGORIES.ViolinMarking)(
-        "index marking result y",
+        "index marking result x",
+        result.x,
+        "y",
         result.y,
         "bottom",
         result.bottom,
@@ -1867,10 +1869,7 @@ Spotfire.initialize(async (mod) => {
           const x = clamp(
             result.x -
               panel.getBoundingClientRect().x -
-              panel.svgLeft -
-              // Not quite sure why -12px is required when not trellised, but it
-              // seems to be necessary!
-              (!isTrellis ? 12 : 0),
+              panel.svgLeft,
             0,
             panel.getBoundingClientRect().width
           );

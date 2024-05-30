@@ -51,7 +51,12 @@ export function renderStatisticsTable(
 
   const table = tableContainer
     .append("table")
-    .attr("style", "width:" + (bandwidth * orderedCategories.length + orderedCategories.length * 2) + "px")
+    .attr(
+      "style",
+      "width:" +
+        (bandwidth * orderedCategories.length + orderedCategories.length * 2) +
+        "px"
+    )
     //.classed("table", true)
     //.classed("table-sm", true) // reduces padding
     //.classed("w-auto", true)
@@ -233,8 +238,6 @@ export function renderStatisticsTable(
         : ""
     )
     .append("div")
-    .classed("summary-div", true)
-    .classed("summary-div-sortable", (d: any, i: number) => i == 0)
     .attr("class", (d: any, i: number) => {
       Log.green(LOG_CATEGORIES.Rendering)(d);
       if (i == 0) {
@@ -250,7 +253,9 @@ export function renderStatisticsTable(
         return "sortable " + orderBy + "";
       }
     })
+    // Make sure any additional classes are set after the main class!
     .classed("summary-div", true)
+    .classed("summary-div-sortable", (d: any, i: number) => i == 0)
     .attr(
       "style",
       (d: any, i: number) =>
@@ -297,7 +302,6 @@ export function renderStatisticsTable(
         event.target.classList,
         config.orderBy.value()
       );
-      //TODO: !set back to unordered!
       if (event.target.classList.contains("sortable")) {
         let orderingClass = "";
         if (event.target.classList.contains("unordered")) {

@@ -111,8 +111,7 @@
   rotate: 180deg;
 }
 
-.summary-table1 {
-  overflow: hidden;  
+.summary-table1 { 
   padding:0px;
   border-spacing: 0px;
   border-collapse: collapse;
@@ -149,6 +148,11 @@
   text-overflow: clip;
   overflow: hidden;
   padding: 1px;
+}
+
+.summary-div-expanded {
+  padding: 1px;
+  max-height: fit-content;
 }
 
 .summary-value-comparison-circles {

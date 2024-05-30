@@ -44,6 +44,7 @@ export function renderContinuousAxis(
   maxZoom: number,
   plotData: Data,
   rangeMax: number,
+  margin: any,
   padding: any,
   styling: {
     generalStylingInfo: GeneralStylingInfo;
@@ -100,7 +101,7 @@ export function renderContinuousAxis(
         .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
         .range([
           config.isVertical ? rangeMax : 0,
-          config.isVertical ? 0 : rangeMax,
+          config.isVertical ? margin.top : rangeMax,
         ])
         .linearPortion(Math.min(linearPortion, 1));
     }
@@ -175,8 +176,8 @@ export function renderContinuousAxis(
       //.domain([0,50])
       .range([
         config.isVertical ? rangeMax : 0,
-        config.isVertical ? 0 : rangeMax,
-      ]); //.nice();
+        config.isVertical ? margin.top : rangeMax,
+      ]);
     ticks = yScale.ticks(rangeMax / 40);
   }
 
@@ -466,19 +467,21 @@ export function renderGridLines(
    */
 
   const ticks = yScale.ticks();
+
+  Log.blue(LOG_CATEGORIES.Horizontal)("ticks", ticks);
+
   g.selectAll("line.horizontalGrid")
     .data(ticks)
     .enter()
     .append("line")
     .attr("class", "horizontal-grid")
     .attr(config.isVertical ? "x1" : "y1", margin.left)
-    .attr(config.isVertical ? "x2" : "y2", lineLength)
-    .attr(config.isVertical ? "y1" : "x1", (d: number) => yScale(d) + 0.5)
-    .attr(config.isVertical ? "y2" : "x2", (d: number) => yScale(d) + 0.5)
+    .attr(config.isVertical ? "x2" : "y2", margin.left + lineLength)
+    .attr(config.isVertical ? "y1" : "x1", (d: number) => yScale(d) + 0.25)
+    .attr(config.isVertical ? "y2" : "x2", (d: number) => yScale(d) + 0.25)
     .attr("stroke", styling.scales.line.stroke)
-    .attr("shape-rendering", "crispEdges");
-  //.attr("stroke", styling.scales.line.stroke)
-
+    //.attr("shape-rendering", "crispEdges");
+  
   g.selectAll("line.horizontal-grid-hover")
     .data(ticks)
     .enter()
@@ -486,12 +489,12 @@ export function renderGridLines(
     .attr("class", "horizontal-grid-hover")
     .attr("style", "opacity:0;")
     .attr(config.isVertical ? "x1" : "y1", margin.left)
-    .attr(config.isVertical ? "x2" : "y2", lineLength)
-    .attr(config.isVertical ? "y1" : "x1", (d: number) => yScale(d) + 0.5)
-    .attr(config.isVertical ? "y2" : "x2", (d: number) => yScale(d) + 0.5)
+    .attr(config.isVertical ? "x2" : "y2", margin.left + lineLength)
+    .attr(config.isVertical ? "y1" : "x1", (d: number) => yScale(d) + 0.25)
+    .attr(config.isVertical ? "y2" : "x2", (d: number) => yScale(d) + 0.25)
     .attr("stroke", styling.scales.line.stroke)
     .attr("stroke-width", 5)
-    .attr("shape-rendering", "crispEdges")
+    //.attr("shape-rendering", "crispEdges")
     //.attr("stroke", styling.scales.line.stroke)
     .on("mouseover", function (event: d3.event, d: any) {
       Log.green(LOG_CATEGORIES.DebugYScaleTicks)("mouseover", d);
