@@ -479,7 +479,7 @@ export async function render(
     .getBoundingClientRect().width;
 
   const svgTop = config.isVertical ? 0 : tableContainerSpecs.headerRowHeight;
-  const svgLeft = config.isVertical ? 0 : padding.betweenPlotAndTable;
+  const svgLeft = config.isVertical ? 0 : padding.betweenPlotAndTable + statisticsTableWidth;
 
   const svgHeight = config.isVertical
     ? containerHeight -
@@ -566,7 +566,7 @@ export async function render(
     .getBoundingClientRect().height;
 
   // Move the svg to the correct place
-  svg.attr("transform", "translate(" + svgLeft + ", " + svgTop + ")");
+  svg.attr("transform", "translate(" + (config.isVertical? svgLeft : padding.betweenPlotAndTable) + ", " + svgTop + ")");
 
   /**
    * Set the width and height of svg
@@ -1436,7 +1436,7 @@ export async function render(
             : selectionRectWidth;
         }
 
-        if (DEBUG_VIOLIN_MARKING && false) {
+        if (DEBUG_VIOLIN_MARKING) {
           // Draw the selection box - to make sure its x and y, etc., are relative to the SVG
           svg
             .append("rect")

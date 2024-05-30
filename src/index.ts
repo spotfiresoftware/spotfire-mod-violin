@@ -1859,7 +1859,9 @@ Spotfire.initialize(async (mod) => {
             "svgTop",
             panel.svgTop,
             "svgLeft",
-            panel.svgLeft
+            panel.svgLeft,
+            "boundingClientRect x",
+            panel.getBoundingClientRect().x
           );
 
           // Now need to calculate the x, y, width and height of the marking rect relative to the SVG
