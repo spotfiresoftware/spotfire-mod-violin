@@ -141,7 +141,7 @@ export enum LOG_CATEGORIES {
   DebugCustomSymLog,
   DebugInnovativeLogticks,
   AsinhScale,
-  Horizontal
+  Horizontal,
 }
 
 /**
@@ -1036,6 +1036,7 @@ Spotfire.initialize(async (mod) => {
           .attr("id", "root-container")
           .attr("data-bs-spy", "scroll")
           .classed("container-fluid", true)
+          .classed("p-0", true) // without this, the right-hand side of the stats table is cut off
           .classed("horizontal", !config.isVertical)
           //.classed("h-100", true)
           //.classed("container-offset-right", true)
@@ -1058,10 +1059,10 @@ Spotfire.initialize(async (mod) => {
           .on("activate.bs.scrollspy", () =>
             Log.green(LOG_CATEGORIES.General)("scrollspy")
           )
-      : MOD_CONTAINER.select("#root-container").classed(
-          "container-fluid",
-          true
-        ).classed("horizontal", !config.isVertical);
+      : MOD_CONTAINER.select("#root-container")
+          .classed("container-fluid", true)
+          .classed("horizontal", !config.isVertical)
+          .classed("p-0", true);
 
     d3.select("#gear-icon").style("fill", context.styling.general.font.color);
 
@@ -1259,11 +1260,8 @@ Spotfire.initialize(async (mod) => {
       previousTrellisColumnsPerPage = columnsPerPage;
       previousTrellisRowsPerPage = rowsPerPage;
 
-      const panelHeight = windowSize.height / rowsPerPage - 2 * rowsPerPage;
+      const panelHeight = windowSize.height / rowsPerPage - 6 * rowsPerPage;
       let panelWidth = rootContainerWidth / columnsPerPage;
-
-      // Adjust mod container height so we don't get scrollbars (occurs infrequently)
-      MOD_CONTAINER.attr("height", Math.ceil(panelHeight * rowsPerPage));
 
       // Adjust panelWidth for individual zoom slider
       panelWidth =
@@ -1309,7 +1307,8 @@ Spotfire.initialize(async (mod) => {
         currentRow: d3.D3_SELECTION,
         panelIndex: number,
         node: DataViewHierarchyNode,
-        panelHeight: number
+        panelHeight: number, 
+        panelWidth: number
       ): {
         bodyContent: d3.D3_SELECTION;
         bodyHeight: number;
@@ -1335,7 +1334,8 @@ Spotfire.initialize(async (mod) => {
           .classed("col-md-" + colClassNumber, true)
           .classed("col-lg-" + colClassNumber, true)
           .classed("col-xl-" + colClassNumber, true)
-          .attr("style", "height:" + panelHeight + "px");
+          .style("height", panelHeight + "px")
+          .style("width", panelWidth + "px")
 
         if (node) {
           const titleContainer = subContainer
@@ -1385,7 +1385,7 @@ Spotfire.initialize(async (mod) => {
           );
 
           const bodyHeight =
-            panelHeight - titleText.node().getBoundingClientRect().height;
+            panelHeight - titleContainer.node().getBoundingClientRect().height;
 
           Log.green(LOG_CATEGORIES.Horizontal)("bodyHeight", bodyHeight);
 
@@ -1401,10 +1401,10 @@ Spotfire.initialize(async (mod) => {
                   "border-color",
                   getBorderColor(context.styling.general.backgroundColor)
                 )
-                .style(
+                /*.style(
                   "background-color",
                   getComplementaryColor(context.styling.general.backgroundColor)
-                )
+                )*/
                 .style("height", bodyHeight + "px")
             : d3
                 .select("#trellis-body-container-" + panelIndex)
@@ -1416,12 +1416,16 @@ Spotfire.initialize(async (mod) => {
             .empty()
             ? bodyContainer
                 .append("div")
+                .classed("container-fluid", true)
+                .classed("trellis-body-content-horizontal", !config.isVertical)
                 .attr("id", "trellis-body-content-" + panelIndex)
                 .classed("px-0", true) // 0 padding
                 //.classed("h-100", true)
                 .classed("gx-1", true)
                 .classed("gy-1", true)
-            : d3.select("#trellis-body-content-" + panelIndex);
+            : d3
+                .select("#trellis-body-content-" + panelIndex)
+                .classed("trellis-body-content-horizontal", !config.isVertical);
           return { bodyContent, bodyHeight, bodyContainer, titleContainer };
         }
       }
@@ -1457,7 +1461,7 @@ Spotfire.initialize(async (mod) => {
           );
 
           const { bodyContent, bodyHeight, bodyContainer } =
-            getOrCreateContainers(currentRow, panelIndex, node, panelHeight);
+            getOrCreateContainers(currentRow, panelIndex, node, panelHeight, panelWidth);
 
           Log.green(LOG_CATEGORIES.General)(
             "Zoomed panel title",
@@ -1466,26 +1470,19 @@ Spotfire.initialize(async (mod) => {
           Log.green(LOG_CATEGORIES.General)("incrementing panel index");
           panelIndex++;
 
-          const renderedPanelWidth = bodyContainer
-            .node()
-            .getBoundingClientRect().width as number;
+          /*.node()
+            .getBoundingClientRect().width as number;*/
 
           // If we've come here as a result of a zoom slider change, then just re-render this panel only
           if (
             trellisPanelZoomedTitle == "" ||
             trellisPanelZoomedTitle == node.formattedPath()
           ) {
-            Log.green(LOG_CATEGORIES.General)(
-              "rendering - Will render panel",
-              panelIndex - 1,
-              node.formattedPath()
-            );
             bodyContent.selectAll("*").remove();
-
             const renderingInfo: Partial<TrellisRenderingInfo> = {
               node: node,
               container: bodyContent,
-              containerSize: { height: bodyHeight, width: renderedPanelWidth },
+              containerSize: { height: bodyHeight, width: panelWidth },
               trellisIndex: panelIndex, // todo - check -1??????
               trellisName: node.formattedPath(),
               trellisRowIndex: rowIndex,
@@ -1521,7 +1518,7 @@ Spotfire.initialize(async (mod) => {
           "creating additional container to fill the row. PanelIndex",
           panelIndex
         );
-        getOrCreateContainers(currentRow, panelIndex, null, panelHeight);
+        getOrCreateContainers(currentRow, panelIndex, null, panelHeight, panelWidth);
         panelIndex++;
       }
 
@@ -1618,9 +1615,11 @@ Spotfire.initialize(async (mod) => {
             : 40) +
           20 * (maxStringLength / 4);
 
-        Log.red(LOG_CATEGORIES.DebugMarkingOffset)(
+        Log.red(LOG_CATEGORIES.Horizontal)(
           "calculated left margin",
-          calculatedLeftMargin
+          calculatedLeftMargin,
+          "containerSize",
+          renderingInfo.containerSize
         );
 
         renderedPanels.push(
@@ -1854,7 +1853,12 @@ Spotfire.initialize(async (mod) => {
             panel.name
           );
 
-          Log.red(LOG_CATEGORIES.ViolinMarking)("svgTop", panel.svgTop, "svgLeft", panel.svgLeft);
+          Log.red(LOG_CATEGORIES.ViolinMarking)(
+            "svgTop",
+            panel.svgTop,
+            "svgLeft",
+            panel.svgLeft
+          );
 
           // Now need to calculate the x, y, width and height of the marking rect relative to the SVG
           const clamp = (value: number, min: number, max: number) =>

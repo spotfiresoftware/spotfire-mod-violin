@@ -481,9 +481,7 @@ export async function render(
     .getBoundingClientRect().width;
 
   const svgTop = config.isVertical ? 0 : tableContainerSpecs.headerRowHeight;
-  const svgLeft = config.isVertical
-    ? 0
-    : padding.betweenPlotAndTable;
+  const svgLeft = config.isVertical ? 0 : padding.betweenPlotAndTable;
 
   const svgHeight = config.isVertical
     ? containerHeight -
@@ -524,11 +522,12 @@ export async function render(
       tableContainerSpecs.headerRowHeight -
       yAxisBoundingBox.height;
 
-  let bandwidth: number;
+  const bandwidth = config.isVertical
+    ? plotWidth / orderedCategories.length
+    : plotHeight / orderedCategories.length;
 
   if (!config.isVertical) {
-    bandwidth = plotHeight / orderedCategories.length;
-
+    
     Log.blue(LOG_CATEGORIES.Horizontal)("bandwidth", bandwidth);
 
     // Set the height of the table entry rows
@@ -560,7 +559,7 @@ export async function render(
     "translate(" +
       (config.isVertical ? margin.left : 0) +
       ", " +
-      (config.isVertical ? 0 : plotHeight - yAxisBoundingBox.height) +
+      (config.isVertical ? 0 : plotHeight) +
       ")"
   );
 
@@ -703,7 +702,7 @@ export async function render(
       "width:" + plotWidth + "px; " + "height:" + plotHeight + "px;"
     );
 
-    g.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    g.attr("transform", "translate(" + margin.left + "," + (config.isVertical? margin.top : 0) + ")");
 
     xAxis = d3.axisBottom(xScale);
 
@@ -723,7 +722,7 @@ export async function render(
       g,
       config,
       margin,
-      config.isVertical ? svgWidth : svgHeight,
+      config.isVertical ? svgWidth : plotHeight,
       styling,
       yScale,
       tooltip

@@ -51,7 +51,7 @@ export function renderStatisticsTable(
 
   const table = tableContainer
     .append("table")
-    //.attr("style", "width:" + (width-100) + "px")
+    .attr("style", "width:" + (bandwidth * orderedCategories.length + orderedCategories.length * 2) + "px")
     //.classed("table", true)
     //.classed("table-sm", true) // reduces padding
     //.classed("w-auto", true)
@@ -122,7 +122,7 @@ export function renderStatisticsTable(
   // - 1 makes the cell sizes fit exactly (each cell has a border of 1px on both sides, and shares
   // its borders with one other cell)
   const cellWidth = bandwidth - 1.1;
-  const leftMostColumnWidth = margin.left;
+  const leftMostColumnWidth = margin.left - 1.1;
 
   const headerColumns: string[] = ["", ...orderedCategories];
 
