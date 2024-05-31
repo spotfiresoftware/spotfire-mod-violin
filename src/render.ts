@@ -194,7 +194,7 @@ export async function render(
     left: config.isVertical ? calculatedLeftMargin : 0,
     right: 15,
   };
-  const padding = { violinX: 20, betweenPlotAndTable: 30 };
+  const padding = { violinX: 20, betweenPlotAndTable: 10 };
   const containerWidth = containerSize.width;
   const containerHeight = containerSize.height;
 
@@ -210,7 +210,7 @@ export async function render(
 
   Log.green(LOG_CATEGORIES.Rendering)(container.node().getBoundingClientRect());
 
-  Log.green(LOG_CATEGORIES.Horizontal)(
+  Log.green(LOG_CATEGORIES.LayoutOptimization)(
     "Show chart size:",
     containerSize,
     containerWidth,
@@ -446,7 +446,9 @@ export async function render(
 
   let xAxis: D3_SELECTION;
 
-  const plotWidth = config.isVertical ? svgWidth - margin.left : svgWidth;
+  const plotWidth = config.isVertical
+    ? svgWidth - margin.left
+    : svgWidth - margin.top - margin.bottom;
 
   if (config.isVertical) {
     xScale = d3
@@ -479,19 +481,24 @@ export async function render(
     .getBoundingClientRect().width;
 
   const svgTop = config.isVertical ? 0 : tableContainerSpecs.headerRowHeight;
-  const svgLeft = config.isVertical ? 0 : padding.betweenPlotAndTable + statisticsTableWidth;
+  const svgLeft = config.isVertical
+    ? 0
+    : padding.betweenPlotAndTable + statisticsTableWidth;
 
   const svgHeight = config.isVertical
     ? containerHeight -
-      tableContainerSpecs.tableContainer.node().getBoundingClientRect().height -
-      padding.betweenPlotAndTable
+      tableContainerSpecs.tableContainer.node().getBoundingClientRect().height
     : containerHeight - tableContainerSpecs.headerRowHeight;
 
   const verticalPlotHeight = svgHeight - margin.top - margin.bottom;
 
-  Log.green(LOG_CATEGORIES.Horizontal)(
+  Log.green(LOG_CATEGORIES.LayoutOptimization)(
+    "containerHeight",
+    containerHeight,
     "verticalPlotHeight",
-    verticalPlotHeight
+    verticalPlotHeight,
+    "svgHeight",
+    svgHeight
   );
 
   // Render the continuous axis
@@ -501,9 +508,7 @@ export async function render(
     minZoom,
     maxZoom,
     plotData,
-    config.isVertical
-      ? verticalPlotHeight
-      : svgWidth - padding.betweenPlotAndTable,
+    config.isVertical ? verticalPlotHeight : plotWidth,
     margin,
     padding,
     styling,
@@ -566,14 +571,21 @@ export async function render(
     .getBoundingClientRect().height;
 
   // Move the svg to the correct place
-  svg.attr("transform", "translate(" + (config.isVertical? svgLeft : padding.betweenPlotAndTable) + ", " + svgTop + ")");
+  svg.attr(
+    "transform",
+    "translate(" +
+      (config.isVertical ? svgLeft : padding.betweenPlotAndTable) +
+      ", " +
+      svgTop +
+      ")"
+  );
 
   /**
    * Set the width and height of svg
    */
   svg.attr("width", svgWidth).attr("height", svgHeight);
 
-  Log.green(LOG_CATEGORIES.Horizontal)(
+  Log.green(LOG_CATEGORIES.LayoutOptimization)(
     "statisticsTableHeight",
     statisticsTableHeight
   );
@@ -584,94 +596,85 @@ export async function render(
     yScale(1.5)
   );
 
+  Log.green(LOG_CATEGORIES.LayoutOptimization)(
+    "height, heightAvailable",
+    containerHeight,
+    svgWidth,
+    "containerSize",
+    containerSize,
+    tableContainerSpecs.tableContainer.node().getBoundingClientRect(),
+    tableContainerSpecs.tableContainer.node().clientHeight
+  );
+
   if (!config.isVertical) {
     const minBandwidth = 40;
 
-    if (!config.isVertical) {
-      Log.green(LOG_CATEGORIES.Rendering)(
-        "height, heightAvailable",
-        containerHeight,
-        svgWidth,
-        "containerSize",
-        containerSize,
-        tableContainerSpecs.tableContainer.node().getBoundingClientRect(),
-        tableContainerSpecs.tableContainer.node().clientHeight
-      );
-      //tableContainer.attr("style", "top:" + heightAvailable + "px");
-      Log.green(LOG_CATEGORIES.Rendering)(
-        tableContainerSpecs.tableContainer.node()
-      );
+    //tableContainer.attr("style", "top:" + heightAvailable + "px");
+    Log.green(LOG_CATEGORIES.Rendering)(
+      tableContainerSpecs.tableContainer.node()
+    );
 
-      // Event handler for when the mod is scrolled
-      // - could be used to move the continuous axis with the scroll event
-      // so that it's always visible (if we supported scrolling a horizontal violin
-      // plot - but right now we don't
-      if (false) {
-        windowScrollYTracker.eventHandlers.push(() => {
-          Log.red(LOG_CATEGORIES.Horizontal)(
-            "Moving y axis",
-            plotHeight,
-            windowScrollYTracker.value,
-            plotHeight + windowScrollYTracker.value
+    // Event handler for when the mod is scrolled
+    // - could be used to move the continuous axis with the scroll event
+    // so that it's always visible (if we supported scrolling a horizontal violin
+    // plot - but right now we don't
+    if (false) {
+      windowScrollYTracker.eventHandlers.push(() => {
+        Log.red(LOG_CATEGORIES.Horizontal)(
+          "Moving y axis",
+          plotHeight,
+          windowScrollYTracker.value,
+          plotHeight + windowScrollYTracker.value
+        );
+        const calculatedPosition = plotHeight + windowScrollYTracker.value;
+
+        const bandwidthRemainder = calculatedPosition % bandwidth;
+
+        yAxisRendered
+          .transition()
+          .duration(600)
+          .attr(
+            "transform",
+            "translate(" +
+              0 +
+              ", " +
+              (calculatedPosition + bandwidthRemainder + bandwidth / 2) +
+              ")"
           );
-          const calculatedPosition = plotHeight + windowScrollYTracker.value;
-
-          const bandwidthRemainder = calculatedPosition % bandwidth;
-
-          yAxisRendered
-            .transition()
-            .duration(600)
-            .attr(
-              "transform",
-              "translate(" +
-                0 +
-                ", " +
-                (calculatedPosition + bandwidthRemainder + bandwidth / 2) +
-                ")"
-            );
-        });
-      }
-
-      container.attr("height", svgHeight + "px");
-
-      // Rotate using css ;-)
-      //svg.classed("rotate", true);
-
-      // Rotate
-      //svg.attr("transform", "rotate(90)"); //, " + (containerSize.width / 2) + "," + (containerSize.height / 2) + ")");
-
-      xScale = d3
-        .scaleBand()
-        .range([0, bandwidth * orderedCategories.length]) // Do not change this to anything related to height (for horizontal)
-        .domain(orderedCategories) //earlier we extracted the unique categories into an array
-        .paddingInner(0) // This is important: it is the space between 2 groups. 0 means no padding. 1 is the maximum.
-        // Originally, the padding was set to 0.2 but this led to problems aligning the summary table cells accurately,
-        // Therefore, padding has been set to 0... This also reduces the space consumed. Violins touching each other is
-        // not a huge issue in my opinion (A. Berridge)
-        .paddingOuter(0)
-        .align(0);
-
-      xAxis = d3.axisLeft(xScale);
-
-      // Render the x axis
-      g.append("g")
-        .attr("class", "x-axis")
-        //.attr("transform", "translate(0," + heightAvailable + ")")
-        .attr("font-family", styling.scales.font.fontFamily)
-        .attr("fill", styling.scales.font.color)
-        .attr("font-weight", styling.scales.font.fontWeight)
-        .style("font-size", styling.scales.font.fontSize + "px")
-        .call(xAxis);
-
-      Log.green(LOG_CATEGORIES.Rendering)(
-        "slider",
-        yScale(2.0),
-        plotData.yDataDomain.min,
-        plotData.yDataDomain.max,
-        yScale(plotData.yDataDomain.min),
-        yScale(plotData.yDataDomain.max)
-      );
+      });
     }
+
+    xScale = d3
+      .scaleBand()
+      .range([0, bandwidth * orderedCategories.length]) // Do not change this to anything related to height (for horizontal)
+      .domain(orderedCategories) //earlier we extracted the unique categories into an array
+      .paddingInner(0) // This is important: it is the space between 2 groups. 0 means no padding. 1 is the maximum.
+      // Originally, the padding was set to 0.2 but this led to problems aligning the summary table cells accurately,
+      // Therefore, padding has been set to 0... This also reduces the space consumed. Violins touching each other is
+      // not a huge issue in my opinion (A. Berridge)
+      .paddingOuter(0)
+      .align(0);
+
+    xAxis = d3.axisLeft(xScale);
+
+    // Render the x axis
+    g.append("g")
+      .attr("class", "x-axis")
+      //.attr("transform", "translate(0," + heightAvailable + ")")
+      .attr("font-family", styling.scales.font.fontFamily)
+      .attr("fill", styling.scales.font.color)
+      .attr("font-weight", styling.scales.font.fontWeight)
+      .style("font-size", styling.scales.font.fontSize + "px")
+      .call(xAxis);
+
+    Log.green(LOG_CATEGORIES.Rendering)(
+      "slider",
+      yScale(2.0),
+      plotData.yDataDomain.min,
+      plotData.yDataDomain.max,
+      yScale(plotData.yDataDomain.min),
+      yScale(plotData.yDataDomain.max)
+    );
 
     tableContainer = tableContainerSpecs.tableContainer;
 
@@ -1312,7 +1315,7 @@ export async function render(
     // Calculate X1 (right) and Y1 (bottom) of selection rect
     const selectionRectX1 = selectionRectX + selectionRectWidth;
     const selectionRectY1 = selectionRectY + selectionRectHeight;
-    
+
     const violinMarkables: any = [];
 
     // set this to true to enable drawing of rects and circles to aid with debugging violin marking
@@ -1329,7 +1332,7 @@ export async function render(
     Log.blue(LOG_CATEGORIES.DebugViolinIndividualScalesMarking)(
       d3.selectAll(".violin-path-markable")
     );
-    
+
     /**
      *
      * Violin marking
@@ -1345,7 +1348,6 @@ export async function render(
 
         //if (violinXindex > 0) return; // todo - remove. Just for debugging
 
-
         // Compute intersection between violin path and marking rectangle
         const path = ShapeInfo.path((g[i] as SVGPathElement).getAttribute("d"));
 
@@ -1357,7 +1359,6 @@ export async function render(
           "ShapeInfo path",
           path
         );
-
 
         /**
          * The logic is quite complicated. Basic premise is to construct a rect
@@ -1608,7 +1609,7 @@ export async function render(
                 )
                 .attr("cy", (d: any) =>
                   config.isVertical
-                    ? d.y 
+                    ? d.y
                     : d.y +
                       xScale.bandwidth() * violinCategoricalIndex +
                       violinWidthPadding.violinX / 2

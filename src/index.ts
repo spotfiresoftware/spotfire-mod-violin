@@ -143,12 +143,13 @@ export enum LOG_CATEGORIES {
   AsinhScale,
   Horizontal,
   DebugBoxHover,
+  LayoutOptimization
 }
 
 /**
  * Set this array to any number of categories, or None to hide all logging
  */
-const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.DebugBoxHover];
+const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.LayoutOptimization];
 
 /**
  * Log helper - pass the log category as the first argument, then any number of args as you would with console.log
@@ -1700,11 +1701,13 @@ Spotfire.initialize(async (mod) => {
             "calculated left margin",
             calculatedLeftMargin
           );
-          const zoommargin =
+
+          // @todo - re-implement zoommargin if required
+          const zoomMargin =
             !config.yScalePerTrellisPanel.value() || !isTrellis ? 40 : 0;
           const containerSize: Size = {
             width: windowSize.width,
-            height: windowSize.height - zoommargin,
+            height: windowSize.height
           };
           rootContainer
             .attr("style", "width:" + windowSize.width + "px;")

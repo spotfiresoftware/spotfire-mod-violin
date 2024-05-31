@@ -100,7 +100,7 @@ export function renderContinuousAxis(
       yScale = scaleAsinh()
         .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
         .range([
-          config.isVertical ? rangeMax : 0,
+          config.isVertical ? rangeMax : margin.bottom,
           config.isVertical ? margin.top : rangeMax,
         ])
         .linearPortion(Math.min(linearPortion, 1));
@@ -175,7 +175,7 @@ export function renderContinuousAxis(
       .domain([minZoom, maxZoom]) //y domain using our min and max values calculated earlier
       //.domain([0,50])
       .range([
-        config.isVertical ? rangeMax : 0,
+        config.isVertical ? rangeMax : margin.bottom,
         config.isVertical ? margin.top : rangeMax,
       ]);
     ticks = yScale.ticks(rangeMax / 40);
