@@ -223,10 +223,10 @@ export function renderContinuousAxis(
       .style("stroke", "url(#linear-portion)")
       .style("stroke-width", 10)
       .classed("symlog-linear-portion-indicator", true)
-      .attr("y1", 0)
-      .attr("y2", 0)
+      .attr(config.isVertical ? "x1" : "y1", config.isVertical ? margin.left : 0)
+      .attr(config.isVertical ? "x2" : "y2", config.isVertical ? margin.left : 0)
       .attr(
-        "x1",
+        config.isVertical? "y1": "x1",
         yScale(
           plotData.yDataDomain.min < -1 * linearPortion
             ? -1 * linearPortion
@@ -234,13 +234,13 @@ export function renderContinuousAxis(
         )
       )
       .attr(
-        "x2",
+        config.isVertical? "y2": "x2",
         yScale(
           plotData.yDataDomain.max > linearPortion
             ? linearPortion
             : plotData.yDataDomain.max
         )
-      )
+      )    
       .on("mousemove", () => {
         tooltip.show(
           "Linear portion:\n" +
@@ -479,9 +479,9 @@ export function renderGridLines(
     .attr(config.isVertical ? "x2" : "y2", margin.left + lineLength)
     .attr(config.isVertical ? "y1" : "x1", (d: number) => yScale(d) + 0.25)
     .attr(config.isVertical ? "y2" : "x2", (d: number) => yScale(d) + 0.25)
-    .attr("stroke", styling.scales.line.stroke)
-    //.attr("shape-rendering", "crispEdges");
-  
+    .attr("stroke", styling.scales.line.stroke);
+  //.attr("shape-rendering", "crispEdges");
+
   g.selectAll("line.horizontal-grid-hover")
     .data(ticks)
     .enter()

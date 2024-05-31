@@ -148,7 +148,7 @@
   text-overflow: clip;
   overflow: hidden;
   padding: 1px;
-  display: flex;
+  display:flex;
   justify-content: center;
   align-content: center;
   flex-direction: column;  
