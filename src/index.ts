@@ -1307,7 +1307,7 @@ Spotfire.initialize(async (mod) => {
         currentRow: d3.D3_SELECTION,
         panelIndex: number,
         node: DataViewHierarchyNode,
-        panelHeight: number, 
+        panelHeight: number,
         panelWidth: number
       ): {
         bodyContent: d3.D3_SELECTION;
@@ -1335,7 +1335,7 @@ Spotfire.initialize(async (mod) => {
           .classed("col-lg-" + colClassNumber, true)
           .classed("col-xl-" + colClassNumber, true)
           .style("height", panelHeight + "px")
-          .style("width", panelWidth + "px")
+          .style("width", panelWidth + "px");
 
         if (node) {
           const titleContainer = subContainer
@@ -1461,7 +1461,13 @@ Spotfire.initialize(async (mod) => {
           );
 
           const { bodyContent, bodyHeight, bodyContainer } =
-            getOrCreateContainers(currentRow, panelIndex, node, panelHeight, panelWidth);
+            getOrCreateContainers(
+              currentRow,
+              panelIndex,
+              node,
+              panelHeight,
+              panelWidth
+            );
 
           Log.green(LOG_CATEGORIES.General)(
             "Zoomed panel title",
@@ -1518,7 +1524,13 @@ Spotfire.initialize(async (mod) => {
           "creating additional container to fill the row. PanelIndex",
           panelIndex
         );
-        getOrCreateContainers(currentRow, panelIndex, null, panelHeight, panelWidth);
+        getOrCreateContainers(
+          currentRow,
+          panelIndex,
+          null,
+          panelHeight,
+          panelWidth
+        );
         panelIndex++;
       }
 
@@ -1784,10 +1796,12 @@ Spotfire.initialize(async (mod) => {
       const selectionBBox: DOMRect =
         result.selectionDiv?.getBoundingClientRect();
       Log.green(LOG_CATEGORIES.ViolinMarking)(
-        "index marking result x",
+        "index marking bound x",
         result.x,
         "y",
         result.y,
+        "width",
+        result.width,
         "bottom",
         result.bottom,
         "height",
@@ -1861,7 +1875,9 @@ Spotfire.initialize(async (mod) => {
             "svgLeft",
             panel.svgLeft,
             "boundingClientRect x",
-            panel.getBoundingClientRect().x
+            panel.getBoundingClientRect().x,
+            "boundingClientRect left",
+            panel.getBoundingClientRect().left
           );
 
           // Now need to calculate the x, y, width and height of the marking rect relative to the SVG
@@ -1869,9 +1885,7 @@ Spotfire.initialize(async (mod) => {
             Math.min(Math.max(min, value), max);
 
           const x = clamp(
-            result.x -
-              panel.getBoundingClientRect().x -
-              panel.svgLeft,
+            result.x - panel.getBoundingClientRect().x - panel.svgLeft,
             0,
             panel.getBoundingClientRect().width
           );
@@ -1881,16 +1895,27 @@ Spotfire.initialize(async (mod) => {
             panel.getBoundingClientRect().bottom
           );
           const width = clamp(
-            result.width,
+            result.x < panel.getBoundingClientRect().left
+              ? result.right - panel.getBoundingClientRect().left - panel.svgLeft
+              : result.width,
             0,
             panel.getBoundingClientRect().width
           );
           const height = clamp(
-            result.height,
+            result.y < panel.getBoundingClientRect().top
+              ? result.bottom - panel.getBoundingClientRect().top - panel.svgTop
+              : result.height,
             0,
             panel.getBoundingClientRect().height
           );
 
+          Log.red(LOG_CATEGORIES.ViolinMarking)(
+            "Index marking bounds x, y, width, height",
+            x,
+            y,
+            width,
+            height
+          );
           panel.mark(x, y, width, height, result.ctrlKey);
         }
       });

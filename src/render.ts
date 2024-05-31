@@ -1309,6 +1309,10 @@ export async function render(
     svg.selectAll(".rect-corner").remove();
     svg.selectAll(".rect-shapeinfo").remove();
 
+    // Calculate X1 (right) and Y1 (bottom) of selection rect
+    const selectionRectX1 = selectionRectX + selectionRectWidth;
+    const selectionRectY1 = selectionRectY + selectionRectHeight;
+    
     const violinMarkables: any = [];
 
     // set this to true to enable drawing of rects and circles to aid with debugging violin marking
@@ -1325,7 +1329,7 @@ export async function render(
     Log.blue(LOG_CATEGORIES.DebugViolinIndividualScalesMarking)(
       d3.selectAll(".violin-path-markable")
     );
-
+    
     /**
      *
      * Violin marking
@@ -1341,15 +1345,19 @@ export async function render(
 
         //if (violinXindex > 0) return; // todo - remove. Just for debugging
 
+
+        // Compute intersection between violin path and marking rectangle
+        const path = ShapeInfo.path((g[i] as SVGPathElement).getAttribute("d"));
+
         Log.green(LOG_CATEGORIES.ViolinMarking)(
           "violinMark",
           d,
           violinCategoricalIndex,
-          xScale.domain()
+          xScale.domain(),
+          "ShapeInfo path",
+          path
         );
 
-        // Compute intersection between violin path and marking rectangle
-        const path = ShapeInfo.path((g[i] as SVGPathElement).getAttribute("d"));
 
         /**
          * The logic is quite complicated. Basic premise is to construct a rect
@@ -1363,9 +1371,6 @@ export async function render(
          * In vertical mode, the intersection box must be extended to the horizontal edge of the band.
          * In horizontal mode, the intersection box must be extended to the vertical edge of the band
          */
-
-        const selectionRectY1 = selectionRectY + selectionRectHeight;
-        const selectionRectX1 = selectionRectX + selectionRectWidth;
 
         const selectionRectStartCategoricalIndex = config.isVertical
           ? Math.floor((selectionRectX - margin.left) / xScale.bandwidth())
@@ -1447,7 +1452,7 @@ export async function render(
             .attr("stroke", "purple")
             .attr("width", selectionRectWidth)
             .attr("height", selectionRectHeight);
-          // This is currently correct for vertical ONLY
+          // This is currently correct for vertical and horizontal
         }
 
         Log.green(LOG_CATEGORIES.ViolinMarking)(
@@ -1584,6 +1589,8 @@ export async function render(
               intersections
             );
             // Useful for debugging intersection - draws circles at the computed intersection points
+            // IMPORTANT NOTE: right now, this only shows points for the first violin that has
+            // been marked. This is not an indication that marking multiple violins is not working!
             if (DEBUG_VIOLIN_MARKING)
               svg
                 .selectAll(".test_points")
@@ -1795,7 +1802,7 @@ export async function render(
           maxY,
           plotData.rowData.filter((p) => p.category == element.category)
         );
-        if (false || !DEBUG_VIOLIN_MARKING) {
+        if (true || !DEBUG_VIOLIN_MARKING) {
           Log.blue(LOG_CATEGORIES.ViolinMarking)("Will mark", rowsToMark);
           plotData.mark(rowsToMark, ctrlKey ? "ToggleOrAdd" : "Replace");
         }

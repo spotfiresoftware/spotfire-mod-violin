@@ -123,7 +123,11 @@ export function renderViolin(
         );
       })
       .style("stroke", (d: any) =>
-        d.IsGap ? "darkgray" : getBoxBorderColor(d.color)
+        d.IsGap ? "darkgray" : getBoxBorderColor(d.IsGap
+          ? "url(#no-data)"
+          : !config.areColorAndXAxesMatching || config.useFixedViolinColor.value()
+          ? config.violinColor.value()
+          : d.color)
       )
       .style("opacity", config.violinOpacity)
       .style("fill", function (d: any) {
@@ -132,9 +136,9 @@ export function renderViolin(
         
         return d.IsGap
           ? "url(#no-data)"
-          : config.areColorAndXAxesMatching
-          ? d.color
-          : config.violinColor.value(); // config.violinColor.value();
+          : !config.areColorAndXAxesMatching || config.useFixedViolinColor.value()
+          ? config.violinColor.value()
+          : d.color;          
       })
       .classed("not-marked", (d: any) => {
         if (!plotData.isAnyMarkedRecords) {
