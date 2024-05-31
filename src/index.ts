@@ -143,13 +143,15 @@ export enum LOG_CATEGORIES {
   AsinhScale,
   Horizontal,
   DebugBoxHover,
-  LayoutOptimization
+  LayoutOptimization,
 }
 
 /**
  * Set this array to any number of categories, or None to hide all logging
  */
-const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.LayoutOptimization];
+const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [
+  LOG_CATEGORIES.Horizontal,
+];
 
 /**
  * Log helper - pass the log category as the first argument, then any number of args as you would with console.log
@@ -453,7 +455,8 @@ Spotfire.initialize(async (mod) => {
     mod.property<boolean>("useFixedViolinColor"),
     mod.property<boolean>("useFixedBoxColor"),
     mod.property<boolean>("drawViolinUnderBox"),
-    mod.property<boolean>("show95pctConfidenceInterval")
+    mod.property<boolean>("show95pctConfidenceInterval"),
+    mod.property<boolean>("plotScalingFactor")
   );
 
   /**
@@ -507,6 +510,7 @@ Spotfire.initialize(async (mod) => {
    * @param {ModProperty<boolean>} useFixedBoxColor
    * @param {ModProperty<boolean>} drawViolinUnderBox
    * @param {ModProperty<boolean>} show95pctConfidenceInterval
+   * @param {ModProperty<number>} plotScalingFactor
    */
   async function onChange(
     dataView: DataView,
@@ -556,7 +560,8 @@ Spotfire.initialize(async (mod) => {
     useFixedViolinColor: ModProperty<boolean>,
     useFixedBoxColor: ModProperty<boolean>,
     drawViolinUnderBox: ModProperty<boolean>,
-    show95pctConfidenceInterval: ModProperty<boolean>
+    show95pctConfidenceInterval: ModProperty<boolean>,
+    plotScalingFactor: ModProperty<number>
   ) {
     Log.red(LOG_CATEGORIES.DebugIndividualYScales)(
       "OnChange",
@@ -634,6 +639,7 @@ Spotfire.initialize(async (mod) => {
       boxOpacity:
         includeViolin.value() && !drawViolinUnderBox.value() ? 1 : OPACITY,
       show95pctConfidenceInterval: show95pctConfidenceInterval,
+      plotScalingFactor: plotScalingFactor,
       //statisticsConfigCache: statisticsConfig.value() == "" ? new Map<string, StatisticsConfig>() : new Map(JSON.parse(statisticsConfig.value())),
       GetStatisticsConfigItems(): Map<string, StatisticsConfig> {
         if (
@@ -1099,9 +1105,8 @@ Spotfire.initialize(async (mod) => {
           return 1;
         }
       }
+      // Call the the recursive method with node
       return RecursiveTrellisCount(node, toLevel, currentLevel);
-
-      // Call the the recursive method with root container.
     }
 
     const trellisAxisHierarchy = await dataView.hierarchy("Trellis");
@@ -1643,7 +1648,6 @@ Spotfire.initialize(async (mod) => {
             renderingInfo.data,
             xAxisSpotfire,
             renderingInfo.containerSize,
-            windowSize,
             calculatedLeftMargin,
             config,
             {
@@ -1707,11 +1711,13 @@ Spotfire.initialize(async (mod) => {
             !config.yScalePerTrellisPanel.value() || !isTrellis ? 40 : 0;
           const containerSize: Size = {
             width: windowSize.width,
-            height: windowSize.height
+            height:
+              windowSize.height *
+              (!config.isVertical ? config.plotScalingFactor.value() : 1),
           };
           rootContainer
-            .attr("style", "width:" + windowSize.width + "px;")
-            .attr("style", "height:" + windowSize.height + "px;")
+            .attr("style", "width:" + containerSize.width + "px;")
+            .attr("style", "height:" + containerSize.height + "px;")
             .classed("root-container-trellis-with-global-zoom-slider", false);
 
           renderedPanels.push(
@@ -1721,7 +1727,6 @@ Spotfire.initialize(async (mod) => {
               data,
               xAxisSpotfire,
               containerSize,
-              windowSize,
               calculatedLeftMargin,
               config,
               {
@@ -1881,7 +1886,9 @@ Spotfire.initialize(async (mod) => {
             "boundingClientRect x",
             panel.getBoundingClientRect().x,
             "boundingClientRect left",
-            panel.getBoundingClientRect().left
+            panel.getBoundingClientRect().left,
+            "boundingClientRect bottom",
+            panel.getBoundingClientRect().bottom
           );
 
           // Now need to calculate the x, y, width and height of the marking rect relative to the SVG
@@ -1896,7 +1903,7 @@ Spotfire.initialize(async (mod) => {
           const y = clamp(
             result.y - panel.getBoundingClientRect().y - panel.svgTop,
             0,
-            panel.getBoundingClientRect().bottom
+            panel.getBoundingClientRect().height
           );
           const width = clamp(
             result.x < panel.getBoundingClientRect().left

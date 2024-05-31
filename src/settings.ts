@@ -1,8 +1,8 @@
 /*
-* Copyright © 2024. Cloud Software Group, Inc.
-* This file is subject to the license terms contained
-* in the license file that is distributed with this file.
-*/
+ * Copyright © 2024. Cloud Software Group, Inc.
+ * This file is subject to the license terms contained
+ * in the license file that is distributed with this file.
+ */
 
 import {
   Controls,
@@ -775,7 +775,7 @@ export function createSettingsPopout(
     labelElement.innerHTML = "Help";
     dropDownContainer.append(labelElement);
     AddDivider(dropDownContainer); */
-  
+
   let section = AddSection("Appearance - Overall", dropDownContainer);
   let placeholder = AddPlaceholder(section);
 
@@ -784,11 +784,39 @@ export function createSettingsPopout(
     config.isVerticalPlot,
     [
       { text: "Vertical", value: true },
-      { text: "Horizontal", value: false }
+      { text: "Horizontal", value: false },
     ],
     verticalHorizontalOptionPlaceholder,
-    () => {}
+    (value: any) => {
+      const boolValue = value == "true";
+      Log.blue(LOG_CATEGORIES.Horizontal)("Add slider?", value, isTrellis, boolValue);
+      if (!boolValue && !isTrellis) {
+
+        Log.blue(LOG_CATEGORIES.Horizontal)("Adding slider for scaling");
+        AddSlider(
+          "Plot Scaling Factor",
+          config.plotScalingFactor,
+          verticalHorizontalOptionPlaceholder,
+          0,
+          10,
+          0.5
+        );
+      }
+    }
   );
+
+  if (!config.isVertical && !isTrellis) {    
+      Log.blue(LOG_CATEGORIES.Horizontal)("Adding slider for scaling");
+      AddSlider(
+        "Plot Scaling Factor",
+        config.plotScalingFactor,
+        verticalHorizontalOptionPlaceholder,
+        1.0,
+        5,
+        0.5,
+        [1.0, 2.5, 5.0]
+      );
+  }
 
   AddDivider(dropDownContainer);
 

@@ -223,6 +223,8 @@ export interface Options {
   // Is the plot horizontal?
   isVerticalPlot: ModProperty<boolean>;
 
+  plotScalingFactor : ModProperty<number>;
+
   GetStatisticsConfigItems(): Map<string, StatisticsConfig>;
 
   SetStatisticsConfigItem(statisticsConfigItem: StatisticsConfig): void;

@@ -110,7 +110,6 @@ export async function render(
   plotData: Data,
   xAxisSpotfire: Spotfire.Axis,
   containerSize: Size,
-  windowSize: Size,
   calculatedLeftMargin: number,
   config: Partial<Options>,
   styling: {
@@ -189,8 +188,8 @@ export async function render(
     });
 
   const margin = {
-    top: 20,
-    bottom: isTrellis ? 40 : 15,
+    top: isTrellis? 10 : 20,
+    bottom: isTrellis ? 10 : 15,
     left: config.isVertical ? calculatedLeftMargin : 0,
     right: 15,
   };
@@ -865,7 +864,7 @@ export async function render(
       .call(verticalSlider);
   } else if (config.showZoomSliders.value() && !isTrellisWithIndividualYscale) {
     // Show global zoom slider - zoom sliders are enabled, and a single y scale is selected
-    verticalSlider.height(windowSize.height - margin.bottom - margin.top - 10);
+    verticalSlider.height(containerSize.height - margin.bottom - margin.top - 10);
     globalZoomSliderContainer.selectAll("*").remove();
     Log.green(LOG_CATEGORIES.Rendering)(
       "appending sliderSvg to ",
@@ -877,7 +876,7 @@ export async function render(
       .append("svg")
       .attr("xmlns", "http://www.w3.org/2000/svg")
       .attr("id", "slider-container" + trellisIndex)
-      .attr("height", windowSize.height - 10)
+      .attr("height", containerSize.height - 10)
       .attr("width", 20);
     sliderSvg
       .append("g")

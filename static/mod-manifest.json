@@ -234,6 +234,11 @@
             "name": "show95pctConfidenceInterval",
             "type": "boolean",
             "defaultValue": false
+        },
+        {
+            "name": "plotScalingFactor",
+            "type": "double",
+            "defaultValue": 1.0
         }
     ],
     "dataViewDefinition": {
