@@ -208,6 +208,8 @@ export function renderBoxplot(
           "\nCount: " +
           d.count
       );
+
+      Log.blue(LOG_CATEGORIES.DebugBoxHover)("xScale", xScale(d.category));
       // draw a rect around the box area
       g.append("rect")
         .attr("id", "box-plot-highlight-rect")
@@ -217,7 +219,7 @@ export function renderBoxplot(
         )
         .attr(
           config.isVertical ? "x" : "y",
-          (xScale(d.category) ? margin.left + xScale(d.category) : 0) + verticalLinesX
+          (xScale(d.category) != undefined ? margin.left + xScale(d.category) : 0) + verticalLinesX
         )
         .attr(
           config.isVertical ? "y" : "x",
@@ -291,7 +293,7 @@ export function renderBoxplot(
         )
         .attr(
           config.isVertical ? "x" : "y",
-          (xScale(d.category) ? margin.left + xScale(d.category) : 0) +
+          (xScale(d.category) != undefined ? margin.left + xScale(d.category) : 0) +
             xScale.bandwidth() / 2 -
             boxWidth / 2
         )
@@ -387,7 +389,7 @@ export function renderBoxplot(
 
         .attr(
           config.isVertical ? "x" : "y",
-          (xScale(d.category) ? margin.left + xScale(d.category) : 0) + verticalLinesX
+          (xScale(d.category) != undefined ? margin.left + xScale(d.category) : 0) + verticalLinesX
         )
         .attr(
           config.isVertical ? "y" : "x",
@@ -471,7 +473,7 @@ export function renderBoxplot(
 
         .attr(
           config.isVertical ? "x" : "y",
-          (xScale(d.category) ? margin.left + xScale(d.category) : 0) +
+          (xScale(d.category) != undefined ? margin.left + xScale(d.category) : 0) +
             xScale.bandwidth() / 2 -
             boxWidth / 2
         )
@@ -566,7 +568,7 @@ export function renderBoxplot(
         )
         .attr(
           config.isVertical ? "x" : "y",
-          (xScale(d.category) ? margin.left + xScale(d.category) : 0) +
+          (xScale(d.category) != undefined ? margin.left + xScale(d.category) : 0) +
             xScale.bandwidth() / 2 -
             boxWidth / 2
         )
@@ -662,7 +664,7 @@ export function renderBoxplot(
 
         .attr(
           config.isVertical ? "x" : "y",
-          (xScale(d.category) ? margin.left + xScale(d.category) : 0) +
+          (xScale(d.category) != undefined ? margin.left + xScale(d.category) : 0) +
             xScale.bandwidth() / 2 -
             boxWidth / 2
         )
@@ -725,7 +727,7 @@ export function renderBoxplot(
         )
         .attr(
           config.isVertical ? "x" : "y",
-          (xScale(d.category) ? margin.left + xScale(d.category) : 0) +
+          (xScale(d.category) != undefined ? margin.left + xScale(d.category) : 0) +
             xScale.bandwidth() / 2 -
             boxWidth / 2 -
             (height < 600 ? 2 : 5) / 2

@@ -142,12 +142,13 @@ export enum LOG_CATEGORIES {
   DebugInnovativeLogticks,
   AsinhScale,
   Horizontal,
+  DebugBoxHover,
 }
 
 /**
  * Set this array to any number of categories, or None to hide all logging
  */
-const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.ViolinMarking];
+const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [LOG_CATEGORIES.DebugBoxHover];
 
 /**
  * Log helper - pass the log category as the first argument, then any number of args as you would with console.log
@@ -1896,7 +1897,9 @@ Spotfire.initialize(async (mod) => {
           );
           const width = clamp(
             result.x < panel.getBoundingClientRect().left
-              ? result.right - panel.getBoundingClientRect().left - panel.svgLeft
+              ? result.right -
+                  panel.getBoundingClientRect().left -
+                  panel.svgLeft
               : result.width,
             0,
             panel.getBoundingClientRect().width
