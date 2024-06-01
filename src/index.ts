@@ -1568,6 +1568,8 @@ Spotfire.initialize(async (mod) => {
                 () => {}
               );
             }
+          } else {            
+              MOD_CONTAINER.select("#global-zoom-container").remove();            
           }
         })
         .catch((error: Error) => {
