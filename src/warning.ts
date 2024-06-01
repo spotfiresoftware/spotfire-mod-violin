@@ -5,7 +5,7 @@
 */
 
 import { FontInfo, ModProperty } from "spotfire-api";
-import { getContrastingColor } from "./index";
+import { getContrastingColor } from "./utility-functions";
 
 /**
  * Create a Spotfire-style warning when "Cards by" gets changed from default value.

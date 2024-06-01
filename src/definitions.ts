@@ -36,6 +36,9 @@ export interface RenderedPanel {
   getBoundingClientRect(): DOMRect;
   svgLeft: number;
   svgTop: number;
+  svgHeight: number;
+  yScale: d3.scale;
+  plotData: Data;
   mark(
     x: number,
     y: number,

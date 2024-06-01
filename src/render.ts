@@ -20,15 +20,11 @@ import {
   setTrellisPanelZoomedTitle,
   LOG_CATEGORIES,
   Log,
-  GenerateRoundedRectSvg,
-  getContrastingColor,
   MOD_CONTAINER,
   windowScrollYTracker,
   violinWidthPadding,
 } from "./index";
 
-// @ts-ignore
-import { sliderLeft } from "d3-simple-slider";
 // @ts-ignore
 import { ShapeInfo, Intersection } from "kld-intersections";
 import { renderStatisticsTable } from "./render-stats-table";
@@ -51,6 +47,8 @@ import { renderViolin } from "./render-violin-plot";
 import { renderComparisonCircles } from "./render-comparison-circles";
 import { renderStatisticsTableHorizontal } from "./render-stats-table-horizontal";
 import { renderContinuousAxis, renderGridLines } from "./continuousAxis";
+import { createZoomSlider } from "./zoom-sliders";
+import { calculateMinMaxZoom, getContrastingColor } from "./utility-functions";
 
 /*
  * Adapted from:
@@ -131,6 +129,11 @@ export async function render(
     return;
   }
 
+  Log.red(LOG_CATEGORIES.ShowHideZoomSliders)("container", container);
+
+  // Clear the container
+  container.selectAll("*").remove();
+
   Log.green(LOG_CATEGORIES.Rendering)("In Render");
 
   Log.green(LOG_CATEGORIES.Rendering)(
@@ -146,11 +149,6 @@ export async function render(
 
   // IMPORTANT - use these to determine if is individual zoom slider!
   // - it's so easy to forget to check both conditions and get into a nasty mess...
-  const isTrellisWithIndividualZoom =
-    isTrellis &&
-    config.showZoomSliders.value() &&
-    config.yScalePerTrellisPanel.value();
-
   const isTrellisWithIndividualYscale =
     isTrellis && config.yScalePerTrellisPanel.value();
 
@@ -188,7 +186,7 @@ export async function render(
     });
 
   const margin = {
-    top: isTrellis? 10 : 20,
+    top: isTrellis ? 10 : 20,
     bottom: isTrellis ? 10 : 15,
     left: config.isVertical ? calculatedLeftMargin : 0,
     right: 15,
@@ -736,154 +734,11 @@ export async function render(
     );
   }
 
-  /**
-   * Zoom slider
-   */
-  const verticalSlider = sliderLeft(
-    yScale.copy().domain([plotData.yDataDomain.min, plotData.yDataDomain.max])
-  )
-    //.min(plotData.yDataDomain.min)
-    //.max(plotData.yDataDomain.max)
-    //.height(heightAvailable - padding.betweenPlotAndTable - 30)
-    //.step((plotData.yDataDomain.max - plotData.yDataDomain.min) / yAxis.ticks())
-    //.ticks(1)
-    .default([minZoom, maxZoom])
-    .on("end ", (val: any) => {
-      state.disableAnimation = true;
-      if (isTrellisWithIndividualZoom) {
-        // Keep track of individual zoomed panel so as not to re-render everything
-        setTrellisPanelZoomedTitle(trellisName);
-        // Current settings
-        const trellisZoomConfigs = config.GetTrellisZoomConfigs();
-        Log.green(LOG_CATEGORIES.DebugIndividualYScales)(
-          "trellisZoomConfigs",
-          trellisZoomConfigs
-        );
-
-        const trellisZoomConfig = trellisZoomConfigs?.find(
-          (d: TrellisZoomConfig) => {
-            Log.green(LOG_CATEGORIES.Rendering)(d);
-            return d.trellisName == trellisName;
-          }
-        );
-
-        Log.green(LOG_CATEGORIES.Rendering)(
-          "trellisZoomConfig",
-          trellisZoomConfig
-        );
-
-        if (trellisZoomConfig != undefined) {
-          Log.red(LOG_CATEGORIES.DebugIndividualYScales)(
-            "Before setting",
-            JSON.stringify(trellisZoomConfigs)
-          );
-          if (val[0] != plotData.yDataDomain.min) {
-            trellisZoomConfig.minZoom = val[0];
-            trellisZoomConfig.minZoomUnset = false;
-          } else {
-            trellisZoomConfig.minZoomUnset = true;
-          }
-          if (val[1] != plotData.yDataDomain.max) {
-            trellisZoomConfig.maxZoom = val[1];
-            trellisZoomConfig.maxZoomUnset = false;
-          } else {
-            trellisZoomConfig.maxZoomUnset = true;
-          }
-          Log.red(LOG_CATEGORIES.DebugIndividualYScales)(
-            "After setting",
-            JSON.stringify(trellisZoomConfigs)
-          );
-          // This will trigger a render, but not in time to stop code execution from continuing below
-          config.trellisIndividualZoomSettings.set(
-            JSON.stringify(trellisZoomConfigs)
-          );
-        } else {
-          // create and setup config for this panel
-          trellisZoomConfigs.push(<TrellisZoomConfig>{
-            trellisName: trellisName,
-            minZoom: val[0],
-            maxZoom: val[1],
-            minZoomUnset: val[0] == plotData.yDataDomain.min,
-            maxZoomUnset: val[1] == plotData.yDataDomain.max,
-          });
-          Log.green(LOG_CATEGORIES.Rendering)(trellisZoomConfigs);
-          Log.green(LOG_CATEGORIES.Rendering)(
-            JSON.stringify(trellisZoomConfigs)
-          );
-          config.trellisIndividualZoomSettings.set(
-            JSON.stringify(trellisZoomConfigs)
-          );
-        }
-      } else {
-        Log.green(LOG_CATEGORIES.DebugZoomReset)(
-          "setting zoom",
-          val,
-          config.yZoomMin.value(),
-          config.yZoomMax.value()
-        );
-        if (val[0] != plotData.yDataDomain.min) {
-          config.yZoomMin.set(val[0]);
-          config.yZoomMinUnset.set(false);
-        } else {
-          config.yZoomMinUnset.set(true);
-        }
-        if (val[1] != plotData.yDataDomain.max) {
-          config.yZoomMax.set(val[1]);
-          config.yZoomMaxUnset.set(false);
-        } else {
-          config.yZoomMaxUnset.set(true);
-        }
-      }
-    });
-
-  verticalSlider.handle(GenerateRoundedRectSvg(14, 14, 3, 3, 3, 3));
-
   // WARNING: verticalSlider.height() is buggy! Don't use it.
 
   let sliderSvg: d3.D3_SELECTION;
-  if (!isTrellis) {
-    Log.green(LOG_CATEGORIES.Rendering)(globalZoomSliderContainer);
-    // WARNING: .height()
-    globalZoomSliderContainer.selectAll("*").remove();
-    Log.green(LOG_CATEGORIES.Rendering)(
-      "appending sliderSvg to ",
-      svg,
-      " for ",
-      trellisName
-    );
-    sliderSvg = globalZoomSliderContainer
-      .append("svg")
-      .attr("xmlns", "http://www.w3.org/2000/svg")
-      .attr("id", "slider-container" + trellisIndex)
-      .attr("height", svgHeight)
-      .attr("width", 20);
-    sliderSvg
-      .append("g")
-      .attr("class", "vertical-zoom-slider")
-      .attr("transform", "translate(10, " + margin.top / 2 + ")")
-      .call(verticalSlider);
-  } else if (config.showZoomSliders.value() && !isTrellisWithIndividualYscale) {
-    // Show global zoom slider - zoom sliders are enabled, and a single y scale is selected
-    verticalSlider.height(containerSize.height - margin.bottom - margin.top - 10);
-    globalZoomSliderContainer.selectAll("*").remove();
-    Log.green(LOG_CATEGORIES.Rendering)(
-      "appending sliderSvg to ",
-      svg,
-      " for ",
-      trellisName
-    );
-    sliderSvg = globalZoomSliderContainer
-      .append("svg")
-      .attr("xmlns", "http://www.w3.org/2000/svg")
-      .attr("id", "slider-container" + trellisIndex)
-      .attr("height", containerSize.height - 10)
-      .attr("width", 20);
-    sliderSvg
-      .append("g")
-      .attr("class", "vertical-zoom-slider")
-      .attr("transform", "translate(10, " + margin.top + ")")
-      .call(verticalSlider);
-  } else if (config.showZoomSliders.value() && isTrellisWithIndividualYscale) {
+
+  if (config.showZoomSliders.value() && isTrellisWithIndividualYscale) {
     // Trellis - individual zoom sliders
     sliderSvg = svg
       .append("svg")
@@ -896,48 +751,21 @@ export async function render(
       .append("g")
       .attr("class", "vertical-zoom-slider")
       .attr("transform", "translate(20, " + margin.top + ")")
-      .call(verticalSlider);
+      .call(
+        createZoomSlider(
+          yScale,
+          plotData,
+          config,
+          minZoom,
+          maxZoom,
+          isTrellisWithIndividualYscale,
+          trellisName,
+          setTrellisPanelZoomedTitle
+        )
+      );
   }
 
-  // Reset zoom
-  sliderSvg?.on("contextmenu", function (event: PointerEvent) {
-    event.preventDefault(); // Prevents browser native context menu from being shown.
-    event.stopPropagation(); // Prevents default mod context menu to be shown.
-    contextMenu
-      .show(event.clientX, event.clientY, [
-        {
-          text: "Reset Zoom",
-          enabled: true,
-        },
-      ])
-      .then(() => {
-        if (isTrellis && config.yScalePerTrellisPanel.value()) {
-          const trellisZoomConfigs = config.GetTrellisZoomConfigs();
-
-          Log.blue(LOG_CATEGORIES.DebugIndividualYScales)(trellisZoomConfigs);
-
-          let trellisZoomConfig = trellisZoomConfigs.find(
-            (zc: TrellisZoomConfig) => zc.trellisName == trellisName
-          );
-
-          if (trellisZoomConfig != undefined) {
-            trellisZoomConfig.minZoomUnset = true;
-            trellisZoomConfig.maxZoomUnset = true;
-          }
-
-          // Keep track of the panel we are resetting
-          setTrellisPanelZoomedTitle(trellisName);
-
-          // Persist the individual zoom settings
-          config.trellisIndividualZoomSettings.set(
-            JSON.stringify(trellisZoomConfigs)
-          );
-        } else {
-          Log.green(LOG_CATEGORIES.DebugResetGlobalZoom)("Resetting");
-          config.ResetGlobalZoom();
-        }
-      });
-  });
+  
 
   /**
    * Trend lines
@@ -1269,6 +1097,9 @@ export async function render(
     },
     svgLeft: svgLeft,
     svgTop: svgTop,
+    svgHeight: svgHeight,
+    yScale: yScale,
+    plotData: plotData,
     mark(x, y, width, height, ctrlKey) {
       Log.green(LOG_CATEGORIES.ViolinMarking)(
         "Render Marking panel",
@@ -1818,62 +1649,4 @@ export async function render(
       }
     });
   }
-}
-
-function calculateMinMaxZoom(
-  isTrellisWithIndividualYscale: boolean,
-  config: Partial<Options>,
-  trellisName: string,
-  plotData: Data
-) {
-  let minZoom: number;
-  let maxZoom: number;
-
-  if (isTrellisWithIndividualYscale) {
-    Log.green(LOG_CATEGORIES.Rendering)(
-      config.trellisIndividualZoomSettings.value()
-    );
-    if (
-      config.showZoomSliders.value() &&
-      config.trellisIndividualZoomSettings.value() != ""
-    ) {
-      const trellisZoomConfigs = config.GetTrellisZoomConfigs();
-      Log.green(LOG_CATEGORIES.Rendering)(trellisZoomConfigs, trellisName);
-      const trellisZoomConfig = trellisZoomConfigs.find(
-        (d: TrellisZoomConfig) => d.trellisName == trellisName
-      );
-
-      if (trellisZoomConfig != undefined) {
-        Log.green(LOG_CATEGORIES.Rendering)("found zoom", trellisZoomConfig);
-        if (trellisZoomConfig.minZoomUnset) {
-          minZoom = plotData.yDataDomain.min;
-        } else {
-          minZoom = trellisZoomConfig.minZoom; //- tempminZoom * 0.05;
-        }
-        if (trellisZoomConfig.maxZoomUnset) {
-          maxZoom = plotData.yDataDomain.max;
-        } else {
-          maxZoom = trellisZoomConfig.maxZoom;
-        }
-      } else {
-        minZoom = plotData.yDataDomain.min;
-        maxZoom = plotData.yDataDomain.max;
-      }
-    } else {
-      minZoom = plotData.yDataDomain.min;
-      maxZoom = plotData.yDataDomain.max;
-    }
-  } else {
-    Log.green(LOG_CATEGORIES.DebugResetGlobalZoom)(
-      "Getting min/max zoom from config if set",
-      config.yZoomMaxUnset.value()
-    );
-    minZoom = config.yZoomMinUnset.value()
-      ? plotData.yDataDomain.min
-      : config.yZoomMin.value();
-    maxZoom = config.yZoomMaxUnset.value()
-      ? plotData.yDataDomain.max
-      : config.yZoomMax.value();
-  }
-  return { minZoom, maxZoom };
 }

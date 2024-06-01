@@ -39,6 +39,9 @@ import {
 } from "./definitions";
 import { buildDataForTrellisPanel } from "./data-manipulation";
 import { clearWarning, createWarning } from "./warning";
+import { createZoomSlider, renderGlobalZoomSlider } from "./zoom-sliders";
+import { min } from "d3-array";
+import { getBorderColor, getComplementaryColor } from "./utility-functions";
 
 const Spotfire = window.Spotfire;
 
@@ -150,7 +153,7 @@ export enum LOG_CATEGORIES {
  * Set this array to any number of categories, or None to hide all logging
  */
 const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [
-  LOG_CATEGORIES.Horizontal,
+  LOG_CATEGORIES.DebugResetGlobalZoom,
 ];
 
 /**
@@ -220,180 +223,6 @@ const state: RenderState = { preventRender: false, disableAnimation: false };
 
 export function setTrellisPanelZoomedTitle(title: string) {
   trellisPanelZoomedTitle = title;
-}
-
-/**
- * Adjust color to be lighter or darker
- * @param hexCode - the color to adjust
- * @param amount - positive values lighten the color, negative darken it
- * @returns
- */
-export function adjustColor(hexCode: String, amount: number): string {
-  const color = parseInt(hexCode?.replace("#", ""), 16);
-  const r = (color & 0xff0000) / 0x10 ** 4;
-  const g = (color & 0x00ff00) / 0x10 ** 2;
-  const b = color & 0x0000ff;
-
-  const newR = Math.max(0, Math.min(r + amount, 0xff));
-  const newG = Math.max(0, Math.min(g + amount, 0xff));
-  const newB = Math.max(0, Math.min(b + amount, 0xff));
-
-  return (
-    "#" +
-    newR.toString(16).padStart(2, "0") +
-    newG.toString(16).padStart(2, "0") +
-    newB.toString(16).padStart(2, "0")
-  );
-}
-
-export function GenerateRoundedRectSvg(
-  width: number,
-  height: number,
-  tl: number,
-  tr: number,
-  br: number,
-  bl: number
-) {
-  const top = width - tl - tr;
-  const right = height - tr - br;
-  const bottom = width - br - bl;
-  const left = height - bl - tl;
-  return `
-    M${tl - 7},-7
-    h${top}
-    a${tr},${tr} 0 0 1 ${tr},${tr}
-    v${right}
-    a${br},${br} 0 0 1 -${br},${br}
-    h-${bottom}
-    a${bl},${bl} 0 0 1 -${bl},-${bl}
-    v-${left}
-    a${tl},${tl} 0 0 1 ${tl},-${tl}
-    z
-`;
-}
-
-/**
- * Given a background color, determine a suitable background color for table headers
- * @param backgroundColor - the background color
- */
-export function getComplementaryColor(backgroundColor: String) {
-  const color = parseInt(backgroundColor.replace("#", ""));
-  if (color < 0x7fffff) {
-    // lighten
-    Log.green(LOG_CATEGORIES.Coloring)(
-      "adjust lighter",
-      backgroundColor,
-      adjustColor(backgroundColor, 0x10)
-    );
-    return adjustColor(backgroundColor, 0x10);
-  } else {
-    // darken
-    Log.green(LOG_CATEGORIES.Coloring)(
-      "adjust darker",
-      backgroundColor,
-      adjustColor(backgroundColor, -0x3f)
-    );
-    return adjustColor(backgroundColor, -0x09);
-  }
-}
-
-/**
- * Given a background color, determine a suitable color for highlighted comparison circles
- * @param backgroundColor - the background color
- */
-export function getComparisonCircleHighlightedColor(backgroundColor: String) {
-  const color = parseInt(backgroundColor.replace("#", ""));
-  if (color < 0x7fffff) {
-    // lighten
-    Log.green(LOG_CATEGORIES.Coloring)(
-      "adjust lighter",
-      backgroundColor,
-      adjustColor(backgroundColor, 0x10)
-    );
-    return adjustColor(backgroundColor, 0xff);
-  } else {
-    // darken
-    Log.green(LOG_CATEGORIES.Coloring)(
-      "adjust darker",
-      backgroundColor,
-      adjustColor(backgroundColor, -0x3f)
-    );
-    return adjustColor(backgroundColor, -0xff);
-  }
-}
-
-/**
- * Given a background color, determine a suitable color for table borders
- * @param backgroundColor - the background color
- */
-export function getBorderColor(backgroundColor: String) {
-  const color = parseInt(backgroundColor.replace("#", ""));
-  if (color < 0x7fffff) {
-    // lighten
-    Log.green(LOG_CATEGORIES.Coloring)(
-      "adjust lighter",
-      backgroundColor,
-      adjustColor(backgroundColor, 0x10)
-    );
-    return adjustColor(backgroundColor, 0x20);
-  } else {
-    // darken
-    Log.green(LOG_CATEGORIES.Coloring)(
-      "adjust darker",
-      backgroundColor,
-      adjustColor(backgroundColor, -0x3f)
-    );
-    return adjustColor(backgroundColor, -0x20);
-  }
-}
-
-/**
- * Given a background color, determine a suitable color for table borders
- * @param backgroundColor - the background color
- */
-export function getMarkerHighlightColor(backgroundColor: String) {
-  const color = parseInt(backgroundColor.replace("#", ""));
-  if (color < 0x7fffff) {
-    // Return black
-    return "#FFFFFF";
-  } else {
-    // return white
-    return "#000000";
-  }
-}
-
-/**
- * Given a background color, determine a suitable contrasting color
- * @param backgroundColor - the background color
- */
-export function getContrastingColor(backgroundColor: String): string {
-  const color = parseInt(backgroundColor.replace("#", ""));
-  if (color < 0x7fffff) {
-    // lighten
-    Log.green(LOG_CATEGORIES.Coloring)(
-      "adjust lighter",
-      backgroundColor,
-      adjustColor(backgroundColor, 0x10)
-    );
-    return adjustColor(backgroundColor, 0x70);
-  } else {
-    // darken
-    Log.green(LOG_CATEGORIES.Coloring)(
-      "adjust darker",
-      backgroundColor,
-      adjustColor(backgroundColor, -0x3f)
-    );
-    return adjustColor(backgroundColor, -0x70);
-  }
-}
-
-export function getBoxBorderColor(boxColor: String): string {
-  if (boxColor == undefined) {
-    Log.red(LOG_CATEGORIES.ColorViolin)("uh oh", boxColor);
-    return "darkgray";
-  }
-  const color = parseInt(boxColor.replace("#", ""));
-  return adjustColor(boxColor, -0x50);
 }
 
 Spotfire.initialize(async (mod) => {
@@ -1131,48 +960,6 @@ Spotfire.initialize(async (mod) => {
       isInteractive
     );
 
-    let globalZoomSliderContainer: HTMLElement = d3
-      .select("#global-zoom-container")
-      .style("background-color", context.styling.general.backgroundColor);
-
-    if (isTrellis) {
-      if (!wasTrellis) {
-        rootContainer.selectAll("*").remove();
-      }
-      wasTrellis = true;
-      globalZoomSliderContainer.remove();
-      if (
-        isInteractive &&
-        config.showZoomSliders.value() &&
-        !config.yScalePerTrellisPanel.value()
-      ) {
-        d3.select("#trellis-zoom-container").select("*").remove();
-        globalZoomSliderContainer = d3
-          .select("#trellis-zoom-container")
-          .append("div")
-          .attr("id", "global-zoom-container")
-          .style("background-color", context.styling.general.backgroundColor);
-        /*d3.select("#trellis-zoom-container")
-                .classed("global-zoom-container", true);*/
-      }
-    } else {
-      wasTrellis = false;
-      // Remove root container contents
-      // todo - don't remove and redraw everything!
-      rootContainer.selectAll("*").remove();
-      d3.select("#trellis-zoom-container").selectAll("*").remove();
-      if (isTrellis) {
-        globalZoomSliderContainer = MOD_CONTAINER.append("div")
-          .attr("id", "global-zoom-container")
-          .style("background-color", context.styling.general.backgroundColor);
-      } else if (config.showZoomSliders.value() && isInteractive) {
-        globalZoomSliderContainer = rootContainer
-          .append("div")
-          .attr("id", "global-zoom-container")
-          .style("background-color", context.styling.general.backgroundColor);
-        MOD_CONTAINER.style("height", windowSize.height + "px");
-      }
-    }
     const renderedPanels: RenderedPanel[] = [];
 
     /**
@@ -1671,16 +1458,22 @@ Spotfire.initialize(async (mod) => {
       setTrellisPanelZoomedTitle("");
     }
 
-    Log.red(LOG_CATEGORIES.DebugLogYAxis)("About to build data");
+    let globalZoomSliderContainer: D3_SELECTION = d3
+      .select("#global-zoom-container")
+      .style("background-color", context.styling.general.backgroundColor);
+
     if (!isTrellis) {
+      Log.red(LOG_CATEGORIES.DebugLogYAxis)(
+        "About to build data for non-trellis"
+      );
       buildDataForTrellisPanel(
         await trellisAxisHierarchy.root(),
         dataView,
         config
       )
-        .then(async (data) => {
+        .then(async (plotData) => {
           Log.red(LOG_CATEGORIES.DebugLogYAxis)("Got data");
-          if (data == undefined) {
+          if (plotData == undefined) {
             // something's gone wrong with the data building
             // most likely to do with dataView expiring. For now, bail out.
             // A refresh of the dataView should sort things out (e.g. changing a filter)
@@ -1690,10 +1483,10 @@ Spotfire.initialize(async (mod) => {
             return;
           }
 
-          Log.green(LOG_CATEGORIES.DebugWebPlayerIssue)("data", data);
+          Log.green(LOG_CATEGORIES.DebugWebPlayerIssue)("data", plotData);
 
-          const maxAsString = config.FormatNumber(data.yDataDomain.max);
-          const minAsString = config.FormatNumber(data.yDataDomain.min);
+          const maxAsString = config.FormatNumber(plotData.yDataDomain.max);
+          const minAsString = config.FormatNumber(plotData.yDataDomain.min);
 
           const maxStringLength = Math.max(
             maxAsString.length,
@@ -1720,25 +1513,62 @@ Spotfire.initialize(async (mod) => {
             .attr("style", "height:" + containerSize.height + "px;")
             .classed("root-container-trellis-with-global-zoom-slider", false);
 
-          renderedPanels.push(
-            await render(
-              spotfireMod,
-              state,
-              data,
-              xAxisSpotfire,
-              containerSize,
-              calculatedLeftMargin,
-              config,
-              {
-                generalStylingInfo: context.styling.general,
-                scales: context.styling.scales,
-              },
-              mod.controls.tooltip,
-              rootContainer,
-              mod.controls.contextMenu,
-              globalZoomSliderContainer
-            )
+          const panel = await render(
+            spotfireMod,
+            state,
+            plotData,
+            xAxisSpotfire,
+            containerSize,
+            calculatedLeftMargin,
+            config,
+            {
+              generalStylingInfo: context.styling.general,
+              scales: context.styling.scales,
+            },
+            mod.controls.tooltip,
+            rootContainer,
+            mod.controls.contextMenu,
+            globalZoomSliderContainer
           );
+
+          renderedPanels.push(panel);
+
+          wasTrellis = false;
+
+          // Global zoom
+          if (config.showZoomSliders.value()) {
+            // Remove and recreate the global zoom container if
+            // Min/Max zoom are unset (this happens following a reset event)
+            if (config.yZoomMinUnset.value() && config.yZoomMaxUnset.value()) {
+              MOD_CONTAINER.select("#global-zoom-container").remove();
+            }
+            if (d3.select("#global-zoom-container").empty()) {
+              const globalZoomSliderContainer = MOD_CONTAINER
+                .append("div")
+                .attr("id", "global-zoom-container")
+                .style(
+                  "background-color",
+                  context.styling.general.backgroundColor
+                );
+
+              Log.green(LOG_CATEGORIES.ShowHideZoomSliders)(
+                "panel",
+                panel,
+                renderedPanels.length
+              );
+              renderGlobalZoomSlider(
+                globalZoomSliderContainer,
+                mod.controls.contextMenu,
+                config,
+                panel.yScale,
+                panel.plotData,
+                panel.svgHeight,
+                isTrellis,
+                false,
+                () => {}
+              );
+            }
+          }
         })
         .catch((error: Error) => {
           Log.red(LOG_CATEGORIES.DebugLogYAxis)(
@@ -1788,6 +1618,29 @@ Spotfire.initialize(async (mod) => {
         );
         throw error;
       }
+    }
+
+    if (isTrellis) {
+      if (!wasTrellis) {
+        rootContainer.selectAll("*").remove();
+      }
+      wasTrellis = true;
+      globalZoomSliderContainer.remove();
+      if (
+        isInteractive &&
+        config.showZoomSliders.value() &&
+        !config.yScalePerTrellisPanel.value()
+      ) {
+        d3.select("#trellis-zoom-container").select("*").remove();
+        globalZoomSliderContainer = d3
+          .select("#trellis-zoom-container")
+          .append("div")
+          .attr("id", "global-zoom-container")
+          .style("background-color", context.styling.general.backgroundColor);
+        /*d3.select("#trellis-zoom-container")
+                .classed("global-zoom-container", true);*/
+      }
+    } else {
     }
 
     /**

@@ -26,8 +26,6 @@ import {
   setTrellisPanelZoomedTitle,
   LOG_CATEGORIES,
   Log,
-  GenerateRoundedRectSvg,
-  getContrastingColor,
   MOD_CONTAINER,
 } from "./index";
 import {

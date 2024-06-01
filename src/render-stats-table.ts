@@ -5,8 +5,6 @@
  */
 
 import {
-  getBorderColor,
-  getComplementaryColor,
   Log,
   LOG_CATEGORIES,
 } from "./index";
@@ -21,6 +19,7 @@ import {
   TableContainerSpecs,
 } from "./definitions";
 import { SumStatsConfig } from "./sumstatsconfig";
+import { getBorderColor, getComplementaryColor } from "./utility-functions";
 type D3_SELECTION = d3.Selection<SVGGElement, unknown, HTMLElement, any>;
 
 /**

@@ -10,7 +10,6 @@ import { Data, Options, RenderState, RowData } from "./definitions";
 import {
   LOG_CATEGORIES,
   Log,
-  getBoxBorderColor,
   violinWidthPadding,
 } from "./index";
 import { Tooltip, DataViewRow, GeneralStylingInfo } from "spotfire-api";
@@ -18,6 +17,7 @@ import {
   highlightComparisonCircles,
   highlightMarkedComparisonCircles,
 } from "./render-comparison-circles";
+import { getBoxBorderColor } from "./utility-functions";
 
 /**
  *  Render violin
