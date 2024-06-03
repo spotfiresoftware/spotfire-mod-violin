@@ -815,7 +815,7 @@ export async function render(
               .curve(d3.curveCatmullRom)
               .x((d: any) =>
                 config.isVertical
-                  ? xScale(d.x) + xScale.bandwidth() / 2
+                  ? margin.left + xScale(d.x) + xScale.bandwidth() / 2
                   : yScale(d.y)
               )
               .y((d: any) =>
@@ -843,7 +843,7 @@ export async function render(
               .curve(d3.curveCatmullRom)
               .x((d: any) =>
                 config.isVertical
-                  ? xScale(d.x) + xScale.bandwidth() / 2
+                  ? margin.left + xScale(d.x) + xScale.bandwidth() / 2
                   : yScale(d.y)
               )
               .y((d: any) =>
