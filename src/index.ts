@@ -1426,11 +1426,11 @@ Spotfire.initialize(async (mod) => {
               panel.yScale,
               panel.plotData,
               config.isVertical ? 30 : panel.svgWidth,
-              config.isVertical ? windowSize.height - 30 : 30,
+              config.isVertical ? windowSize.height - 10 : 30,
               isTrellis,
               false,
               0,
-              windowSize.height - 30,
+              windowSize.height - 50,
               () => {}
             );
           }

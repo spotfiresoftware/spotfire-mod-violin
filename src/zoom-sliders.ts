@@ -74,7 +74,6 @@ export function renderGlobalZoomSlider(
       .call(verticalSlider);
   } else if (config.showZoomSliders.value() && !isTrellisWithIndividualYscale) {
     // Show global zoom slider - zoom sliders are enabled, and a single y scale is selected
-    verticalSlider.height(height);
     globalZoomSliderContainer.selectAll("*").remove();
 
     sliderSvg = globalZoomSliderContainer
@@ -174,8 +173,7 @@ export function createZoomSlider(
     if (config.isVertical) {
         slider = sliderLeft(
         // @todo - check - is this OK?
-        yScale.copy([plotData.yDataDomain.min, plotData.yDataDomain.max]).range([trellisMinRange, trellisMaxRange])
-        );
+        yScale.copy([plotData.yDataDomain.min, plotData.yDataDomain.max]).range([trellisMinRange, trellisMaxRange]));
     } else {
         slider = sliderHorizontal(
         // @todo - check - is this OK?
