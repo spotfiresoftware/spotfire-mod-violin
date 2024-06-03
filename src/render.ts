@@ -428,6 +428,7 @@ export async function render(
   if (!config.isVertical) {
     tableContainerSpecs = renderStatisticsTableHorizontal(
       config,
+      isTrellis,
       styling,
       tableContainer,
       margin,
@@ -1100,6 +1101,7 @@ export async function render(
     },
     svgLeft: svgLeft,
     svgTop: svgTop,
+    svgWidth: svgWidth,
     svgHeight: svgHeight,
     yScale: yScale,
     plotData: plotData,

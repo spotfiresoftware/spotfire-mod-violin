@@ -71,7 +71,7 @@ export enum LOG_CATEGORIES {
  * Set this array to any number of categories, or None to hide all logging
  */
 const CURRENT_LOG_CATEGORIES: LOG_CATEGORIES[] = [
-  LOG_CATEGORIES.DebugResetGlobalZoom,
+  LOG_CATEGORIES.ShowHideZoomSliders,
 ];
 /**
  * Log helper - pass the log category as the first argument, then any number of args as you would with console.log

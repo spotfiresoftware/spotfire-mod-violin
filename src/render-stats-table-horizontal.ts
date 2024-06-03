@@ -29,6 +29,7 @@ let rowHeight = Infinity;
  */
 export function renderStatisticsTableHorizontal(
   config: Partial<Options>,
+  isTrellis: boolean,
   styling: {
     generalStylingInfo: GeneralStylingInfo;
     scales: ScaleStylingInfo;
@@ -56,13 +57,13 @@ export function renderStatisticsTableHorizontal(
     .classed("summary-table1", true);
 
   const enabledSummaryStats = [
-    "",
+    "", // This creates an "empty" cell above the column showing the categories
     ...Array.from(config.GetStatisticsConfigItems().values()).filter(
       (statisticsConfig: StatisticsConfig) => statisticsConfig.tableEnabled
     ),
   ];
 
-  Log.red(LOG_CATEGORIES.Horizontal)(
+  Log.red(LOG_CATEGORIES.ShowHideZoomSliders)(
     "enabledSummaryStats",
     enabledSummaryStats
   );
@@ -152,6 +153,12 @@ export function renderStatisticsTableHorizontal(
     statsTableHeaderRow
   );
 
+  /*if (enabledSummaryStats.length = 0){
+    enabledSummaryStats.push({
+      name: ""
+    })
+  }*/
+
   const statsHeaders = statsTableHeaderRow
     .selectAll("tr")
     .data(enabledSummaryStats)
@@ -186,6 +193,7 @@ export function renderStatisticsTableHorizontal(
     // Make sure any additional classes are set after the main class!
     .classed("statistics-table-name-vertical", true)
     .classed("summary-div-sortable", true)
+    .style("min-height", config.showZoomSliders.value() && !isTrellis ? "30px": "")
     .style("font-size", fontSizePx + "px")
     .style("font-family", styling.generalStylingInfo.font.fontFamily)
     .style("font-weight", styling.generalStylingInfo.font.fontWeight)
@@ -259,7 +267,7 @@ export function renderStatisticsTableHorizontal(
     .classed("statistics-table-entry-row", true)
     .classed("comparison-circles-stats-row", (d: any) => d[0] == "Comparison");
 
-  // category name
+  // categories
   entryRows
     .append("td")
     .style(
@@ -279,9 +287,8 @@ export function renderStatisticsTableHorizontal(
     .style("font-size", fontSizePx + "px")
     .style("font-family", styling.generalStylingInfo.font.fontFamily)
     .style("font-weight", styling.generalStylingInfo.font.fontWeight)
-    .style("color", styling.generalStylingInfo.font.color)
+    .style("color", styling.generalStylingInfo.font.color)    
     .text((d: any) => {
-      //Log.green(LOG_CATEGORIES.Horizontal)("entryRow", d);
       return d[0];
     })
     .on("mouseover", function (this: HTMLElement, event: Event) {

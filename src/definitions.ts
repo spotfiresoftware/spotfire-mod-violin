@@ -36,6 +36,7 @@ export interface RenderedPanel {
   getBoundingClientRect(): DOMRect;
   svgLeft: number;
   svgTop: number;
+  svgWidth: number;
   svgHeight: number;
   yScale: d3.scale;
   plotData: Data;
@@ -244,6 +245,7 @@ export interface Options {
 
   // Shortcut as it will be used so very often
   isVertical: boolean;
+
 }
 
 export interface TableContainerSpecs {

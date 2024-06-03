@@ -79,6 +79,11 @@ export let windowScrollYTracker = new ScrollYTracker();
 let previousYAxisExpression: string = "";
 let previousCountAxisExpression: string = "";
 let previousColorAxisExpression: string = "";
+let shallRecreateGlobalZoomContainers: boolean = false;
+
+export function setFlagRecreateGlobalZoomContainers(): void {
+  shallRecreateGlobalZoomContainers = true;
+}
 
 let statisticsConfigCache: Map<string, StatisticsConfig>;
 
@@ -1384,7 +1389,10 @@ Spotfire.initialize(async (mod) => {
             width: windowSize.width,
             height:
               windowSize.height *
-              (!config.isVertical ? config.plotScalingFactor.value() : 1),
+              // Math.max is to make sure we don't ever have scaling factor of zero
+              (!config.isVertical
+                ? Math.max(config.plotScalingFactor.value(), 1)
+                : 1),
           };
           rootContainer
             .attr("style", "width:" + containerSize.width + "px;")
@@ -1415,24 +1423,57 @@ Spotfire.initialize(async (mod) => {
 
           // Global zoom
           if (config.showZoomSliders.value()) {
+            Log.green(LOG_CATEGORIES.ShowHideZoomSliders)(
+              "shallRecreateGlobalZoomContainers",
+              shallRecreateGlobalZoomContainers
+            );
+
+            // Remove existing zoom slider if it exists and is the incorrect one
+            // for the current orientation
+            MOD_CONTAINER.select(
+              "#global-zoom-container-" +
+                (config.isVertical ? "horizontal" : "vertical")
+            ).remove();
+
             // Remove and recreate the global zoom container if
             // Min/Max zoom are unset (this happens following a reset event)
-            if (config.yZoomMinUnset.value() && config.yZoomMaxUnset.value()) {
-              MOD_CONTAINER.select("#global-zoom-container").remove();
+            if (
+              shallRecreateGlobalZoomContainers ||
+              (config.yZoomMinUnset.value() && config.yZoomMaxUnset.value())
+            ) {
+              MOD_CONTAINER.select("#global-zoom-container-vertical").remove();
+              MOD_CONTAINER.select(
+                "#global-zoom-container-horizontal"
+              ).remove();
+
+              shallRecreateGlobalZoomContainers = false;
             }
-            if (d3.select("#global-zoom-container").empty()) {
-              const globalZoomSliderContainer = MOD_CONTAINER
-                .append("div")
-                .attr("id", "global-zoom-container")
+            if (
+              MOD_CONTAINER.select(
+                "#global-zoom-container-" +
+                  (config.isVertical ? "vertical" : "horizontal")
+              ).empty()
+            ) {
+              const globalZoomSliderContainer = MOD_CONTAINER.append("div")
+                .attr(
+                  "id",
+                  "global-zoom-container-" +
+                    (config.isVertical ? "vertical" : "horizontal")
+                )
                 .style(
                   "background-color",
                   context.styling.general.backgroundColor
                 );
-
+              if (!config.isVertical) {
+                globalZoomSliderContainer
+                  .style("left", panel.svgLeft + "px")
+                  .style("width", panel.svgWidth + "px");
+              }
               Log.green(LOG_CATEGORIES.ShowHideZoomSliders)(
                 "panel",
                 panel,
-                renderedPanels.length
+                renderedPanels.length,
+                globalZoomSliderContainer
               );
               renderGlobalZoomSlider(
                 globalZoomSliderContainer,
@@ -1440,14 +1481,16 @@ Spotfire.initialize(async (mod) => {
                 config,
                 panel.yScale,
                 panel.plotData,
-                panel.svgHeight,
+                config.isVertical ? 30 : panel.svgWidth,
+                config.isVertical ? panel.svgHeight : 30,
                 isTrellis,
                 false,
                 () => {}
               );
             }
-          } else {            
-              MOD_CONTAINER.select("#global-zoom-container").remove();            
+          } else {
+            MOD_CONTAINER.select("#global-zoom-container-vertical").remove();
+            MOD_CONTAINER.select("#global-zoom-container-horizontal").remove();
           }
         })
         .catch((error: Error) => {

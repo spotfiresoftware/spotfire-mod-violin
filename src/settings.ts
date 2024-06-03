@@ -31,6 +31,7 @@ import {
 
 import { SumStatsConfig } from "./sumstatsconfig";
 import { GenerateRoundedRectSvg } from "./utility-functions";
+import { setFlagRecreateGlobalZoomContainers } from "./index";
 
 enum StatisticsConfigType {
   Table,
@@ -149,6 +150,9 @@ function AddCheckboxForStatsConfig(
     switch (statisticsConfigType) {
       case StatisticsConfigType.Table:
         configItem.tableEnabled = input.checked;
+        // Global zoom containers should be recreated as their
+        // height/width will need to be reset
+        setFlagRecreateGlobalZoomContainers();
         break;
       case StatisticsConfigType.Reference:
         configItem.refEnabled = input.checked;
