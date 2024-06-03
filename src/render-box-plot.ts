@@ -17,7 +17,7 @@ import { Data, Options, RenderState, RowData } from "./definitions";
 import {
   LOG_CATEGORIES,
   Log
-} from "./index";
+} from "./log";
 import { getContrastingColor, getBoxBorderColor, getMarkerHighlightColor } from "./utility-functions";
 
 export function renderBoxplot(

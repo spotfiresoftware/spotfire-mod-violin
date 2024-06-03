@@ -1,4 +1,4 @@
-import { Log, LOG_CATEGORIES } from "./index";
+import { Log, LOG_CATEGORIES } from "./log";
 import { Options, Data, TrellisZoomConfig } from "./definitions";
 
 /**

@@ -8,10 +8,12 @@
 import * as d3 from "d3";
 import { Data, Options, RenderState, RowData } from "./definitions";
 import {
-  LOG_CATEGORIES,
-  Log,
   violinWidthPadding,
 } from "./index";
+import {
+  LOG_CATEGORIES,
+  Log
+} from "./log";
 import { Tooltip, DataViewRow, GeneralStylingInfo } from "spotfire-api";
 import {
   highlightComparisonCircles,

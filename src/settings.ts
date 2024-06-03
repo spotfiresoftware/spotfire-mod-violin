@@ -18,7 +18,7 @@ import * as d3 from "d3";
 // @ts-ignore
 import { ColorPicker } from "@easylogic/colorpicker";
 
-import { LOG_CATEGORIES, Log } from "./index";
+import { LOG_CATEGORIES, Log } from "./log";
 
 // @ts-ignore
 import { sliderHorizontal } from "d3-simple-slider";

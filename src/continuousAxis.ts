@@ -24,10 +24,12 @@ import { scaleAsinh } from "./asinhScale";
 
 import {
   setTrellisPanelZoomedTitle,
-  LOG_CATEGORIES,
-  Log,
   MOD_CONTAINER,
 } from "./index";
+import {
+  LOG_CATEGORIES,
+  Log
+} from "./log";
 import {
   GeneralStylingInfo,
   ScaleStylingInfo,

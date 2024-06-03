@@ -18,12 +18,15 @@ import {
 
 import {
   setTrellisPanelZoomedTitle,
-  LOG_CATEGORIES,
-  Log,
   MOD_CONTAINER,
   windowScrollYTracker,
   violinWidthPadding,
 } from "./index";
+
+import {
+  LOG_CATEGORIES,
+  Log
+} from "./log";
 
 // @ts-ignore
 import { ShapeInfo, Intersection } from "kld-intersections";

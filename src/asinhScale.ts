@@ -11,8 +11,8 @@ import { linearish } from "../node_modules/d3-scale/src/linear.js";
 import { copy, transformer } from "../node_modules/d3-scale/src/continuous.js";
 // @ts-ignore
 import { initRange } from "../node_modules/d3-scale/src/init.js";
-
-import { LOG_CATEGORIES, Log } from "./index";
+// @ts-ignore
+import { LOG_CATEGORIES, Log } from "./log";
 
 // linearPortion is a small linear portion of the scale, for when x crosses zero;
 function transformSymlog(linearPortion:number) {

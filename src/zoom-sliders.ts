@@ -3,7 +3,7 @@ import { sliderLeft } from "d3-simple-slider";
 // @ts-ignore
 import * as d3 from "d3";
 import { D3_SELECTION, Data, Options, TrellisZoomConfig } from "./definitions";
-import { Log, LOG_CATEGORIES } from "./index";
+import { Log, LOG_CATEGORIES } from "./log";
 import {
   calculateMinMaxZoom,
   GenerateRoundedRectSvg,

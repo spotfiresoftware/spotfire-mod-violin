@@ -34,7 +34,7 @@ import {
   SumStatsSettings,
   SummaryStatistics,
 } from "./definitions";
-import { Log, LOG_CATEGORIES } from "./index";
+import { Log, LOG_CATEGORIES } from "./log";
 import { SumStatsConfig } from "./sumstatsconfig";
 import { log } from "console";
 

@@ -6,8 +6,8 @@
 
 import {
   Log,
-  LOG_CATEGORIES,
-} from "./index";
+  LOG_CATEGORIES
+} from "./log";
 // @ts-ignore
 import * as d3 from "d3";
 import { GeneralStylingInfo, ScaleStylingInfo, Tooltip } from "spotfire-api";
