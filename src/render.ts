@@ -760,6 +760,9 @@ export async function render(
           maxZoom,
           isTrellisWithIndividualYscale,
           trellisName,
+          true,
+          yScale.range()[0],
+          yScale.range()[1],
           setTrellisPanelZoomedTitle
         )
       );

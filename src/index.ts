@@ -1374,7 +1374,7 @@ Spotfire.initialize(async (mod) => {
           // Remove existing zoom slider if it exists and is the incorrect one
           // for the current orientation
           MOD_CONTAINER.select(
-            "#global-trellis-zoom-container-" +
+            "#global-zoom-container-" +
               (config.isVertical ? "horizontal" : "vertical")
           ).remove();
 
@@ -1384,14 +1384,14 @@ Spotfire.initialize(async (mod) => {
             shallRecreateGlobalZoomContainers ||
             (config.yZoomMinUnset.value() && config.yZoomMaxUnset.value())
           ) {
-            MOD_CONTAINER.select("#global-trellis-zoom-container-vertical").remove();
-            MOD_CONTAINER.select("#global-trellis-zoom-container-horizontal").remove();
+            MOD_CONTAINER.select("#global-zoom-container-vertical").remove();
+            MOD_CONTAINER.select("#global-zoom-container-horizontal").remove();
 
             shallRecreateGlobalZoomContainers = false;
           }
           if (
             MOD_CONTAINER.select(
-              "#global-trellis-zoom-container-" +
+              "#global-zoom-container-" +
                 (config.isVertical ? "vertical" : "horizontal")
             ).empty()
           ) {
@@ -1426,9 +1426,11 @@ Spotfire.initialize(async (mod) => {
               panel.yScale,
               panel.plotData,
               config.isVertical ? 30 : panel.svgWidth,
-              config.isVertical ? panel.svgHeight : 30,
+              config.isVertical ? windowSize.height - 30 : 30,
               isTrellis,
               false,
+              0,
+              windowSize.height - 30,
               () => {}
             );
           }
@@ -1579,6 +1581,8 @@ Spotfire.initialize(async (mod) => {
                 config.isVertical ? panel.svgHeight : 30,
                 isTrellis,
                 false,
+                panel.svgTop,
+                panel.svgTop + panel.svgHeight,
                 () => {}
               );
             }

@@ -215,7 +215,7 @@ table {
 }
 
 #global-zoom-container-vertical {
-  position: absolute;
+  position: fixed;
   top: 10px;
   left: 0px;
   z-index: 100;

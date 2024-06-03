@@ -20,6 +20,8 @@ export function renderGlobalZoomSlider(
   height: number,
   isTrellis: boolean,
   isTrellisWithIndividualYscale: boolean,
+  trellisMinRange: number,
+  trellisMaxRange: number,
   setTrellisPanelZoomedTitle: (title: string) => void
 ) {
   // Global zoom slider
@@ -30,6 +32,7 @@ export function renderGlobalZoomSlider(
     "",
     plotData
   );
+
   const verticalSlider = createZoomSlider(
     yScale,
     plotData,
@@ -38,6 +41,9 @@ export function renderGlobalZoomSlider(
     maxZoom,
     isTrellisWithIndividualYscale,
     "",
+    isTrellis,
+    trellisMinRange,
+    trellisMaxRange,
     setTrellisPanelZoomedTitle
   );
   let sliderSvg: d3.D3_SELECTION;
@@ -52,12 +58,19 @@ export function renderGlobalZoomSlider(
       .attr("xmlns", "http://www.w3.org/2000/svg")
       .attr("id", "slider-container" + 0)
       .attr("height", height)
-      .attr("width", width)
+      .attr("width", width);
     sliderSvg
       .append("g")
       .attr("class", "vertical-zoom-slider")
       // @todo - margin
-      .attr("transform", "translate(" + (config.isVertical ? width / 2 : 0) + ", " + (config.isVertical? 5 : height / 2) + ")")
+      .attr(
+        "transform",
+        "translate(" +
+          (config.isVertical ? width / 2 : 0) +
+          ", " +
+          (config.isVertical ? 5 : height / 2) +
+          ")"
+      )
       .call(verticalSlider);
   } else if (config.showZoomSliders.value() && !isTrellisWithIndividualYscale) {
     // Show global zoom slider - zoom sliders are enabled, and a single y scale is selected
@@ -127,6 +140,9 @@ export function createZoomSlider(
   maxZoom: number,
   isTrellisWithIndividualYscale: boolean,
   trellisName: string,
+  isTrellis: boolean,
+  trellisMinRange: number,
+  trellisMaxRange: number,
   setTrellisPanelZoomedTitle: (title: string) => void
 ): any {
   Log.green(LOG_CATEGORIES.DebugResetGlobalZoom)(
@@ -140,16 +156,34 @@ export function createZoomSlider(
   /**
    * Zoom slider
    */
-  if (config.isVertical) {
-    slider = sliderLeft(
-      // @todo - check - is this OK?
-      yScale.copy([plotData.yDataDomain.min, plotData.yDataDomain.max])
-    );
+  if (!isTrellis) {
+    if (config.isVertical) {
+        slider = sliderLeft(
+        // @todo - check - is this OK?
+        yScale.copy([plotData.yDataDomain.min, plotData.yDataDomain.max])
+        );
+    } else {
+        slider = sliderHorizontal(
+        // @todo - check - is this OK?
+        yScale.copy([plotData.yDataDomain.min, plotData.yDataDomain.max])
+        );
+    }
   } else {
-    slider = sliderHorizontal(
-      // @todo - check - is this OK?
-      yScale.copy([plotData.yDataDomain.min, plotData.yDataDomain.max])
-    );
+
+    Log.blue(LOG_CATEGORIES.ShowHideZoomSliders)("Trellis, rangemin, rangemax", trellisMinRange, trellisMaxRange);
+    if (config.isVertical) {
+        slider = sliderLeft(
+        // @todo - check - is this OK?
+        yScale.copy([plotData.yDataDomain.min, plotData.yDataDomain.max]).range([trellisMinRange, trellisMaxRange])
+        );
+    } else {
+        slider = sliderHorizontal(
+        // @todo - check - is this OK?
+        yScale.copy([plotData.yDataDomain.min, plotData.yDataDomain.max]).range([trellisMinRange, trellisMaxRange])
+        );
+    }
+
+
   }
   //.min(plotData.yDataDomain.min)
   //.max(plotData.yDataDomain.max)
