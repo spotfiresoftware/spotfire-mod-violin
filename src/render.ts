@@ -117,7 +117,6 @@ export async function render(
   tooltip: Tooltip,
   container: D3_SELECTION,
   contextMenu: ContextMenu,
-  globalZoomSliderContainer: D3_SELECTION,
   isTrellis: boolean = false,
   trellisIndex: number = -1,
   trellisName: string = "",

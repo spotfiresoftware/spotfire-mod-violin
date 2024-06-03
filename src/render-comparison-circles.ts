@@ -30,7 +30,7 @@ export function renderComparisonCircles(
     .attr("id", "comparison-clip-" + trellisIndex)
     .append("rect")
     .attr(config.isVertical ? "x" : "y", margin.left + xScale("Comparison"))
-    .attr(config.isVertical ? "width" : "height", xScale.bandwidth)
+    .attr(config.isVertical ? "width" : "height", xScale.bandwidth())
     .attr(
       config.isVertical ? "height" : "width",
       Math.abs(
@@ -48,7 +48,7 @@ export function renderComparisonCircles(
       config.isVertical ? "y" : "x",
       config.isVertical ? 0 : yScale(plotData.yDataDomain.min)
     )
-    .attr(config.isVertical ? "width" : "height", xScale.bandwidth)
+    .attr(config.isVertical ? "width" : "height", xScale.bandwidth())
     .attr(
       config.isVertical ? "height" : "width",
       Math.abs(

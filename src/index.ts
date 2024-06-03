@@ -79,7 +79,7 @@ export let windowScrollYTracker = new ScrollYTracker();
 let previousYAxisExpression: string = "";
 let previousCountAxisExpression: string = "";
 let previousColorAxisExpression: string = "";
-let shallRecreateGlobalZoomContainers: boolean = false;
+let shallRecreateGlobalZoomContainers: boolean = true;
 
 export function setFlagRecreateGlobalZoomContainers(): void {
   shallRecreateGlobalZoomContainers = true;
@@ -289,6 +289,7 @@ Spotfire.initialize(async (mod) => {
       context.interactive
     );
     mod.controls.progress.show();
+    
     scrollY = window.scrollY;
     Log.green(LOG_CATEGORIES.General)("ui_y", window.scrollY);
 
@@ -786,6 +787,28 @@ Spotfire.initialize(async (mod) => {
 
     d3.select("#gear-icon").style("fill", context.styling.general.font.color);
 
+    const trellisAxisHierarchy = await dataView.hierarchy("Trellis");
+    Log.green(LOG_CATEGORIES.Data)("trellisAxisHierarchy");
+    const isTrellis = !trellisAxisHierarchy.isEmpty;
+
+    if (isTrellis) {      
+      if (!wasTrellis) {
+        rootContainer.selectAll("*").remove();
+        MOD_CONTAINER.select("#global-zoom-container-vertical").remove();
+        MOD_CONTAINER.select("#global-zoom-container-horizontal").remove();
+      }
+      wasTrellis = true;
+      if (
+        isInteractive &&
+        config.showZoomSliders.value() &&
+        !config.yScalePerTrellisPanel.value()
+      ) {
+        d3.select("#trellis-zoom-container").select("*").remove();
+      }
+    } else {
+      wasTrellis = false;
+    }
+
     function CountChildren(
       node: DataViewHierarchyNode,
       toLevel: number,
@@ -821,10 +844,6 @@ Spotfire.initialize(async (mod) => {
       return RecursiveTrellisCount(node, toLevel, currentLevel);
     }
 
-    const trellisAxisHierarchy = await dataView.hierarchy("Trellis");
-    Log.green(LOG_CATEGORIES.Data)("trellisAxisHierarchy");
-    const isTrellis = !trellisAxisHierarchy.isEmpty;
-
     // Editing or viewing mode?
     if (mod.getRenderContext().isEditing) {
       d3.select("#settings-menu").selectAll("*").remove();
@@ -853,7 +872,6 @@ Spotfire.initialize(async (mod) => {
      */
     async function TrellisedRender(
       rootContainer: d3.D3_SELECTION,
-      globalZoomSliderContainer: d3.D3_SELECTION,
       trellisAxisHierarchy: DataViewHierarchy
     ) {
       Log.green(LOG_CATEGORIES.DebugLogYAxis)("entering trellis render");
@@ -861,13 +879,24 @@ Spotfire.initialize(async (mod) => {
       const node = await trellisAxisHierarchy.root();
       Log.green(LOG_CATEGORIES.General)(node.formattedPath());
 
+      if (
+        config.showZoomSliders.value() &&
+        !config.yScalePerTrellisPanel.value()
+      ) {
+        // We need to prepare for global zoom slider
+      }
+
       // Take zoom slider into consideration
       // 10 is scrollbar width
-      const rootContainerWidth = config.showZoomSliders.value()
-        ? windowSize.width -
-          globalZoomSliderContainer.node()?.getBoundingClientRect().width -
-          8
-        : windowSize.width - 8;
+      const rootContainerWidth =
+        config.showZoomSliders.value() && !config.yScalePerTrellisPanel.value()
+          ? windowSize.width - 30
+          : windowSize.width - 8;
+
+      const rootContainerLeft =
+        config.yScalePerTrellisPanel.value() || !config.showZoomSliders.value()
+          ? 0
+          : 30;
 
       Log.green(LOG_CATEGORIES.General)(rootContainer);
       rootContainer
@@ -888,11 +917,8 @@ Spotfire.initialize(async (mod) => {
             windowSize.height +
             "px; " +
             "left: " +
-            (config.yScalePerTrellisPanel.value() ||
-            !config.showZoomSliders.value()
-              ? "0px"
-              : globalZoomSliderContainer.node().getBoundingClientRect().width +
-                "px")
+            rootContainerLeft +
+            "px"
         );
 
       let panelIndex = 0;
@@ -1311,39 +1337,108 @@ Spotfire.initialize(async (mod) => {
           renderingInfo.containerSize
         );
 
-        renderedPanels.push(
-          await render(
-            spotfireMod,
-            state,
-            renderingInfo.data,
-            xAxisSpotfire,
-            renderingInfo.containerSize,
-            calculatedLeftMargin,
-            config,
-            {
-              generalStylingInfo: context.styling.general,
-              scales: context.styling.scales,
-            },
-            mod.controls.tooltip,
-            renderingInfo.container,
-            mod.controls.contextMenu,
-            globalZoomSliderContainer,
-            true,
-            renderingInfo.trellisIndex,
-            renderingInfo.trellisName,
-            renderingInfo.trellisRowIndex
-          )
+        const panel = await render(
+          spotfireMod,
+          state,
+          renderingInfo.data,
+          xAxisSpotfire,
+          renderingInfo.containerSize,
+          calculatedLeftMargin,
+          config,
+          {
+            generalStylingInfo: context.styling.general,
+            scales: context.styling.scales,
+          },
+          mod.controls.tooltip,
+          renderingInfo.container,
+          mod.controls.contextMenu,
+          true,
+          renderingInfo.trellisIndex,
+          renderingInfo.trellisName,
+          renderingInfo.trellisRowIndex
         );
+
+        renderedPanels.push(panel);
+
+        // If we've rendered one panel, we have enough info to create
+        // the global zoom slider
+        if (
+          renderedPanels.length == 1 &&
+          config.showZoomSliders.value() &&
+          !config.trellisIndividualZoomSettings.value()
+        ) {
+          Log.green(LOG_CATEGORIES.ShowHideZoomSliders)(
+            "Rendering global zoom slider for trellis"
+          );
+
+          // Remove existing zoom slider if it exists and is the incorrect one
+          // for the current orientation
+          MOD_CONTAINER.select(
+            "#global-trellis-zoom-container-" +
+              (config.isVertical ? "horizontal" : "vertical")
+          ).remove();
+
+          // Remove and recreate the global zoom container if
+          // Min/Max zoom are unset (this happens following a reset event)
+          if (
+            shallRecreateGlobalZoomContainers ||
+            (config.yZoomMinUnset.value() && config.yZoomMaxUnset.value())
+          ) {
+            MOD_CONTAINER.select("#global-trellis-zoom-container-vertical").remove();
+            MOD_CONTAINER.select("#global-trellis-zoom-container-horizontal").remove();
+
+            shallRecreateGlobalZoomContainers = false;
+          }
+          if (
+            MOD_CONTAINER.select(
+              "#global-trellis-zoom-container-" +
+                (config.isVertical ? "vertical" : "horizontal")
+            ).empty()
+          ) {
+            Log.green(LOG_CATEGORIES.ShowHideZoomSliders)(
+              "Rendering global zoom slider for trellis"
+            );
+            const globalZoomSliderContainer = MOD_CONTAINER.append("div")
+              .attr(
+                "id",
+                "global-zoom-container-" +
+                  (config.isVertical ? "vertical" : "horizontal")
+              )
+              .style(
+                "background-color",
+                context.styling.general.backgroundColor
+              );
+            if (!config.isVertical) {
+              globalZoomSliderContainer
+                .style("left", panel.svgLeft + "px")
+                .style("width", panel.svgWidth + "px");
+            }
+            Log.green(LOG_CATEGORIES.ShowHideZoomSliders)(
+              "panel",
+              panel,
+              renderedPanels.length,
+              globalZoomSliderContainer
+            );
+            renderGlobalZoomSlider(
+              globalZoomSliderContainer,
+              mod.controls.contextMenu,
+              config,
+              panel.yScale,
+              panel.plotData,
+              config.isVertical ? 30 : panel.svgWidth,
+              config.isVertical ? panel.svgHeight : 30,
+              isTrellis,
+              false,
+              () => {}
+            );
+          }
+        }
       }
 
       Log.green(LOG_CATEGORIES.General)("Done RecursiveTrellisedRender");
       // Reset trellisPanelZoomedIndex
       setTrellisPanelZoomedTitle("");
     }
-
-    let globalZoomSliderContainer: D3_SELECTION = d3
-      .select("#global-zoom-container")
-      .style("background-color", context.styling.general.backgroundColor);
 
     if (!isTrellis) {
       Log.red(LOG_CATEGORIES.DebugLogYAxis)(
@@ -1413,8 +1508,7 @@ Spotfire.initialize(async (mod) => {
             },
             mod.controls.tooltip,
             rootContainer,
-            mod.controls.contextMenu,
-            globalZoomSliderContainer
+            mod.controls.contextMenu
           );
 
           renderedPanels.push(panel);
@@ -1510,30 +1604,29 @@ Spotfire.initialize(async (mod) => {
         });
     } else {
       Log.green(LOG_CATEGORIES.General)("Rendering trellising with root node");
+
       try {
         // todo: should we await here or not?
-        TrellisedRender(
-          rootContainer,
-          globalZoomSliderContainer,
-          trellisAxisHierarchy
-        ).catch((error: Error) => {
-          Log.red(LOG_CATEGORIES.DebugDataBailout)(
-            "Caught error from TrellisedRender",
-            error
-          );
+        TrellisedRender(rootContainer, trellisAxisHierarchy).catch(
+          (error: Error) => {
+            Log.red(LOG_CATEGORIES.DebugDataBailout)(
+              "Caught error from TrellisedRender",
+              error
+            );
 
-          MOD_CONTAINER.selectAll("*").remove();
-
-          if (error.message == "DataView Has expired") {
-            mod.controls.progress.show();
-            // nothing else
-          } else {
-            mod.controls.progress.hide();
             MOD_CONTAINER.selectAll("*").remove();
-            mod.controls.errorOverlay.show(error.message);
-            throw error.message;
+
+            if (error.message == "DataView Has expired") {
+              mod.controls.progress.show();
+              // nothing else
+            } else {
+              mod.controls.progress.hide();
+              MOD_CONTAINER.selectAll("*").remove();
+              mod.controls.errorOverlay.show(error.message);
+              throw error.message;
+            }
           }
-        });
+        );
       } catch (error) {
         Log.red(LOG_CATEGORIES.DebugDataBailout)(
           "Caught error from TrellisedRender outside of await block:",
@@ -1543,28 +1636,7 @@ Spotfire.initialize(async (mod) => {
       }
     }
 
-    if (isTrellis) {
-      if (!wasTrellis) {
-        rootContainer.selectAll("*").remove();
-      }
-      wasTrellis = true;
-      globalZoomSliderContainer.remove();
-      if (
-        isInteractive &&
-        config.showZoomSliders.value() &&
-        !config.yScalePerTrellisPanel.value()
-      ) {
-        d3.select("#trellis-zoom-container").select("*").remove();
-        globalZoomSliderContainer = d3
-          .select("#trellis-zoom-container")
-          .append("div")
-          .attr("id", "global-zoom-container")
-          .style("background-color", context.styling.general.backgroundColor);
-        /*d3.select("#trellis-zoom-container")
-                .classed("global-zoom-container", true);*/
-      }
-    } else {
-    }
+
 
     /**
      * This will add rectangle selection elements to DOM.
