@@ -167,6 +167,9 @@ export function renderStatisticsTableHorizontal(
     .classed("summary-header", (d: any) => {
       return d != "";
     })
+    .classed("summary-header-horizontal", (d: any) => {
+      return d != "";
+    })
     .style(
       "border-color",
       getBorderColor(styling.generalStylingInfo.backgroundColor)

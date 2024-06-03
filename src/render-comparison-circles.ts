@@ -4,10 +4,7 @@
  * in the license file that is distributed with this file.
  */
 
-import {
-  Log,
-  LOG_CATEGORIES
-} from "./log";
+import { Log, LOG_CATEGORIES } from "./log";
 // @ts-ignore
 import * as d3 from "d3";
 import { D3_SELECTION, Data, Options } from "./definitions";
@@ -16,6 +13,7 @@ import { getComparisonCircleHighlightedColor } from "./utility-functions";
 
 export function renderComparisonCircles(
   config: Partial<Options>,
+  margin: any,
   trellisIndex: number,
   mainVisualg: D3_SELECTION,
   containerg: D3_SELECTION,
@@ -31,7 +29,7 @@ export function renderComparisonCircles(
     .append("clipPath")
     .attr("id", "comparison-clip-" + trellisIndex)
     .append("rect")
-    .attr(config.isVertical ? "x" : "y", xScale("Comparison"))
+    .attr(config.isVertical ? "x" : "y", margin.left + xScale("Comparison"))
     .attr(config.isVertical ? "width" : "height", xScale.bandwidth)
     .attr(
       config.isVertical ? "height" : "width",
@@ -45,7 +43,7 @@ export function renderComparisonCircles(
   containerg
     .append("rect")
     .classed("comparison-background", true)
-    .attr(config.isVertical ? "x" : "y", xScale("Comparison"))
+    .attr(config.isVertical ? "x" : "y", margin.left + xScale("Comparison"))
     .attr(
       config.isVertical ? "y" : "x",
       config.isVertical ? 0 : yScale(plotData.yDataDomain.min)
@@ -68,7 +66,7 @@ export function renderComparisonCircles(
     .attr("clip-path", "url(#comparison-clip-" + trellisIndex + ")")
     .attr(
       config.isVertical ? "cx" : "cy",
-      xScale("Comparison") + xScale.bandwidth() / 2
+      margin.left + xScale("Comparison") + xScale.bandwidth() / 2
     )
     .attr(config.isVertical ? "cy" : "cx", (d: any) => yScale(d[1].y0))
     .attr("r", (d: any) =>
@@ -101,7 +99,7 @@ export function renderComparisonCircles(
       mainVisualg
         .append("rect")
         .attr("id", "highlightRect")
-        .attr(config.isVertical ? "x" : "y", xScale(d[0]))
+        .attr(config.isVertical ? "x" : "y", margin.left + xScale(d[0]))
         .attr(
           config.isVertical ? "y" : "x",
           config.isVertical ? yScale(maxY) : yScale(minY)
@@ -116,6 +114,7 @@ export function renderComparisonCircles(
         .attr(config.isVertical ? "width" : "height", xScale.bandwidth() + 1);
       highlightComparisonCircles(
         config,
+        margin,
         mainVisualg,
         xScale,
         renderedPlotHeight,
@@ -130,6 +129,7 @@ export function renderComparisonCircles(
       d3.select(event.currentTarget).attr("style", "");
       highlightMarkedComparisonCircles(
         mainVisualg,
+        margin,
         xScale,
         renderedPlotHeight,
         config,
@@ -149,6 +149,7 @@ export function renderComparisonCircles(
     });
   highlightMarkedComparisonCircles(
     mainVisualg,
+    margin,
     xScale,
     renderedPlotHeight,
     config,
@@ -159,6 +160,7 @@ export function renderComparisonCircles(
 
 export function highlightMarkedComparisonCircles(
   g: D3_SELECTION,
+  margin: any,
   xScale: d3.scaleBand,
   renderedPlotHeight: number,
   config: Partial<Options>,
@@ -176,6 +178,7 @@ export function highlightMarkedComparisonCircles(
   if (markedCategories.length == 1) {
     highlightComparisonCircles(
       config,
+      margin,
       g,
       xScale,
       renderedPlotHeight,
@@ -186,6 +189,7 @@ export function highlightMarkedComparisonCircles(
   } else {
     highlightComparisonCircles(
       config,
+      margin,
       g,
       xScale,
       renderedPlotHeight,
@@ -198,6 +202,7 @@ export function highlightMarkedComparisonCircles(
 
 export function highlightComparisonCircles(
   config: Partial<Options>,
+  margin: any,
   g: D3_SELECTION,
   xScale: d3.scaleBand,
   renderedPlotHeight: number,
@@ -293,14 +298,14 @@ export function highlightComparisonCircles(
 
       if (config.isVertical) {
         tick = d3.line()([
-            [xScale(c[0]) + xScale.bandwidth() / 2, renderedPlotHeight],
-            [xScale(c[0]) + xScale.bandwidth() / 2, renderedPlotHeight + 10]
+          [margin.left + xScale(c[0]) + xScale.bandwidth() / 2, renderedPlotHeight],
+          [margin.left + xScale(c[0]) + xScale.bandwidth() / 2, renderedPlotHeight + 10],
         ]);
       } else {
         tick = d3.line()([
-            [0, xScale(c[0]) + xScale.bandwidth() / 2],
-            [10, xScale(c[0]) + xScale.bandwidth() / 2],
-          ]);
+          [0, xScale(c[0]) + xScale.bandwidth() / 2],
+          [10, xScale(c[0]) + xScale.bandwidth() / 2],
+        ]);
       }
 
       g.append("path")
@@ -318,7 +323,7 @@ export function highlightComparisonCircles(
       g.append("circle")
         .attr(
           config.isVertical ? "cx" : "cy",
-          xScale(c[0]) + xScale.bandwidth() / 2
+          margin.left + xScale(c[0]) + xScale.bandwidth() / 2
         )
         .attr(
           config.isVertical ? "cy" : "cx",

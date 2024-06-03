@@ -218,6 +218,7 @@ export function renderViolin(
         if (config.comparisonCirclesEnabled.value()) {
           highlightComparisonCircles(
             config,
+            margin,
             g,
             xScale,
             heightAvailable,
@@ -266,6 +267,7 @@ export function renderViolin(
         if (config.comparisonCirclesEnabled.value()) {
           highlightComparisonCircles(
             config,
+            margin,
             g,
             xScale,
             heightAvailable,
@@ -280,6 +282,7 @@ export function renderViolin(
         d3.select(event.currentTarget).classed("area-highlighted", false);
         highlightMarkedComparisonCircles(
           g,
+          margin,
           xScale,
           heightAvailable,
           config,

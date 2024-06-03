@@ -893,6 +893,7 @@ export async function render(
   if (config.comparisonCirclesEnabled.value()) {
     renderComparisonCircles(
       config,
+      margin,
       trellisIndex,
       g,
       g,
