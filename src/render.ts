@@ -23,10 +23,7 @@ import {
   violinWidthPadding,
 } from "./index";
 
-import {
-  LOG_CATEGORIES,
-  Log
-} from "./log";
+import { LOG_CATEGORIES, Log } from "./log";
 
 // @ts-ignore
 import { ShapeInfo, Intersection } from "kld-intersections";
@@ -769,8 +766,6 @@ export async function render(
       );
   }
 
-  
-
   /**
    * Trend lines
    */
@@ -995,10 +990,14 @@ export async function render(
         .attr("stroke-dasharray", newDasharray)
         .attr("transform", (d: any) => {
           const xTranslate =
-            (xScale(d[0]) ? xScale(d[0]) : 0) + xScale.bandwidth() / 2;
+            (config.isVertical ? margin.left : 0) +
+            (xScale(d[0]) ? xScale(d[0]) : 0) +
+            xScale.bandwidth() / 2;
           const yTranslate =
             yScale(d[1][sumStatsSetting.property]) +
-            sumStatsSetting.verticalOffset(xScale.bandwidth());
+            // Vertical offset works the other way round for horizontal
+            (config.isVertical ? 1 : -1) * 
+              sumStatsSetting.verticalOffset(xScale.bandwidth());
           const rotation =
             sumStatsSetting.rotation + (config.isVertical ? 0 : 90);
           Log.green(LOG_CATEGORIES.ReferenceLines)(d[0], xScale(d[0]));
@@ -1044,10 +1043,13 @@ export async function render(
         .append("text")
         .attr("transform", function (d: any) {
           const xTranslate =
+            (config.isVertical ? margin.left : 0) +
             (xScale(d[0]) ? xScale(d[0]) : 0) +
             sumStatsSetting.labelHorizOffset(xScale.bandwidth());
           const yTranslate =
             yScale(d[1][sumStatsSetting.property]) +
+            // Vertical offset works the other way round for horizontal
+            (config.isVertical ? 1 : -1) * 
             sumStatsSetting.labelVerticalOffset;
           return (
             "translate(" +
