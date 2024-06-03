@@ -791,6 +791,11 @@ Spotfire.initialize(async (mod) => {
     Log.green(LOG_CATEGORIES.Data)("trellisAxisHierarchy");
     const isTrellis = !trellisAxisHierarchy.isEmpty;
 
+    if (!config.showZoomSliders.value()) {
+      MOD_CONTAINER.select("#global-zoom-container-vertical").remove();
+      MOD_CONTAINER.select("#global-zoom-container-horizontal").remove();
+    }
+    
     if (isTrellis) {      
       if (!wasTrellis) {
         rootContainer.selectAll("*").remove();
@@ -806,6 +811,12 @@ Spotfire.initialize(async (mod) => {
         d3.select("#trellis-zoom-container").select("*").remove();
       }
     } else {
+      if (wasTrellis) {
+        rootContainer.selectAll("*").remove();        
+        MOD_CONTAINER.select("#global-zoom-container-vertical").remove();
+        MOD_CONTAINER.select("#global-zoom-container-horizontal").remove();
+      }
+
       wasTrellis = false;
     }
 
