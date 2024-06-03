@@ -728,9 +728,9 @@ Spotfire.initialize(async (mod) => {
     );
 
     d3.select("#dropdown-menu-link").on("click", function () {
-      Log.green(LOG_CATEGORIES.General)("click");
-      d3.select(".dropdown-container");
-      //.attr("height", "100%");
+      Log.green(LOG_CATEGORIES.ShowHideZoomSliders)("click");
+      d3.select(".dropdown-container")
+      .style("height", "100%");
     });
 
     /**
