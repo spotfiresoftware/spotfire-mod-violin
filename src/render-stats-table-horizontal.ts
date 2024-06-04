@@ -335,6 +335,10 @@ export function renderStatisticsTableHorizontal(
     )
     .append("div")
     .classed("summary-div", true)
+    .style("font-size", fontSizePx + "px")
+    .style("font-family", styling.generalStylingInfo.font.fontFamily)
+    .style("font-weight", styling.generalStylingInfo.font.fontWeight)
+    .style("color", styling.generalStylingInfo.font.color)
     .text((d: any) => {
       //Log.green(LOG_CATEGORIES.Horizontal)("entryRow", d);
       if (typeof d == "string") return d;

@@ -222,7 +222,7 @@ table {
 }
 
 #global-zoom-container-horizontal {
-  position: absolute;
+  position: fixed;
   top: 5px;
   z-index: 100;
 }
@@ -261,6 +261,11 @@ table {
 
 .vertical-zoom-slider text,
 .vertical-zoom-slider .tick {
+  display: none;
+}
+
+.horizontal-zoom-slider text,
+.horizontal-zoom-slider .tick {
   display: none;
 }
 

@@ -289,7 +289,7 @@ Spotfire.initialize(async (mod) => {
       context.interactive
     );
     mod.controls.progress.show();
-    
+
     scrollY = window.scrollY;
     Log.green(LOG_CATEGORIES.General)("ui_y", window.scrollY);
 
@@ -729,8 +729,7 @@ Spotfire.initialize(async (mod) => {
 
     d3.select("#dropdown-menu-link").on("click", function () {
       Log.green(LOG_CATEGORIES.ShowHideZoomSliders)("click");
-      d3.select(".dropdown-container")
-      .style("height", "100%");
+      d3.select(".dropdown-container").style("height", "100%");
     });
 
     /**
@@ -795,8 +794,8 @@ Spotfire.initialize(async (mod) => {
       MOD_CONTAINER.select("#global-zoom-container-vertical").remove();
       MOD_CONTAINER.select("#global-zoom-container-horizontal").remove();
     }
-    
-    if (isTrellis) {      
+
+    if (isTrellis) {
       if (!wasTrellis) {
         rootContainer.selectAll("*").remove();
         MOD_CONTAINER.select("#global-zoom-container-vertical").remove();
@@ -812,7 +811,7 @@ Spotfire.initialize(async (mod) => {
       }
     } else {
       if (wasTrellis) {
-        rootContainer.selectAll("*").remove();        
+        rootContainer.selectAll("*").remove();
         MOD_CONTAINER.select("#global-zoom-container-vertical").remove();
         MOD_CONTAINER.select("#global-zoom-container-horizontal").remove();
       }
@@ -890,24 +889,35 @@ Spotfire.initialize(async (mod) => {
       const node = await trellisAxisHierarchy.root();
       Log.green(LOG_CATEGORIES.General)(node.formattedPath());
 
-      if (
-        config.showZoomSliders.value() &&
-        !config.yScalePerTrellisPanel.value()
-      ) {
-        // We need to prepare for global zoom slider
-      }
-
       // Take zoom slider into consideration
       // 10 is scrollbar width
       const rootContainerWidth =
-        config.showZoomSliders.value() && !config.yScalePerTrellisPanel.value()
+        config.isVertical &&
+        config.showZoomSliders.value() &&
+        !config.yScalePerTrellisPanel.value()
           ? windowSize.width - 30
           : windowSize.width - 8;
 
+      const rootContainerHeight =
+        !config.isVertical &&
+        config.showZoomSliders.value() &&
+        !config.yScalePerTrellisPanel.value()
+          ? windowSize.height - 30
+          : windowSize.height;
+
       const rootContainerLeft =
-        config.yScalePerTrellisPanel.value() || !config.showZoomSliders.value()
-          ? 0
-          : 30;
+        config.isVertical &&
+        config.showZoomSliders.value() &&
+        !config.yScalePerTrellisPanel.value()
+          ? 30
+          : 0;
+
+      const rootContainerTop =
+        !config.isVertical &&
+        config.showZoomSliders.value() &&
+        !config.yScalePerTrellisPanel.value()
+          ? 30
+          : 0;
 
       Log.green(LOG_CATEGORIES.General)(rootContainer);
       rootContainer
@@ -919,18 +929,10 @@ Spotfire.initialize(async (mod) => {
           "root-container-trellis-with-individual-zoom-slider",
           config.yScalePerTrellisPanel.value() && config.showZoomSliders
         )
-        .attr(
-          "style",
-          "width:" +
-            rootContainerWidth +
-            "px; " +
-            "height:" +
-            windowSize.height +
-            "px; " +
-            "left: " +
-            rootContainerLeft +
-            "px"
-        );
+        .style("width", rootContainerWidth + "px")
+        .style("height", rootContainerHeight + "px")
+        .style("left", rootContainerLeft + "px")
+        .style("top", rootContainerTop + "px");
 
       let panelIndex = 0;
       const trellisPanelCount = CountChildren(node, Infinity); // Infinity - haha - hopefully never get there!
@@ -974,7 +976,7 @@ Spotfire.initialize(async (mod) => {
       previousTrellisColumnsPerPage = columnsPerPage;
       previousTrellisRowsPerPage = rowsPerPage;
 
-      const panelHeight = windowSize.height / rowsPerPage - 6 * rowsPerPage;
+      const panelHeight = rootContainerHeight / rowsPerPage - 6 * rowsPerPage;
       let panelWidth = rootContainerWidth / columnsPerPage;
 
       // Adjust panelWidth for individual zoom slider
@@ -1378,6 +1380,11 @@ Spotfire.initialize(async (mod) => {
           config.showZoomSliders.value() &&
           !config.trellisIndividualZoomSettings.value()
         ) {
+          /*******
+           *
+           * Global Zoom slider (trellis)
+           *
+           * ******/
           Log.green(LOG_CATEGORIES.ShowHideZoomSliders)(
             "Rendering global zoom slider for trellis"
           );
@@ -1407,7 +1414,7 @@ Spotfire.initialize(async (mod) => {
             ).empty()
           ) {
             Log.green(LOG_CATEGORIES.ShowHideZoomSliders)(
-              "Rendering global zoom slider for trellis"
+              "Rendering global zoom slider for trellis - creating container"
             );
             const globalZoomSliderContainer = MOD_CONTAINER.append("div")
               .attr(
@@ -1421,8 +1428,8 @@ Spotfire.initialize(async (mod) => {
               );
             if (!config.isVertical) {
               globalZoomSliderContainer
-                .style("left", panel.svgLeft + "px")
-                .style("width", panel.svgWidth + "px");
+                .style("left", (config.isVertical ? 10 : 20) + "px")
+                .style("width", windowSize.width + "px");
             }
             Log.green(LOG_CATEGORIES.ShowHideZoomSliders)(
               "panel",
@@ -1436,12 +1443,12 @@ Spotfire.initialize(async (mod) => {
               config,
               panel.yScale,
               panel.plotData,
-              config.isVertical ? 30 : panel.svgWidth,
+              config.isVertical ? 30 : windowSize.width - 10,
               config.isVertical ? windowSize.height - 10 : 30,
               isTrellis,
               false,
-              0,
-              windowSize.height - 50,
+              config.isVertical ? 0 : 0,
+              config.isVertical ? windowSize.height - 50 : windowSize.width - 80,
               () => {}
             );
           }
@@ -1650,8 +1657,6 @@ Spotfire.initialize(async (mod) => {
         throw error;
       }
     }
-
-
 
     /**
      * This will add rectangle selection elements to DOM.

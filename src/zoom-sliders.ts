@@ -81,10 +81,10 @@ export function renderGlobalZoomSlider(
       .attr("xmlns", "http://www.w3.org/2000/svg")
       .attr("id", "slider-container" + 0)
       .attr("height", height)
-      .attr("width", 20);
+      .attr("width", width);
     sliderSvg
       .append("g")
-      .attr("class", "vertical-zoom-slider")
+      .attr("class", (config.isVertical ? "vertical" : "horizontal") + "-zoom-slider")
       // @todo - margin
       .attr("transform", "translate(10, " + 10 + ")")
       .call(verticalSlider);
@@ -144,7 +144,7 @@ export function createZoomSlider(
   trellisMaxRange: number,
   setTrellisPanelZoomedTitle: (title: string) => void
 ): any {
-  Log.green(LOG_CATEGORIES.DebugResetGlobalZoom)(
+  Log.green(LOG_CATEGORIES.ShowHideZoomSliders)(
     "minZoom, maxZoom",
     minZoom,
     maxZoom
