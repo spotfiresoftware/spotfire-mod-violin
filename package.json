@@ -42,13 +42,11 @@
     "dependencies": {
         "@easylogic/colorpicker": "^1.10.11",
         "agentkeepalive": "^4.3.0",
-        "chokidar": "^3.5.3",
         "css-loader": "^6.9.0",
         "d3-drag": "^3.0.0",
         "d3-lasso": "0.0.5",
         "d3-selection": "^3.0.0",
         "d3-simple-slider": "^2.0.0",
-        "glob-parent": "^5.1.2",
         "lib-r-math.js": "^1.0.89",
         "style-loader": "^3.3.1",
         "ts-transformer-keys": "^0.4.3"
