@@ -92,6 +92,7 @@ let trellisZoomConfigsCache: TrellisZoomConfig[] = [];
 // Transparency for violin or box, whichever is rendered on top
 const OPACITY = 0.7;
 
+let previousWindowSize: Size;
 let wasTrellis: boolean = false; // Was the previous render trellis?
 let trellisPanelZoomedTitle = "";
 let previousTrellisRowsPerPage = 0;
@@ -299,7 +300,18 @@ Spotfire.initialize(async (mod) => {
       .expression;
     const xAxisExpression = (await mod.visualization.axis("X")).expression;
 
-    Log.blue(LOG_CATEGORIES.BoxPlotColorBy)(colorAxisExpression);
+    Log.blue(LOG_CATEGORIES.ShowHideZoomSliders)("previousWindowSize", previousWindowSize, windowSize);
+
+    if (
+      previousWindowSize?.width != windowSize.width ||
+      previousWindowSize?.height != windowSize.height
+    ) {
+      Log.green(LOG_CATEGORIES.ShowHideZoomSliders)(
+        "Shall recreate global zoom containers"
+      );
+      // Make sure we recreate the global zoom containers on resize
+      shallRecreateGlobalZoomContainers = true;
+    }
 
     const config: Options = {
       isVerticalPlot: isVerticalPlot,
@@ -1406,6 +1418,13 @@ Spotfire.initialize(async (mod) => {
             MOD_CONTAINER.select("#global-zoom-container-horizontal").remove();
 
             shallRecreateGlobalZoomContainers = false;
+            Log.blue(LOG_CATEGORIES.ShowHideZoomSliders)(
+              "selected zoom container",
+              MOD_CONTAINER.select(
+                "#global-zoom-container-" +
+                  (config.isVertical ? "vertical" : "horizontal")
+              )
+            );
           }
           if (
             MOD_CONTAINER.select(
@@ -1448,7 +1467,9 @@ Spotfire.initialize(async (mod) => {
               isTrellis,
               false,
               config.isVertical ? 0 : 0,
-              config.isVertical ? windowSize.height - 50 : windowSize.width - 80,
+              config.isVertical
+                ? windowSize.height - 50
+                : windowSize.width - 80,
               () => {}
             );
           }
@@ -1803,6 +1824,8 @@ Spotfire.initialize(async (mod) => {
     });
 
     mod.controls.progress.hide();
+
+    previousWindowSize = windowSize;
 
     window.setTimeout(() => {
       context.signalRenderComplete();
