@@ -190,6 +190,7 @@ export async function render(
     left: config.isVertical ? calculatedLeftMargin : 0,
     right: 15,
   };
+
   const padding = { violinX: 20, betweenPlotAndTable: 10 };
   const containerWidth = containerSize.width;
   const containerHeight = containerSize.height;
@@ -477,7 +478,7 @@ export async function render(
     .node()
     .getBoundingClientRect().width;
 
-  const svgTop = config.isVertical ? 0 : tableContainerSpecs.headerRowHeight;
+  const svgTop = config.isVertical ? 0 : 0;
   const svgLeft = config.isVertical
     ? 0
     : padding.betweenPlotAndTable + statisticsTableWidth;
@@ -485,8 +486,14 @@ export async function render(
   const svgHeight = config.isVertical
     ? containerHeight -
       tableContainerSpecs.tableContainer.node().getBoundingClientRect().height
-    : containerHeight - tableContainerSpecs.headerRowHeight;
+    : containerHeight;// - tableContainerSpecs.headerRowHeight;
 
+
+  // Adjust the top margin for the table header (horizontal mode)
+  if (!config.isVertical) {
+    margin.top = tableContainerSpecs.headerRowHeight;
+  }
+  
   const verticalPlotHeight = svgHeight - margin.top - margin.bottom;
 
   Log.green(LOG_CATEGORIES.LayoutOptimization)(
@@ -496,6 +503,13 @@ export async function render(
     verticalPlotHeight,
     "svgHeight",
     svgHeight
+  );
+
+  Log.green(LOG_CATEGORIES.ShowHideZoomSliders)(    
+    "svgHeight",
+    svgHeight,
+    svg,
+    svg.node()
   );
 
   // Render the continuous axis
@@ -559,7 +573,7 @@ export async function render(
     "translate(" +
       (config.isVertical ? margin.left : 0) +
       ", " +
-      (config.isVertical ? 0 : plotHeight) +
+      (config.isVertical ? 0 : margin.top + plotHeight) +
       ")"
   );
 
@@ -740,12 +754,37 @@ export async function render(
 
   if (config.showZoomSliders.value() && isTrellisWithIndividualYscale) {
     // Trellis - individual zoom sliders
+
+    /*const zoomSliderContainer = container
+      .append("div")
+      .classed("trellis-panel-zoom-slider-container", true)
+      .style("background-color", styling.generalStylingInfo.backgroundColor);
+    if (!config.isVertical) {
+      zoomSliderContainer
+        //.style("left", (config.isVertical ? 10 : 20) + "px")
+        .style("left", statisticsTableWidth + "px")
+        .style("height", "30px")
+        .style("width", containerWidth + "px");
+    }*/
+
     sliderSvg = svg
+      .append("g")
+      .attr("transform", "translate(" + (config.isVertical ? 10 : -10) + ",-5)")
       .append("svg")
       .attr("xmlns", "http://www.w3.org/2000/svg")
       .attr("id", "slider-container" + trellisIndex)
-      .attr("height", containerSize.height);
+      .style("height", (config.isVertical ? svgHeight : 30) + "px")
+      .style("width", (config.isVertical ? 30 : svgWidth) + "px");
+      
+      
+      //.classed("trellis-panel-zoom-slider-container", true);
     sliderSvg.selectAll("*").remove();
+
+    Log.green(LOG_CATEGORIES.ShowHideZoomSliders)(
+      "sliderSvg",
+      sliderSvg,
+      sliderSvg.node()
+    );
 
     sliderSvg
       .append("g")
@@ -762,6 +801,7 @@ export async function render(
           trellisName,
           true,
           yScale.range()[0],
+          //config.isVertical ? svgHeight : svgWidth,
           yScale.range()[1],
           setTrellisPanelZoomedTitle
         )
@@ -999,7 +1039,7 @@ export async function render(
           const yTranslate =
             yScale(d[1][sumStatsSetting.property]) +
             // Vertical offset works the other way round for horizontal
-            (config.isVertical ? 1 : -1) * 
+            (config.isVertical ? 1 : -1) *
               sumStatsSetting.verticalOffset(xScale.bandwidth());
           const rotation =
             sumStatsSetting.rotation + (config.isVertical ? 0 : 90);
@@ -1052,8 +1092,7 @@ export async function render(
           const yTranslate =
             yScale(d[1][sumStatsSetting.property]) +
             // Vertical offset works the other way round for horizontal
-            (config.isVertical ? 1 : -1) * 
-            sumStatsSetting.labelVerticalOffset;
+            (config.isVertical ? 1 : -1) * sumStatsSetting.labelVerticalOffset;
           return (
             "translate(" +
             (config.isVertical ? xTranslate : yTranslate) +

@@ -39,7 +39,7 @@ import {
 } from "./definitions";
 import { buildDataForTrellisPanel } from "./data-manipulation";
 import { clearWarning, createWarning } from "./warning";
-import { createZoomSlider, renderGlobalZoomSlider } from "./zoom-sliders";
+import { renderGlobalZoomSlider } from "./zoom-sliders";
 import { min } from "d3-array";
 import { getBorderColor, getComplementaryColor } from "./utility-functions";
 import { Log, LOG_CATEGORIES } from "./log";
@@ -300,18 +300,11 @@ Spotfire.initialize(async (mod) => {
       .expression;
     const xAxisExpression = (await mod.visualization.axis("X")).expression;
 
-    Log.blue(LOG_CATEGORIES.ShowHideZoomSliders)("previousWindowSize", previousWindowSize, windowSize);
-
-    if (
-      previousWindowSize?.width != windowSize.width ||
-      previousWindowSize?.height != windowSize.height
-    ) {
-      Log.green(LOG_CATEGORIES.ShowHideZoomSliders)(
-        "Shall recreate global zoom containers"
-      );
-      // Make sure we recreate the global zoom containers on resize
-      shallRecreateGlobalZoomContainers = true;
-    }
+    Log.blue(LOG_CATEGORIES.ShowHideZoomSliders)(
+      "previousWindowSize",
+      previousWindowSize,
+      windowSize
+    );
 
     const config: Options = {
       isVerticalPlot: isVerticalPlot,
@@ -795,6 +788,26 @@ Spotfire.initialize(async (mod) => {
           .classed("container-fluid", true)
           .classed("horizontal", !config.isVertical)
           .classed("p-0", true);
+
+    // The various conditions for recreating the global zoom containers
+    if (
+      shallRecreateGlobalZoomContainers ||
+      previousWindowSize?.width != windowSize.width ||
+      previousWindowSize?.height != windowSize.height ||
+      (config.yZoomMinUnset.value() && config.yZoomMaxUnset.value())
+    ) {
+      Log.green(LOG_CATEGORIES.ShowHideZoomSliders)(
+        "Shall recreate global zoom containers"
+      );
+      // Make sure we recreate the global zoom containers on resize
+      // Remove and recreate the global zoom container if
+      // Min/Max zoom are unset (this happens following a reset event)
+
+      MOD_CONTAINER.select("#global-zoom-container-vertical").remove();
+      MOD_CONTAINER.select("#global-zoom-container-horizontal").remove();
+
+      shallRecreateGlobalZoomContainers = false;
+    }
 
     d3.select("#gear-icon").style("fill", context.styling.general.font.color);
 
@@ -1410,22 +1423,7 @@ Spotfire.initialize(async (mod) => {
 
           // Remove and recreate the global zoom container if
           // Min/Max zoom are unset (this happens following a reset event)
-          if (
-            shallRecreateGlobalZoomContainers ||
-            (config.yZoomMinUnset.value() && config.yZoomMaxUnset.value())
-          ) {
-            MOD_CONTAINER.select("#global-zoom-container-vertical").remove();
-            MOD_CONTAINER.select("#global-zoom-container-horizontal").remove();
 
-            shallRecreateGlobalZoomContainers = false;
-            Log.blue(LOG_CATEGORIES.ShowHideZoomSliders)(
-              "selected zoom container",
-              MOD_CONTAINER.select(
-                "#global-zoom-container-" +
-                  (config.isVertical ? "vertical" : "horizontal")
-              )
-            );
-          }
           if (
             MOD_CONTAINER.select(
               "#global-zoom-container-" +
@@ -1456,6 +1454,8 @@ Spotfire.initialize(async (mod) => {
               renderedPanels.length,
               globalZoomSliderContainer
             );
+
+            Log.green(LOG_CATEGORIES.ShowHideZoomSliders)("Rendering global zoom for trellis");
             renderGlobalZoomSlider(
               globalZoomSliderContainer,
               mod.controls.contextMenu,
@@ -1558,11 +1558,8 @@ Spotfire.initialize(async (mod) => {
 
           // Global zoom
           if (config.showZoomSliders.value()) {
-            Log.green(LOG_CATEGORIES.ShowHideZoomSliders)(
-              "shallRecreateGlobalZoomContainers",
-              shallRecreateGlobalZoomContainers
-            );
 
+           
             // Remove existing zoom slider if it exists and is the incorrect one
             // for the current orientation
             MOD_CONTAINER.select(
@@ -1570,19 +1567,6 @@ Spotfire.initialize(async (mod) => {
                 (config.isVertical ? "horizontal" : "vertical")
             ).remove();
 
-            // Remove and recreate the global zoom container if
-            // Min/Max zoom are unset (this happens following a reset event)
-            if (
-              shallRecreateGlobalZoomContainers ||
-              (config.yZoomMinUnset.value() && config.yZoomMaxUnset.value())
-            ) {
-              MOD_CONTAINER.select("#global-zoom-container-vertical").remove();
-              MOD_CONTAINER.select(
-                "#global-zoom-container-horizontal"
-              ).remove();
-
-              shallRecreateGlobalZoomContainers = false;
-            }
             if (
               MOD_CONTAINER.select(
                 "#global-zoom-container-" +
@@ -1610,6 +1594,8 @@ Spotfire.initialize(async (mod) => {
                 renderedPanels.length,
                 globalZoomSliderContainer
               );
+
+              Log.green(LOG_CATEGORIES.ShowHideZoomSliders)("Rendering global zoom for non trellis");
               renderGlobalZoomSlider(
                 globalZoomSliderContainer,
                 mod.controls.contextMenu,

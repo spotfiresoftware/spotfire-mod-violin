@@ -1054,7 +1054,8 @@ export function createSettingsPopout(
       ],
       section,
       () => {
-        config.ResetGlobalZoom();
+        setFlagRecreateGlobalZoomContainers(); // Make sure any global zoom containers are recreated
+        config.ResetGlobalZoom();        
       }
     );
   }

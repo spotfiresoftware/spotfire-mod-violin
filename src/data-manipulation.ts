@@ -17,7 +17,7 @@ import { Tukey } from "../node_modules/lib-r-math.js";
 const { qtukey } = Tukey();
 
 // @ts-ignore
-import * as kde_pkg from "@uwdata/kde";
+import * as kde_pkg from "fast-kde";
 
 import {
   DataViewHierarchyNode,
