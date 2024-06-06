@@ -14,14 +14,15 @@ import {
   Tooltip,
 } from "spotfire-api";
 import { Data, Options, RenderState, RowData } from "./definitions";
+import { LOG_CATEGORIES, Log } from "./log";
 import {
-  LOG_CATEGORIES,
-  Log
-} from "./log";
-import { getContrastingColor, getBoxBorderColor, getMarkerHighlightColor } from "./utility-functions";
+  getContrastingColor,
+  getBoxBorderColor,
+  getMarkerHighlightColor,
+} from "./utility-functions";
 
 export function renderBoxplot(
-  margin : any,
+  margin: any,
   styling: {
     generalStylingInfo: GeneralStylingInfo;
     scales: ScaleStylingInfo;
@@ -62,7 +63,7 @@ export function renderBoxplot(
         "translate(" +
         (config.isVertical ? margin.left + xScale(d[0]) : 0) +
         ", " +
-        (config.isVertical ? 0 : xScale(d[0])) +
+        (config.isVertical ? 0 : margin.top + xScale(d[0])) +
         ")"
       );
     });
@@ -217,7 +218,10 @@ export function renderBoxplot(
         )
         .attr(
           config.isVertical ? "x" : "y",
-          (xScale(d.category) != undefined ? margin.left + xScale(d.category) : 0) + verticalLinesX
+          (xScale(d.category) != undefined
+            ? (config.isVertical ? margin.left : margin.top) +
+              xScale(d.category)
+            : 0) + verticalLinesX
         )
         .attr(
           config.isVertical ? "y" : "x",
@@ -291,7 +295,9 @@ export function renderBoxplot(
         )
         .attr(
           config.isVertical ? "x" : "y",
-          (xScale(d.category) != undefined ? margin.left + xScale(d.category) : 0) +
+          (xScale(d.category) != undefined
+            ? (config.isVertical ? margin.left : margin.top) + xScale(d.category)
+            : 0) +
             xScale.bandwidth() / 2 -
             boxWidth / 2
         )
@@ -387,7 +393,9 @@ export function renderBoxplot(
 
         .attr(
           config.isVertical ? "x" : "y",
-          (xScale(d.category) != undefined ? margin.left + xScale(d.category) : 0) + verticalLinesX
+          (xScale(d.category) != undefined
+            ? (config.isVertical ? margin.left : margin.top) + xScale(d.category)
+            : 0) + verticalLinesX
         )
         .attr(
           config.isVertical ? "y" : "x",
@@ -471,7 +479,9 @@ export function renderBoxplot(
 
         .attr(
           config.isVertical ? "x" : "y",
-          (xScale(d.category) != undefined ? margin.left + xScale(d.category) : 0) +
+          (xScale(d.category) != undefined
+            ? (config.isVertical ? margin.left : margin.top) + xScale(d.category)
+            : 0) +
             xScale.bandwidth() / 2 -
             boxWidth / 2
         )
@@ -566,7 +576,9 @@ export function renderBoxplot(
         )
         .attr(
           config.isVertical ? "x" : "y",
-          (xScale(d.category) != undefined ? margin.left + xScale(d.category) : 0) +
+          (xScale(d.category) != undefined
+            ? (config.isVertical ? margin.left : margin.top) + xScale(d.category)
+            : 0) +
             xScale.bandwidth() / 2 -
             boxWidth / 2
         )
@@ -662,11 +674,16 @@ export function renderBoxplot(
 
         .attr(
           config.isVertical ? "x" : "y",
-          (xScale(d.category) != undefined ? margin.left + xScale(d.category) : 0) +
+          (xScale(d.category) != undefined
+            ? (config.isVertical ? margin.left : margin.top) + xScale(d.category)
+            : 0) +
             xScale.bandwidth() / 2 -
             boxWidth / 2
         )
-        .attr(config.isVertical ? "y" : "x", config.isVertical ? yScale(d.median): yScale(d.q1))
+        .attr(
+          config.isVertical ? "y" : "x",
+          config.isVertical ? yScale(d.median) : yScale(d.q1)
+        )
         .attr(
           config.isVertical ? "height" : "width",
           Math.max(0, Math.abs(yScale(d.q1) - yScale(d.median)))
@@ -725,7 +742,9 @@ export function renderBoxplot(
         )
         .attr(
           config.isVertical ? "x" : "y",
-          (xScale(d.category) != undefined ? margin.left + xScale(d.category) : 0) +
+          (xScale(d.category) != undefined
+            ? (config.isVertical ? margin.left : margin.top) + xScale(d.category)
+            : 0) +
             xScale.bandwidth() / 2 -
             boxWidth / 2 -
             (height < 600 ? 2 : 5) / 2
@@ -760,7 +779,7 @@ export function renderBoxplot(
         "translate(" +
         (config.isVertical ? margin.left + xScale(d[0]) : 0) +
         ", " +
-        (config.isVertical ? 0 : xScale(d[0])) +
+        (config.isVertical ? 0 : margin.top + xScale(d[0])) +
         ")"
       );
     })
@@ -839,7 +858,7 @@ export function renderBoxplot(
           "translate(" +
             (config.isVertical ? margin.left + xScale(d.category) : 0) +
             "," +
-            (config.isVertical ? 0 : xScale(d.category)) +
+            (config.isVertical ? 0 : margin.top + xScale(d.category)) +
             ")"
         )
         .attr("id", "highlightcircle")
@@ -855,7 +874,7 @@ export function renderBoxplot(
           "translate(" +
             (config.isVertical ? margin.left + xScale(d.category) : 0) +
             "," +
-            (config.isVertical ? 0 : xScale(d.category)) +
+            (config.isVertical ? 0 : margin.top + xScale(d.category)) +
             ")"
         )
         .attr("id", "highlightcircle")

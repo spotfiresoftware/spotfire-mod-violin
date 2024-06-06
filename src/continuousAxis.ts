@@ -223,8 +223,8 @@ export function renderContinuousAxis(
       .style("stroke", "url(#linear-portion)")
       .style("stroke-width", 10)
       .classed("symlog-linear-portion-indicator", true)
-      .attr(config.isVertical ? "x1" : "y1", config.isVertical ? margin.left : 0)
-      .attr(config.isVertical ? "x2" : "y2", config.isVertical ? margin.left : 0)
+      .attr(config.isVertical ? "x1" : "y1", config.isVertical ? margin.left : margin.top)
+      .attr(config.isVertical ? "x2" : "y2", config.isVertical ? margin.left : margin.top)
       .attr(
         config.isVertical? "y1": "x1",
         yScale(
@@ -475,8 +475,8 @@ export function renderGridLines(
     .enter()
     .append("line")
     .attr("class", "horizontal-grid")
-    .attr(config.isVertical ? "x1" : "y1", margin.left)
-    .attr(config.isVertical ? "x2" : "y2", margin.left + lineLength)
+    .attr(config.isVertical ? "x1" : "y1", (config.isVertical ? margin.left : margin.top))
+    .attr(config.isVertical ? "x2" : "y2", (config.isVertical ? margin.left : margin.top) + lineLength)
     .attr(config.isVertical ? "y1" : "x1", (d: number) => yScale(d) + 0.25)
     .attr(config.isVertical ? "y2" : "x2", (d: number) => yScale(d) + 0.25)
     .attr("stroke", styling.scales.line.stroke);
@@ -488,8 +488,8 @@ export function renderGridLines(
     .append("line")
     .attr("class", "horizontal-grid-hover")
     .attr("style", "opacity:0;")
-    .attr(config.isVertical ? "x1" : "y1", margin.left)
-    .attr(config.isVertical ? "x2" : "y2", margin.left + lineLength)
+    .attr(config.isVertical ? "x1" : "y1", (config.isVertical ? margin.left : margin.top))
+    .attr(config.isVertical ? "x2" : "y2", (config.isVertical ? margin.left : margin.top) + lineLength)
     .attr(config.isVertical ? "y1" : "x1", (d: number) => yScale(d) + 0.25)
     .attr(config.isVertical ? "y2" : "x2", (d: number) => yScale(d) + 0.25)
     .attr("stroke", styling.scales.line.stroke)

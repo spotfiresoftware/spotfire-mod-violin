@@ -486,14 +486,13 @@ export async function render(
   const svgHeight = config.isVertical
     ? containerHeight -
       tableContainerSpecs.tableContainer.node().getBoundingClientRect().height
-    : containerHeight;// - tableContainerSpecs.headerRowHeight;
-
+    : containerHeight; // - tableContainerSpecs.headerRowHeight;
 
   // Adjust the top margin for the table header (horizontal mode)
   if (!config.isVertical) {
     margin.top = tableContainerSpecs.headerRowHeight;
   }
-  
+
   const verticalPlotHeight = svgHeight - margin.top - margin.bottom;
 
   Log.green(LOG_CATEGORIES.LayoutOptimization)(
@@ -505,7 +504,7 @@ export async function render(
     svgHeight
   );
 
-  Log.green(LOG_CATEGORIES.ShowHideZoomSliders)(    
+  Log.green(LOG_CATEGORIES.ShowHideZoomSliders)(
     "svgHeight",
     svgHeight,
     svg,
@@ -769,15 +768,18 @@ export async function render(
 
     sliderSvg = svg
       .append("g")
-      .attr("transform", "translate(" + (config.isVertical ? 10 : -10) + ",-5)")
+      .attr(
+        "transform",
+        "translate(" + (config.isVertical ? 10 : -20) + ",-10)"
+      )
       .append("svg")
+      .attr("transform", "translate(" + (config.isVertical ? 10 : -10) + ",-5)")
       .attr("xmlns", "http://www.w3.org/2000/svg")
       .attr("id", "slider-container" + trellisIndex)
       .style("height", (config.isVertical ? svgHeight : 30) + "px")
       .style("width", (config.isVertical ? 30 : svgWidth) + "px");
-      
-      
-      //.classed("trellis-panel-zoom-slider-container", true);
+
+    //.classed("trellis-panel-zoom-slider-container", true);
     sliderSvg.selectAll("*").remove();
 
     Log.green(LOG_CATEGORIES.ShowHideZoomSliders)(
@@ -861,7 +863,7 @@ export async function render(
               .y((d: any) =>
                 config.isVertical
                   ? yScale(d.y)
-                  : xScale(d.x) + xScale.bandwidth() / 2
+                  : margin.top + xScale(d.x) + xScale.bandwidth() / 2
               )
           );
         // Add another, wider path that's easier to hover over, and make it transparent
@@ -889,7 +891,7 @@ export async function render(
               .y((d: any) =>
                 config.isVertical
                   ? yScale(d.y)
-                  : xScale(d.x) + xScale.bandwidth() / 2
+                  : margin.top + xScale(d.x) + xScale.bandwidth() / 2
               )
           )
           .attr("stroke", "transparent")
@@ -1033,7 +1035,7 @@ export async function render(
         .attr("stroke-dasharray", newDasharray)
         .attr("transform", (d: any) => {
           const xTranslate =
-            (config.isVertical ? margin.left : 0) +
+            (config.isVertical ? margin.left : margin.top) +
             (xScale(d[0]) ? xScale(d[0]) : 0) +
             xScale.bandwidth() / 2;
           const yTranslate =
@@ -1086,7 +1088,7 @@ export async function render(
         .append("text")
         .attr("transform", function (d: any) {
           const xTranslate =
-            (config.isVertical ? margin.left : 0) +
+            (config.isVertical ? margin.left : margin.top) +
             (xScale(d[0]) ? xScale(d[0]) : 0) +
             sumStatsSetting.labelHorizOffset(xScale.bandwidth());
           const yTranslate =
@@ -1261,7 +1263,7 @@ export async function render(
               (selectionRectX + selectionRectWidth - margin.left - 20) /
                 xScale.bandwidth()
             )
-          : Math.floor(selectionRectY1 / xScale.bandwidth());
+          : Math.floor((selectionRectY1 - margin.top) / xScale.bandwidth());
 
         // band0 is the start of the current x-axis band in the violin chart
         // margin.left is zero for horizontal chart
@@ -1490,7 +1492,7 @@ export async function render(
                   config.isVertical
                     ? d.y
                     : d.y +
-                      xScale.bandwidth() * violinCategoricalIndex +
+                      margin.top + xScale.bandwidth() * violinCategoricalIndex +
                       violinWidthPadding.violinX / 2
                 )
                 .attr("r", 5 + 2 * violinCategoricalIndex)
