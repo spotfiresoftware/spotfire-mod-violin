@@ -1403,7 +1403,7 @@ Spotfire.initialize(async (mod) => {
         if (
           renderedPanels.length == 1 &&
           config.showZoomSliders.value() &&
-          !config.trellisIndividualZoomSettings.value()
+          !config.yScalePerTrellisPanel.value()
         ) {
           /*******
            *

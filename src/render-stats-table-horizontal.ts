@@ -63,9 +63,9 @@ export function renderStatisticsTableHorizontal(
     ),
   ];
 
-  Log.red(LOG_CATEGORIES.ShowHideZoomSliders)(
+  Log.red(LOG_CATEGORIES.LayoutOptimization)(
     "enabledSummaryStats",
-    enabledSummaryStats
+    enabledSummaryStats, enabledSummaryStats.length
   );
 
   const categoryStatisticsMap = new Map<string, Map<string, number>>();
@@ -109,6 +109,9 @@ export function renderStatisticsTableHorizontal(
                 sumStats["max"]
               );
               statisticsValuesMap.set(entry.name, sumStats[propertyName]);
+            } else {
+              // Undefined value so that at least we get cells
+              statisticsValuesMap.set(entry.name, undefined);
             }
           }
         }
@@ -119,7 +122,7 @@ export function renderStatisticsTableHorizontal(
 
   const headerColumns: string[] = [...orderedCategories];
 
-  Log.green(LOG_CATEGORIES.Horizontal)(
+  Log.green(LOG_CATEGORIES.LayoutOptimization)(
     "categoryStatisticsMap",
     categoryStatisticsMap
   );
@@ -153,20 +156,13 @@ export function renderStatisticsTableHorizontal(
     statsTableHeaderRow
   );
 
-  /*if (enabledSummaryStats.length = 0){
-    enabledSummaryStats.push({
-      name: ""
-    })
-  }*/
+  Log.green(LOG_CATEGORIES.LayoutOptimization)("statsTableHeaderRow", statsTableHeaderRow);
 
   const statsHeaders = statsTableHeaderRow
     .selectAll("tr")
     .data(enabledSummaryStats)
     .enter()
-    .append("th")
-    .classed("summary-header", (d: any) => {
-      return d != "";
-    })
+    .append("th")    
     .classed("summary-header-horizontal", (d: any) => {
       return d != "";
     })
@@ -196,7 +192,7 @@ export function renderStatisticsTableHorizontal(
     // Make sure any additional classes are set after the main class!
     .classed("statistics-table-name-vertical", true)
     .classed("summary-div-sortable", true)
-    .style("min-height", config.showZoomSliders.value() && !isTrellis ? "30px": "")
+    .style("min-height", config.showZoomSliders.value() && !isTrellis ? "30px": config.showZoomSliders.value() && config.yScalePerTrellisPanel.value() ? "25px": "")
     .style("font-size", fontSizePx + "px")
     .style("font-family", styling.generalStylingInfo.font.fontFamily)
     .style("font-weight", styling.generalStylingInfo.font.fontWeight)

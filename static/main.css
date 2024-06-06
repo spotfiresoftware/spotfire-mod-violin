@@ -106,6 +106,7 @@
 
 .statistics-table-name-vertical {
   text-align: center;
+  align-items: center;
   white-space: nowrap;
   writing-mode: vertical-lr;
   rotate: 180deg;
@@ -138,10 +139,11 @@
 }
 
 .summary-header-horizontal {
-  display:flex;
-  justify-content: center;
-  align-content: center;
-  flex-direction: row; 
+  text-overflow: clip;
+  border: 1px solid;  
+  margin: 0px;
+  padding: 0px;
+  text-align: right;
 }
 
 .summary-header-right-align {
@@ -257,6 +259,11 @@ table {
 
 #zoom-slider {
   width: 100%;
+}
+
+.trellis-panel-zoom-slider-container {
+  position: fixed;
+
 }
 
 .vertical-zoom-slider text,
@@ -591,9 +598,8 @@ path.handle {
   stroke-width: 0.5;
 }
 
-#trellis-zoom-container {
-  width: 25px;
-  position: fixed;
+.trellis-panel-zoom-slider-container{  
+  position: relative;
   top: 10px;
   left: 10px;
 }

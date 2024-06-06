@@ -94,6 +94,8 @@ if (!SVGElement.prototype.checkIntersection) {
   SVGElement.prototype.checkIntersection = checkIntersectionPolyfill;
 }
 
+const SHALL_SCROLL_Y_AXIS = false;
+
 /**
  * Renders an instance of the Violin mod; this is called once if not trellised, or once per trellis panel
  *
@@ -566,8 +568,8 @@ export async function render(
 
     // And move the linear portion indicator in the case of symlog:
     g.select(".symlog-linear-portion-indicator")
-      .attr("y1", plotHeight)
-      .attr("y2", plotHeight);
+      .attr("y1", plotHeight + margin.top)
+      .attr("y2", plotHeight + margin.top);
   }
 
   // Now move the rendered continuous axis to its correct place
@@ -632,7 +634,7 @@ export async function render(
     // - could be used to move the continuous axis with the scroll event
     // so that it's always visible (if we supported scrolling a horizontal violin
     // plot - but right now we don't
-    if (false) {
+    if (SHALL_SCROLL_Y_AXIS) {
       windowScrollYTracker.eventHandlers.push(() => {
         Log.red(LOG_CATEGORIES.Horizontal)(
           "Moving y axis",
@@ -712,13 +714,6 @@ export async function render(
       "width:" + svgWidth + "px; " + "height:" + svgHeight + "px;"
     );
 
-    /*g.attr(
-      "style",
-      "width:" + plotWidth + "px; " + "height:" + plotHeight + "px;"
-    );
-
-    g.attr("transform", "translate(" + margin.left + "," + (config.isVertical? margin.top : 0) + ")");
-    */
     xAxis = d3.axisBottom(xScale);
 
     // Render the x axis
@@ -757,31 +752,24 @@ export async function render(
 
   if (config.showZoomSliders.value() && isTrellisWithIndividualYscale) {
     // Trellis - individual zoom sliders
-
-    /*const zoomSliderContainer = container
-      .append("div")
-      .classed("trellis-panel-zoom-slider-container", true)
-      .style("background-color", styling.generalStylingInfo.backgroundColor);
-    if (!config.isVertical) {
-      zoomSliderContainer
-        //.style("left", (config.isVertical ? 10 : 20) + "px")
-        .style("left", statisticsTableWidth + "px")
-        .style("height", "30px")
-        .style("width", containerWidth + "px");
-    }*/
-
     sliderSvg = svg
       .append("g")
       .attr(
         "transform",
-        "translate(" + (config.isVertical ? 10 : -20) + ",-10)"
+        "translate(" +
+          (config.isVertical ? 10 : -22) +
+          "," +
+          (config.isVertical
+            ? 0
+            : (-1 * Math.max(tableContainerSpecs.headerRowHeight, 45) / 2)) +
+          ")"
       )
       .append("svg")
-      .attr("transform", "translate(" + (config.isVertical ? 10 : -10) + ",-5)")
+      //.attr("transform", "translate(" + (config.isVertical ? 10 : -10) + ",-5)")
       .attr("xmlns", "http://www.w3.org/2000/svg")
       .attr("id", "slider-container" + trellisIndex)
-      .style("height", (config.isVertical ? svgHeight : 30) + "px")
-      .style("width", (config.isVertical ? 30 : svgWidth) + "px");
+      .attr("height", (config.isVertical ? svgHeight : Math.max(tableContainerSpecs.headerRowHeight, 45)) + "px")
+      .attr("width", (config.isVertical ? 30 : svgWidth + 10) + "px");
 
     //.classed("trellis-panel-zoom-slider-container", true);
     sliderSvg.selectAll("*").remove();
@@ -795,7 +783,7 @@ export async function render(
     sliderSvg
       .append("g")
       .attr("class", "vertical-zoom-slider")
-      .attr("transform", "translate(20, " + margin.top + ")")
+      .attr("transform", "translate(20, " + (config.isVertical ? 10 : 35) + ")")
       .call(
         createZoomSlider(
           yScale,
@@ -922,15 +910,7 @@ export async function render(
   /**
    * Render trend lines if any are enabled
    */
-  renderTrendLines(
-    g,
-    config,
-    plotData,
-    margin,
-    xScale,
-    yScale,
-    tooltip
-  );
+  renderTrendLines(g, config, plotData, margin, xScale, yScale, tooltip);
 
   //** Display p-value results from the one-way ANOVA test
 
@@ -1021,7 +1001,7 @@ export async function render(
     const violinMarkables: any = [];
 
     // set this to true to enable drawing of rects and circles to aid with debugging violin marking
-    const DEBUG_VIOLIN_MARKING = true;
+    const DEBUG_VIOLIN_MARKING = false;
 
     Log.green(LOG_CATEGORIES.ViolinMarking)(
       "svg bbox",
@@ -1088,11 +1068,14 @@ export async function render(
 
         // band0 is the start of the current x-axis band in the violin chart
         // margin.left is zero for horizontal chart
-        const band0 = xScale.bandwidth() * violinCategoricalIndex + margin.left;
+        const band0 =
+          xScale.bandwidth() * violinCategoricalIndex +
+          (config.isVertical ? margin.left : margin.top);
 
         // The end x axis band for this violin - todo tweak for horizontal violin. It's not margin.top!
         const band1 =
-          xScale.bandwidth() * (violinCategoricalIndex + 1) + margin.left;
+          xScale.bandwidth() * (violinCategoricalIndex + 1) +
+          (config.isVertical ? margin.left : margin.top);
 
         // Does drawing start on the left hand side of the violin? (vertical mode)
         // Horizontal mode - lhs = above
