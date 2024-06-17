@@ -447,7 +447,7 @@ export function renderContinuousAxis(
     );
   }
 
-  return { yScale: yScale, yAxisRendered: yAxisRendered };
+  return { yScale: yScale, yAxisRendered: yAxisRendered, ticks: ticks };
 }
 
 export function renderGridLines(
@@ -460,14 +460,13 @@ export function renderGridLines(
     scales: ScaleStylingInfo;
   },
   yScale: d3.scale,
+  ticks: d3.tick[],
   tooltip: Tooltip
 ) {
   /**
    * Draw grid lines
    */
-
-  const ticks = yScale.ticks();
-
+  
   Log.blue(LOG_CATEGORIES.Horizontal)("ticks", ticks);
 
   g.selectAll("line.horizontalGrid")

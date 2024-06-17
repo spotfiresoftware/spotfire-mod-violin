@@ -141,6 +141,7 @@ export interface TrellisRenderingInfo {
   trellisIndex: number;
   trellisName: string;
   trellisRowIndex: number;
+  panelHeight: number;
 }
 
 export interface Options {
@@ -255,5 +256,6 @@ export interface TableContainerSpecs {
 
 export interface YScaleSpecs {
     yAxisRendered:D3_SELECTION,
-    yScale: d3.scale
+    yScale: d3.scale,
+    ticks: d3.tick[]
 }

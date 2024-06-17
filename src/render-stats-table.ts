@@ -125,7 +125,7 @@ export function renderStatisticsTable(
 
   // - 1 makes the cell sizes fit exactly (each cell has a border of 1px on both sides, and shares
   // its borders with one other cell)
-  const cellWidth = bandwidth - 1.1;
+  const cellWidth = Math.max(bandwidth - 1.1, 0);
   const leftMostColumnWidth = margin.left - 1.1;
 
   const headerColumns: string[] = ["", ...orderedCategories];
@@ -347,7 +347,7 @@ export function renderStatisticsTable(
           .attr("style", () => "width:" + cellWidth + "px")
           .html(
             "α: " +
-              config.FormatNumber(plotData.comparisonCirclesStats.alpha) +
+              plotData.comparisonCirclesStats.alpha +
               "<br/>" +
               "RMSE: " +
               config.FormatNumber(plotData.comparisonCirclesStats.rootMse) +

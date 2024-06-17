@@ -1,6 +1,6 @@
 {
     "name": "violin-plot",
-    "version": "2.9.0",
+    "version": "3.0.0",
     "description": "A visual representation of data distribution, combining the advantages of both box plots and kernel density plots, simultaneously displaying summary statistics and underlying data density.",
     "main": "index.js",
     "scripts": {

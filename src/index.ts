@@ -682,7 +682,7 @@ Spotfire.initialize(async (mod) => {
     previousColorAxisExpression = colorAxisExpression;
 
     // Check DataView size and error if too large
-    const xLimit = 100;
+    const xLimit = 400;
     const trellisLimit = 200;
     const xCount = (await dataView.hierarchy("X")).leafCount;
     const trellisCount: number = (await dataView.hierarchy("Trellis"))
@@ -1201,7 +1201,7 @@ Spotfire.initialize(async (mod) => {
             columnIndex
           );
 
-          const { bodyContent, bodyHeight, bodyContainer } =
+          const { bodyContent, bodyHeight, bodyContainer,  } =
             getOrCreateContainers(
               currentRow,
               panelIndex,
@@ -1233,6 +1233,7 @@ Spotfire.initialize(async (mod) => {
               trellisIndex: panelIndex, // todo - check -1??????
               trellisName: node.formattedPath(),
               trellisRowIndex: rowIndex,
+              panelHeight: panelHeight
             };
             Log.green(LOG_CATEGORIES.General)("pushing", node.formattedValue());
             trellisRenderingInfo.push(renderingInfo);
@@ -1393,7 +1394,8 @@ Spotfire.initialize(async (mod) => {
           true,
           renderingInfo.trellisIndex,
           renderingInfo.trellisName,
-          renderingInfo.trellisRowIndex
+          renderingInfo.trellisRowIndex,
+          renderingInfo.panelHeight
         );
 
         renderedPanels.push(panel);

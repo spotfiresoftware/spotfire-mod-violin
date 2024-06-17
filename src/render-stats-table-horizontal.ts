@@ -256,7 +256,6 @@ export function renderStatisticsTableHorizontal(
       }
     });
 
-  //const rowData = Array.from(d[1], ([key, value]) => ({ key, value }));
   const entryRows = table
     .append("tbody")
     .selectAll("tr")
@@ -339,7 +338,7 @@ export function renderStatisticsTableHorizontal(
       //Log.green(LOG_CATEGORIES.Horizontal)("entryRow", d);
       if (typeof d == "string") return d;
       if (isNaN(d)) return "";
-      if (Math.floor(d) === d) return d; // for Count
+      //if (Math.floor(d) === d) return d; // for Count
       return config.FormatNumber(d);
     })
     .on("mouseover", function (this: HTMLElement, event: Event) {
@@ -392,7 +391,7 @@ export function renderStatisticsTableHorizontal(
       .classed("summary-div", true)
       .html(
         "α: " +
-          config.FormatNumber(plotData.comparisonCirclesStats.alpha) +
+          plotData.comparisonCirclesStats.alpha +
           "<br/>" +
           "RMSE: " +
           config.FormatNumber(plotData.comparisonCirclesStats.rootMse) +

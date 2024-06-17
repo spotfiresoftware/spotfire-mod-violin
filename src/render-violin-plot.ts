@@ -7,13 +7,8 @@
 // @ts-ignore
 import * as d3 from "d3";
 import { Data, Options, RenderState, RowData } from "./definitions";
-import {
-  violinWidthPadding,
-} from "./index";
-import {
-  LOG_CATEGORIES,
-  Log
-} from "./log";
+import { violinWidthPadding } from "./index";
+import { LOG_CATEGORIES, Log } from "./log";
 import { Tooltip, DataViewRow, GeneralStylingInfo } from "spotfire-api";
 import {
   highlightComparisonCircles,
@@ -29,8 +24,6 @@ export function renderViolin(
   orderedCategories: string[],
   xScale: d3.scaleBand,
   yScale: d3.scale,
-  svgLeft: number,
-  svgTop: number,
   margin: any,
   g: any,
   tooltip: Tooltip,
@@ -105,7 +98,8 @@ export function renderViolin(
       .enter()
       .append("g")
       .attr("transform", function (d: any) {
-        const xTranslate = (config.isVertical ? margin.left : margin.top) +
+        const xTranslate =
+          (config.isVertical ? margin.left : margin.top) +
           (xScale(d.category) ? xScale(d.category) : 0) +
           violinWidthPadding.violinX / 2;
         Log.green(LOG_CATEGORIES.Horizontal)(
@@ -125,28 +119,41 @@ export function renderViolin(
         );
       })
       .style("stroke", (d: any) =>
-        d.IsGap ? "darkgray" : getBoxBorderColor(d.IsGap
-          ? "url(#no-data)"
-          : !config.areColorAndXAxesMatching || config.useFixedViolinColor.value()
-          ? config.violinColor.value()
-          : d.color)
+        d.IsGap
+          ? "darkgray"
+          : getBoxBorderColor(
+              d.IsGap
+                ? "url(#no-data)"
+                : !config.areColorAndXAxesMatching ||
+                  config.useFixedViolinColor.value()
+                ? config.violinColor.value()
+                : d.color
+            )
       )
       .style("opacity", config.violinOpacity)
       .style("fill", function (d: any) {
         Log.blue(LOG_CATEGORIES.ColorViolin)("isGap", d, d.IsGap);
-        Log.blue(LOG_CATEGORIES.ColorViolin)("matching?", config.areColorAndXAxesMatching);
-        
+        Log.blue(LOG_CATEGORIES.ColorViolin)(
+          "matching?",
+          config.areColorAndXAxesMatching
+        );
+
         return d.IsGap
           ? "url(#no-data)"
-          : !config.areColorAndXAxesMatching || config.useFixedViolinColor.value()
+          : !config.areColorAndXAxesMatching ||
+            config.useFixedViolinColor.value()
           ? config.violinColor.value()
-          : d.color;          
+          : d.color;
       })
       .classed("not-marked", (d: any) => {
         if (!plotData.isAnyMarkedRecords) {
           return false;
         }
-        return (!config.areColorAndXAxesMatching || config.useFixedViolinColor.value()) && !d.Marked;
+        return (
+          (!config.areColorAndXAxesMatching ||
+            config.useFixedViolinColor.value()) &&
+          !d.Marked
+        );
       })
       .append("path")
       .classed("violin-path", true)
@@ -202,7 +209,13 @@ export function renderViolin(
               : "") +
               d[0].category +
               "\ny: " +
-              config.FormatNumber(yScale.invert(event.y - margin.top)) +
+              config.FormatNumber(
+                yScale.invert(
+                  event.y -
+                    margin.top +                    
+                    (window.scrollY || document.documentElement.scrollTop)
+                )
+              ) +
               "\nDensity: " +
               config.FormatNumber(violinXscale.invert(event.x)) +
               "\nY min: " +
@@ -241,19 +254,12 @@ export function renderViolin(
               "\nY max: " +
               config.FormatNumber(d3.max(d.map((p: any) => p.violinY)))
           );
-        } else {
+        } else {          
           tooltip.show(
             (xAxisSpotfire.parts[0]?.displayName
               ? xAxisSpotfire.parts[0]?.displayName + ": "
               : "") +
               d[0].category +
-              "\n raw y (x): " +
-              // @todo: The magic number 12 comes up again! Must figure out why
-              config.FormatNumber(event.x - svgLeft - 12) +
-              "\ny: " +
-              config.FormatNumber(yScale.invert(event.x - svgLeft - 12)) +
-              "\nDensity: " +
-              d3.format(".2e")(violinXscale.invert(event.x)) +
               "\nY min: " +
               config.FormatNumber(d3.min(d.map((p: any) => p.violinY))) +
               "\nY max: " +
@@ -316,7 +322,8 @@ export function renderViolin(
       .enter() // So now we are working group per group
       .append("g")
       .attr("transform", function (d: any) {
-        const xTranslate = (config.isVertical ? margin.left : margin.top) +
+        const xTranslate =
+          (config.isVertical ? margin.left : margin.top) +
           (xScale(d.category) ? xScale(d.category) : 0) +
           violinWidthPadding.violinX / 2;
         Log.green(LOG_CATEGORIES.Horizontal)(

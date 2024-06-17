@@ -183,6 +183,10 @@
   white-space: nowrap;
 }
 
+.fixed-continuous-axis {
+  position: fixed;
+}
+
 /* 
   Hovering is confusing as it shows the arrows after you've clicked them, and they're the wrong way round
 .summary-header.ordered-left:hover::after {

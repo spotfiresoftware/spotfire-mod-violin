@@ -126,7 +126,8 @@ export async function render(
   isTrellis: boolean = false,
   trellisIndex: number = -1,
   trellisName: string = "",
-  trellisRowIndex: number = 0
+  trellisRowIndex: number = 0,
+  panelHeight: number = 0
 ): Promise<RenderedPanel> {
   if (state.preventRender) {
     Log.green(LOG_CATEGORIES.Rendering)("State prevents render");
@@ -194,7 +195,7 @@ export async function render(
     top: isTrellis ? 10 : 20,
     bottom: isTrellis ? 10 : 15,
     left: config.isVertical ? calculatedLeftMargin : 0,
-    right: 15,
+    right: 8,
   };
 
   const padding = { violinX: 20, betweenPlotAndTable: 10 };
@@ -443,7 +444,7 @@ export async function render(
   }
 
   const svgWidth = config.isVertical
-    ? containerWidth
+    ? containerWidth 
     : containerWidth -
       tableContainerSpecs.tableContainer.node().getBoundingClientRect().width -
       padding.betweenPlotAndTable;
@@ -451,7 +452,7 @@ export async function render(
   let xAxis: D3_SELECTION;
 
   const plotWidth = config.isVertical
-    ? svgWidth - margin.left
+    ? svgWidth - margin.left - margin.right
     : svgWidth - margin.top - margin.bottom;
 
   if (config.isVertical) {
@@ -549,22 +550,24 @@ export async function render(
   if (!config.isVertical) {
     Log.blue(LOG_CATEGORIES.Horizontal)("bandwidth", bandwidth);
 
+    const summaryCellHeight = Math.max(0, bandwidth - 1);
+
     // Set the height of the table entry rows
     tableContainerSpecs.tableContainer
       .selectAll("td.summary-value")
-      .style("height", bandwidth - 1 + "px");
+      .style("height", summaryCellHeight + "px");
 
     tableContainerSpecs.tableContainer
       .selectAll("td.summary-header-right-align")
-      .style("height", bandwidth - 1 + "px");
+      .style("height", summaryCellHeight+ "px");
 
     tableContainerSpecs.tableContainer
       .selectAll("div.summary-div")
-      .style("height", bandwidth - 1 + "px");
+      .style("height", summaryCellHeight + "px");
 
     tableContainerSpecs.tableContainer
       .selectAll("div.summary-div")
-      .style("height", bandwidth - 1 + "px");
+      .style("height", summaryCellHeight + "px");
 
     // And move the linear portion indicator in the case of symlog:
     g.select(".symlog-linear-portion-indicator")
@@ -742,6 +745,7 @@ export async function render(
       config.isVertical ? plotWidth : plotHeight,
       styling,
       yScale,
+      yScaleSpecs.ticks,
       tooltip
     );
   }
@@ -761,14 +765,19 @@ export async function render(
           "," +
           (config.isVertical
             ? 0
-            : (-1 * Math.max(tableContainerSpecs.headerRowHeight, 45) / 2)) +
+            : (-1 * Math.max(tableContainerSpecs.headerRowHeight, 45)) / 2) +
           ")"
       )
       .append("svg")
       //.attr("transform", "translate(" + (config.isVertical ? 10 : -10) + ",-5)")
       .attr("xmlns", "http://www.w3.org/2000/svg")
       .attr("id", "slider-container" + trellisIndex)
-      .attr("height", (config.isVertical ? svgHeight : Math.max(tableContainerSpecs.headerRowHeight, 45)) + "px")
+      .attr(
+        "height",
+        (config.isVertical
+          ? svgHeight
+          : Math.max(tableContainerSpecs.headerRowHeight, 45)) + "px"
+      )
       .attr("width", (config.isVertical ? 30 : svgWidth + 10) + "px");
 
     //.classed("trellis-panel-zoom-slider-container", true);
@@ -802,6 +811,7 @@ export async function render(
       );
   }
 
+  Log.red(LOG_CATEGORIES.LayoutOptimization)("panelheight", panelHeight, trellisRowIndex, svg.node().getBoundingClientRect().y, (window.scrollY || document.documentElement.scrollTop));
   /**
    * Render violin
    */
@@ -811,8 +821,6 @@ export async function render(
       orderedCategories,
       xScale,
       yScale,
-      svgLeft,
-      svgTop,
       margin,
       g,
       tooltip,
@@ -878,8 +886,6 @@ export async function render(
       orderedCategories,
       xScale,
       yScale,
-      svgLeft,
-      svgTop,
       margin,
       g,
       tooltip,
