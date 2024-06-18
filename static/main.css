@@ -32,11 +32,8 @@
 .container-offset-right {
   position: absolute;
   left: 0px;
-<<<<<<< HEAD
-=======
   border-width: 10px;
   border-color: #3399ff;
->>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
   /*left: 40px;*/
 }
 
@@ -83,15 +80,12 @@
   stroke-width: 2px;
   opacity: 1;
 }
-<<<<<<< HEAD
-=======
 
 .rotate {
   transform-box: fill-box;
   transform-origin: center;
   transform: rotate(90deg);
 }
->>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
 
 .table-container {
   position: relative;
@@ -135,11 +129,7 @@
 
 .summary-header,
 .summary-value {
-<<<<<<< HEAD
-  text-overflow:clip;
-=======
   text-overflow: clip;
->>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
   border: 1px solid;
   text-align: center;
   vertical-align: center;
@@ -168,8 +158,6 @@
   text-overflow: clip;
   overflow: hidden;
   padding: 1px;
-<<<<<<< HEAD
-=======
   display:flex;
   justify-content: center;
   align-content: center;
@@ -185,7 +173,6 @@
   justify-content: center;
   align-content: center;
   flex-direction: column;  
->>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
 }
 
 .summary-value-comparison-circles {
@@ -196,13 +183,10 @@
   white-space: nowrap;
 }
 
-<<<<<<< HEAD
-=======
 .fixed-continuous-axis {
   position: fixed;
 }
 
->>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
 /* 
   Hovering is confusing as it shows the arrows after you've clicked them, and they're the wrong way round
 .summary-header.ordered-left:hover::after {
@@ -281,14 +265,11 @@ table {
   width: 100%;
 }
 
-<<<<<<< HEAD
-=======
 .trellis-panel-zoom-slider-container {
   position: fixed;
 
 }
 
->>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
 .vertical-zoom-slider text,
 .vertical-zoom-slider .tick {
   display: none;
@@ -386,57 +367,6 @@ path.handle {
 }
 
 .warning-info-text {
-  margin-left: 22px;
-  overflow-wrap: break-word;
-}
-
-.warning-icon {
-  position: fixed;
-  left: 0px;
-  top: -5px;
-  height: 14px;
-  width: 14px;
-  visibility: hidden;
-  cursor: pointer;
-}
-
-.warning-info-popup {
-  left: 7px;
-  top: 18px;
-  width: 400px;
-  background-color: #f8f8f8;
-  color: #313336;
-  padding-top: 8px;
-  padding-left: 8px;
-  padding-right: 8px;
-  padding-bottom: 10px;
-  border-top-left-radius: 3px;
-  border-top-right-radius: 3px;
-  border-bottom-left-radius: 3px;
-  border-bottom-right-radius: 3px;
-  border-top-color: #bdbfc3;
-  border-right-color: #bdbfc3;
-  border-bottom-color: #bdbfc3;
-  border-left-color: #bdbfc3;
-  border-top-width: 1px;
-  border-right-width: 1px;
-  border-bottom-width: 1px;
-  border-left-width: 1px;
-  border-style: Solid;
-  box-shadow: 0px 1px 5px 0px rgb(0 0 0 / 20%);
-  font-family: "Roboto",sans-serif;
-  font-size: 11px;
-  position:absolute;
-  visibility: hidden;
-}
-
-.warning-info-title {
-  font-weight: Bold;
-  margin-left: 22px;
-  margin-bottom: 4px;
-}
-
-.warning-info-text { 
   margin-left: 22px;
   overflow-wrap: break-word;
 }
