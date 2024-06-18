@@ -11,8 +11,13 @@ import { linearish } from "../node_modules/d3-scale/src/linear.js";
 import { copy, transformer } from "../node_modules/d3-scale/src/continuous.js";
 // @ts-ignore
 import { initRange } from "../node_modules/d3-scale/src/init.js";
+<<<<<<< HEAD
 
 import { LOG_CATEGORIES, Log } from "./index";
+=======
+// @ts-ignore
+import { LOG_CATEGORIES, Log } from "./log";
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
 
 // linearPortion is a small linear portion of the scale, for when x crosses zero;
 function transformSymlog(linearPortion:number) {
@@ -85,18 +90,30 @@ export function scaleAsinh() {
       for (let i = powMin; i <= 0; ++i) {
         for (k = 0; k > -base; --k) {
           t = -1 * k * Math.pow(base, i);
+<<<<<<< HEAD
           Log.green(LOG_CATEGORIES.AsinhScale)(
+=======
+          /*Log.green(LOG_CATEGORIES.AsinhScale)(
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
             "i, k, t",
             i,
             k,
             t.toExponential(2),
             !z.includes(t) && t < min,
             t < min
+<<<<<<< HEAD
           );
           if (t < min) continue;
           if (t > max) break;
           if (!z.includes(t)) {
             Log.green(LOG_CATEGORIES.AsinhScale)("pushing", t.toExponential(2));
+=======
+          );*/
+          if (t < min) continue;
+          if (t > max) break;
+          if (!z.includes(t)) {
+            //Log.green(LOG_CATEGORIES.AsinhScale)("pushing", t.toExponential(2));
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
             z.push(t);
           }
         }
@@ -106,37 +123,61 @@ export function scaleAsinh() {
       for (let i = powMin; i <= 0; ++i) {
         for (k = 0; k > -base; --k) {
           t = k * Math.pow(base, i);
+<<<<<<< HEAD
           Log.green(LOG_CATEGORIES.AsinhScale)(
+=======
+          /*Log.green(LOG_CATEGORIES.AsinhScale)(
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
             "i, k, t",
             i,
             k,
             t.toExponential(2),
             !z.includes(t) && t < min,
             t < min
+<<<<<<< HEAD
           );
           if (t < min) continue;
           if (t > max) break;
           if (!z.includes(t)) {
             Log.green(LOG_CATEGORIES.AsinhScale)("pushing", t.toExponential(2));
+=======
+          );*/
+          if (t < min) continue;
+          if (t > max) break;
+          if (!z.includes(t)) {
+            //Log.green(LOG_CATEGORIES.AsinhScale)("pushing", t.toExponential(2));
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
             z.push(t);
           }
         }
       }
     }
 
+<<<<<<< HEAD
     Log.green(LOG_CATEGORIES.AsinhScale)("negative");
+=======
+    //Log.green(LOG_CATEGORIES.AsinhScale)("negative");
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
     // Negative values
     for (let i = 0; i < powMin; ++i) {
       for (k = 0; k < base; ++k) {
         t = -1 * k * Math.pow(base, i);
+<<<<<<< HEAD
         Log.green(LOG_CATEGORIES.AsinhScale)(
+=======
+        /*Log.green(LOG_CATEGORIES.AsinhScale)(
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
           "i, k, t",
           i,
           k,
           t.toExponential(2),
           !z.includes(t) && t < min,
           t < min
+<<<<<<< HEAD
         );
+=======
+        );*/
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
         //if (t < min) continue;
         if (t > max) break;
         if (!z.includes(t)) {
@@ -145,22 +186,38 @@ export function scaleAsinh() {
         }
       }
     }
+<<<<<<< HEAD
     Log.green(LOG_CATEGORIES.AsinhScale)("positive");
+=======
+    //Log.green(LOG_CATEGORIES.AsinhScale)("positive");
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
     // Positive values
     for (let i = 0; i < powMax; i++) {
       for (k = 0; k < base; ++k) {
         t = k * Math.pow(base, i);
+<<<<<<< HEAD
         Log.green(LOG_CATEGORIES.AsinhScale)(
+=======
+        /*Log.green(LOG_CATEGORIES.AsinhScale)(
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
           "i, k, t",
           i,
           k,
           t.toExponential(2),
           !z.includes(t) && t < min
+<<<<<<< HEAD
         );
         if (t < min) continue;
         if (t > max) break;
         if (!z.includes(t)) {
           Log.green(LOG_CATEGORIES.AsinhScale)("pushing");
+=======
+        );*/
+        if (t < min) continue;
+        if (t > max) break;
+        if (!z.includes(t)) {
+          //Log.green(LOG_CATEGORIES.AsinhScale)("pushing");
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
           z.push(t);
         }
       }

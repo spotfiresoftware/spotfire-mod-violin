@@ -1,8 +1,15 @@
 /*
+<<<<<<< HEAD
 * Copyright © 2024. Cloud Software Group, Inc.
 * This file is subject to the license terms contained
 * in the license file that is distributed with this file.
 */
+=======
+ * Copyright © 2024. Cloud Software Group, Inc.
+ * This file is subject to the license terms contained
+ * in the license file that is distributed with this file.
+ */
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
 
 import {
   Controls,
@@ -18,7 +25,7 @@ import * as d3 from "d3";
 // @ts-ignore
 import { ColorPicker } from "@easylogic/colorpicker";
 
-import { GenerateRoundedRectSvg, LOG_CATEGORIES, Log } from "./index";
+import { LOG_CATEGORIES, Log } from "./log";
 
 // @ts-ignore
 import { sliderHorizontal } from "d3-simple-slider";
@@ -30,6 +37,8 @@ import {
 } from "./definitions";
 
 import { SumStatsConfig } from "./sumstatsconfig";
+import { GenerateRoundedRectSvg } from "./utility-functions";
+import { setFlagRecreateGlobalZoomContainers } from "./index";
 
 enum StatisticsConfigType {
   Table,
@@ -148,6 +157,12 @@ function AddCheckboxForStatsConfig(
     switch (statisticsConfigType) {
       case StatisticsConfigType.Table:
         configItem.tableEnabled = input.checked;
+<<<<<<< HEAD
+=======
+        // Global zoom containers should be recreated as their
+        // height/width will need to be reset
+        setFlagRecreateGlobalZoomContainers();
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
         break;
       case StatisticsConfigType.Reference:
         configItem.refEnabled = input.checked;
@@ -368,9 +383,15 @@ function AddRadioButton(
     div.addEventListener("contextmenu", (event: Event) =>
       event.stopPropagation()
     );
+<<<<<<< HEAD
 
     //div.classList.add("mt-2");
 
+=======
+
+    //div.classList.add("mt-2");
+
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
     const input = <HTMLInputElement>document.createElement("input");
     input.classList.add("form-check-input");
     input.setAttribute("type", "radio");
@@ -443,6 +464,7 @@ function AddTextfield(
       Log.green(LOG_CATEGORIES.CurrencyFormatting)("maxchars");
       return;
     }
+<<<<<<< HEAD
 
     if (event.key === "Enter" || shallApplyOnKeyPress) {
       property.set(event.key);
@@ -454,6 +476,19 @@ function AddTextfield(
     }
   });
 
+=======
+
+    if (event.key === "Enter" || shallApplyOnKeyPress) {
+      property.set(event.key);
+      target.focus();
+      Log.green(LOG_CATEGORIES.CurrencyFormatting)(
+        "applying on keypress",
+        target.value
+      );
+    }
+  });
+
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
   container.append(div);
 }
 
@@ -776,9 +811,59 @@ export function createSettingsPopout(
     dropDownContainer.append(labelElement);
     AddDivider(dropDownContainer); */
 
+<<<<<<< HEAD
   let section = AddSection("Appearance - Zoom Sliders", dropDownContainer);
   let placeholder = AddPlaceholder(section);
 
+=======
+  let section = AddSection("Appearance - Overall", dropDownContainer);
+  let placeholder = AddPlaceholder(section);
+
+  const verticalHorizontalOptionPlaceholder = AddPlaceholder(section);
+  AddRadioButton(
+    config.isVerticalPlot,
+    [
+      { text: "Vertical", value: true },
+      { text: "Horizontal", value: false },
+    ],
+    verticalHorizontalOptionPlaceholder,
+    (value: any) => {
+      const boolValue = value == "true";
+      Log.blue(LOG_CATEGORIES.Horizontal)("Add slider?", value, isTrellis, boolValue);
+      if (!boolValue && !isTrellis) {
+
+        Log.blue(LOG_CATEGORIES.Horizontal)("Adding slider for scaling");
+        AddSlider(
+          "Plot Scaling Factor",
+          config.plotScalingFactor,
+          verticalHorizontalOptionPlaceholder,
+          0,
+          10,
+          0.5
+        );
+      }
+    }
+  );
+
+  if (!config.isVertical && !isTrellis) {    
+      Log.blue(LOG_CATEGORIES.Horizontal)("Adding slider for scaling");
+      AddSlider(
+        "Plot Scaling Factor",
+        config.plotScalingFactor,
+        verticalHorizontalOptionPlaceholder,
+        1.0,
+        5,
+        0.5,
+        [1.0, 2.5, 5.0]
+      );
+  }
+
+  AddDivider(dropDownContainer);
+
+  section = AddSection("Appearance - Zoom Sliders", dropDownContainer);
+  placeholder = AddPlaceholder(section);
+
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
   const zoomSliderOptionsPlaceholder = AddPlaceholder(section);
   AddCheckbox(
     "Show Zoom Slider" + (isTrellis ? "s" : ""),
@@ -1005,7 +1090,12 @@ export function createSettingsPopout(
       ],
       section,
       () => {
+<<<<<<< HEAD
         config.ResetGlobalZoom();
+=======
+        setFlagRecreateGlobalZoomContainers(); // Make sure any global zoom containers are recreated
+        config.ResetGlobalZoom();        
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
       }
     );
   }
