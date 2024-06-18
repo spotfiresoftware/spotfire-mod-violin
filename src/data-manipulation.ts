@@ -17,7 +17,11 @@ import { Tukey } from "../node_modules/lib-r-math.js";
 const { qtukey } = Tukey();
 
 // @ts-ignore
+<<<<<<< HEAD
 import * as kde_pkg from "@uwdata/kde";
+=======
+import * as kde_pkg from "fast-kde";
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
 
 import {
   DataViewHierarchyNode,
@@ -34,7 +38,11 @@ import {
   SumStatsSettings,
   SummaryStatistics,
 } from "./definitions";
+<<<<<<< HEAD
 import { Log, LOG_CATEGORIES } from "./index";
+=======
+import { Log, LOG_CATEGORIES } from "./log";
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
 import { SumStatsConfig } from "./sumstatsconfig";
 import { log } from "console";
 
@@ -313,6 +321,7 @@ export async function buildDataForTrellisPanel(
       sortedCategoryRowData.forEach((row: RowData) => {
         if (row.Marked != previousRow.Marked) {
           markingGroupId++;
+<<<<<<< HEAD
         }
         //Log.blue(LOG_CATEGORIES.DebugSingleRowMarking)("element", element, previousElement, markingGroupId, element.Marked, previousElement.Marked);
         row.markingGroupId = markingGroupId;
@@ -463,6 +472,145 @@ export async function buildDataForTrellisPanel(
             type: "notgap",
           });
         }
+=======
+        }
+        //Log.blue(LOG_CATEGORIES.DebugSingleRowMarking)("element", element, previousElement, markingGroupId, element.Marked, previousElement.Marked);
+        row.markingGroupId = markingGroupId;
+        previousRow = row;
+      });
+
+      const categorySumStats = sumStats.get(category);
+      Log.green(LOG_CATEGORIES.InnovativeLogTicks)(
+        "categorySumStats",
+        categorySumStats.max
+      );
+      const bandwidth =
+        (categorySumStats.max - categorySumStats.min) *
+        config.violinBandwidth.value();
+
+      Log.green(LOG_CATEGORIES.InnovativeLogTicks)("bandWidth", bandwidth);
+
+      Log.blue(LOG_CATEGORIES.DebugLatestMarking)(
+        "RowData",
+        sortedCategoryRowData.map((d: RowData) => d.y)
+      );
+      Log.blue(LOG_CATEGORIES.DebugLatestMarking)(
+        "RowData",
+        categorySumStats.min,
+        categorySumStats.max
+      );
+      // Calculate the densities - note - in the result, x is the y axis in the plot; y is the width of the violin at
+      // that point.
+      let densityPointsSorted = Array.from(
+        kde_pkg
+          .density1d(
+            sortedCategoryRowData.map((d: RowData) => d.y),
+            {
+              size: config.violinSmoothness.value(),
+              bandwidth: bandwidth,
+              extent:
+                config.violinLimitToExtents.value() ||
+                config.yAxisScaleType.value() == "symlog"
+                  ? [categorySumStats.min, categorySumStats.max]
+                  : null,
+            }
+          )
+          .points()
+      )
+        .filter((p: any) => !isNaN(p.y))
+        .sort((a: any, b: any) => d3.ascending(a.x, b.x)) as [
+        { x: number; y: number }
+      ];
+      
+      // Now need a data structure where data points are grouped by marking
+      const rowsGroupedByMarking = d3.rollup(
+        sortedRowDataGroupedByCat.get(category),
+        (d: any) => d,
+        (d: any) => d.markingGroupId
+      );
+      Log.blue(LOG_CATEGORIES.DebugLatestMarking)(
+        "rowsGroupedByMarking",
+        rowsGroupedByMarking,
+        rowsGroupedByMarking.get(0),
+        d3.max(rowsGroupedByMarking.keys())
+      );
+
+      Log.blue(LOG_CATEGORIES.DebugLatestMarking)(
+        "densityPointsSorted",
+        densityPointsSorted
+      );
+
+      for (let i = 0; i <= d3.max(rowsGroupedByMarking.keys()); i++) {
+        const rows = rowsGroupedByMarking.get(i) as RowData[];
+
+        Log.blue(LOG_CATEGORIES.DebugLatestMarking)(
+          "i",
+          i,
+          "rows",
+          rows,
+          "max",
+          d3.max(rows.map((d: RowData) => d.y))
+        );
+
+        const minClosestDensity = getClosestDensityPoint(
+          densityPointsSorted,
+          rows[0].y
+        );
+        const maxClosestDensity = getClosestDensityPoint(
+          densityPointsSorted,
+          rows[rows.length - 1].y
+        );
+
+        Log.red(LOG_CATEGORIES.DebugLatestMarking)(
+          "y",
+          rows[0].y,
+          "minClosestDensity",
+          minClosestDensity
+        );
+
+        // are there always rows? I think so...
+        const points = densityPointsSorted.filter((p: any) =>
+          i == 0
+            ? p.x <= rows[rows.length - 1].y
+            : p.x >= rows[0].y && p.x <= rows[rows.length - 1].y
+        );
+
+        points.unshift({ x: rows[0].y, y: minClosestDensity?.y });
+        points.push({ x: rows[rows.length - 1].y, y: maxClosestDensity?.y });
+
+        Log.blue(LOG_CATEGORIES.DebugLatestMarking)("points", points);
+
+        const pointsLength = points.length;
+
+        if (pointsLength > 0) {
+          // At this point, min and max will be the same as for the rows
+          const min = points[0].y;
+          const max = points[points.length - 1].y;
+
+          const marked = rows.some((d: RowData) => d.Marked);
+
+          densitiesSplitByMarkingAndCategory.push({
+            i: i,
+            min: min,
+            max: max,
+            category: category,
+            color: config.useFixedViolinColor.value()
+              ? config.violinColor.value()
+              : sortedRowDataGroupedByCat
+                  .get(category)
+                  .find((r: RowData) =>
+                    marked ? r.Marked : !r.Marked
+                  )?.Color,
+            trellis: trellisNode.formattedPath(),
+            densityPoints: points,
+            Marked: marked,
+            rows: rows,
+            IsGap: rows.length == 0,
+            count: rows.length,
+            type: "notgap",
+          });
+        }
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
       } // End of iteration over marking groups
 
       Log.blue(LOG_CATEGORIES.DebugLatestMarking)(
@@ -470,9 +618,13 @@ export async function buildDataForTrellisPanel(
         densitiesSplitByMarkingAndCategory
       );
 
+<<<<<<< HEAD
       // Now fill in the gaps
       let prevMax = densityPointsSorted[0].x;
       
+=======
+      // Now fill in the gaps     
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
       // Filter to just this category
       const categoryDensitiesSplitByMarking = densitiesSplitByMarkingAndCategory.filter((d:any) => d.category == category);
 
@@ -522,8 +674,12 @@ export async function buildDataForTrellisPanel(
             IsGap: true,
             count: 0,
             type: "gap",
+<<<<<<< HEAD
           });
           prevMax = gapPoints[gapPoints.length - 1].x;
+=======
+          });         
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
         }
       }
 
@@ -532,7 +688,11 @@ export async function buildDataForTrellisPanel(
         trellis: trellisNode.formattedPath(),
         densityPoints: densityPointsSorted,
       });
+<<<<<<< HEAD
     } // end of iterating over categories   
+=======
+    } // end of iterating over categories
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
   }
 
   // calculations for Tukey Kramer comparison circles
@@ -948,6 +1108,7 @@ function buildSumStats(
       performance.now() - now
     );
     now = performance.now();
+<<<<<<< HEAD
 
     // 95% confidence interval of the mean
     // 1.960 is the Confidence Level Z Value for 95%
@@ -972,8 +1133,65 @@ function buildSumStats(
       "Build SumStats took " +
         (performance.now() - startTime) / 1000 +
         "seconds"
+=======
+
+    // 95% confidence interval of the mean
+    // 1.960 is the Confidence Level Z Value for 95%
+    const confidenceIntervalUpper = avg + 1.96 * (stdDev / Math.sqrt(count));
+    const confidenceIntervalLower = avg - 1.96 * (stdDev / Math.sqrt(count));
+
+    Log.blue(LOG_CATEGORIES.Horizontal)(
+      "confidence intervals",
+      confidenceIntervalLower, confidenceIntervalUpper
     );
 
+    // todo: check!
+    let outlierCount: number;
+    if (config.IsStatisticsConfigItemEnabled("Outliers")) {
+      outlierCount = d3.count(
+        yValues.filter((y: any) => (y > uav ? y : null || y < lav ? y : null))
+      );
+    }
+
+    Log.blue(LOG_CATEGORIES.SumStatsPerformance)(
+      "outliers",
+      performance.now() - now
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
+    );
+    now = performance.now();
+
+    Log.green(LOG_CATEGORIES.SumStatsPerformance)(
+      "Build SumStats took " +
+        (performance.now() - startTime) / 1000 +
+        "seconds"
+    );
+
+    function getClosestValueToZero(rows: RowData[]) {
+      const negativeRows = rows.filter((r:any) => r.y < 0);
+      Log.green(LOG_CATEGORIES.AsinhScale)("closestValueToZero negativeRows", rows, negativeRows);
+      const firstPositiveRow = rows.find((r:any) => r.y > 0);
+      let negativeClosest = negativeRows.length > 0 ? Math.abs(negativeRows[negativeRows.length -1].y) : undefined;
+      let positiveClosest = firstPositiveRow?.y;
+
+      if (isNaN(negativeClosest)) {
+        return positiveClosest;
+      }
+
+      if (isNaN(positiveClosest)) {
+        return negativeClosest;
+      }
+
+      Log.red(LOG_CATEGORIES.AsinhScale)("closestValueToZero", negativeClosest, positiveClosest, Math.min(negativeClosest, positiveClosest));
+      return Math.min(negativeClosest, positiveClosest);
+      
+    }
+
+<<<<<<< HEAD
+=======
+    // Get closest value to zero - only required if yAxis is symlog
+    const closestValueToZero = config.yAxisScaleType.value() == "symlog" ? getClosestValueToZero(rowData) : 1;
+
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
     const stats = {
       trellis: trellisName,
       count: count,
@@ -997,7 +1215,11 @@ function buildSumStats(
       uof: uof,
       confidenceIntervalLower: confidenceIntervalLower,
       confidenceIntervalUpper: confidenceIntervalUpper,
+<<<<<<< HEAD
       closestValueToZero: 0,
+=======
+      closestValueToZero: closestValueToZero
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
     } as SummaryStatistics;
 
     Log.green(LOG_CATEGORIES.DebugBoxIssue)(stats);

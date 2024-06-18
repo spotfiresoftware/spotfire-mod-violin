@@ -4,7 +4,7 @@
 * in the license file that is distributed with this file.
 */
 
-import { Log, LOG_CATEGORIES } from "./index";
+import { Log, LOG_CATEGORIES } from "./log";
 
 const selectionDiv = document.createElement("div");
 selectionDiv.className = "selection";
