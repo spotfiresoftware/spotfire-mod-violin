@@ -1,6 +1,10 @@
 {
     "name": "violin-plot",
+<<<<<<< HEAD
     "version": "2.6.0",
+=======
+    "version": "3.0.0",
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
     "description": "A visual representation of data distribution, combining the advantages of both box plots and kernel density plots, simultaneously displaying summary statistics and underlying data density.",
     "main": "index.js",
     "scripts": {
@@ -18,21 +22,19 @@
         "@types/d3-array": "^3.2.1",
         "@types/jest": "^28.1.4",
         "@types/node": "^16.18.11",
-        "@uwdata/kde": "^0.0.2",
         "babel-loader": "^8.1.0",
         "bootstrap": "^5.2.3",
         "buffer": "^6.0.3",
         "cephes": "^1.2.0",
         "copy-webpack-plugin": "^6.0.3",
         "d3": "^7.6.1",
-        "jest": "^28.1.2",
+        "fast-kde": "^0.2.2",
         "jquery": "^3.6.3",
         "kld-intersections": "^0.7.0",
         "ml-anova": "^1.1.5",
         "ml-array-mean": "^1.1.5",
         "ms-dropdown": "^4.0.3",
         "popper": "^1.0.1",
-        "ts-jest": "^28.0.5",
         "ts-loader": "^9.3.1",
         "ts-node": "^10.7.0",
         "typescript": "^4.6.4",
@@ -42,7 +44,10 @@
     "dependencies": {
         "@easylogic/colorpicker": "^1.10.11",
         "agentkeepalive": "^4.3.0",
+<<<<<<< HEAD
         "chokidar": "^3.5.3",
+=======
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
         "css-loader": "^6.9.0",
         "d3-drag": "^3.0.0",
         "d3-lasso": "0.0.5",

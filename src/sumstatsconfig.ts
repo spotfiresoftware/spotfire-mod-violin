@@ -4,7 +4,11 @@
 * in the license file that is distributed with this file.
 */
 
+<<<<<<< HEAD
 import { Log, LOG_CATEGORIES } from "./index";
+=======
+import { Log, LOG_CATEGORIES } from "./log";
+>>>>>>> 7df09fe71b6c7cca30c104321bcf5cd7cc99ea5f
 
 // @ts-ignore
 import * as d3 from "d3";
